@@ -1,0 +1,340 @@
+{
+  "contract_version": "1.8",
+  "intake_id": "INTAKE-ONE-LINE-001",
+  "source_idea": {
+    "raw_idea": "我想做一个给销售用的线索评分工具。",
+    "source_context_refs": [
+      "SRC-001"
+    ],
+    "created_at": "2026-05-26T00:00:00+08:00"
+  },
+  "core": "CORE-001",
+  "scope": {
+    "in_scope": [
+      "SCOPE-001"
+    ],
+    "out_of_scope": [],
+    "mvp_boundary": "Draft only; execution is blocked until scoring inputs, scoring rules, verification, stop, and done criteria are defined.",
+    "roadmap": [
+      "PHASE-001"
+    ]
+  },
+  "requirements": [
+    "REQ-001"
+  ],
+  "acceptance_criteria": [
+    "AC-001"
+  ],
+  "implementation_model": {
+    "control_flow": [],
+    "data_flow": [],
+    "modules": [],
+    "technical_decisions": [],
+    "state_transitions": [],
+    "data_contracts": []
+  },
+  "agent_execution": {
+    "input_contracts": [],
+    "execution_rules": [],
+    "verification_cases": [],
+    "output_deliverables": [],
+    "stop_conditions": [],
+    "done_criteria": []
+  },
+  "assumptions": [],
+  "open_questions": [
+    "Q-001"
+  ],
+  "sources": [
+    "SRC-001"
+  ],
+  "traceability": [
+    "TRACE-001"
+  ],
+  "render_blocks": [
+    "RB-001",
+    "RB-002"
+  ],
+  "quality_gates": [
+    "GATE-001"
+  ],
+  "render_status": {
+    "human_prd": "draft",
+    "agent_prd": "blocked"
+  },
+  "objects": {
+    "SRC-001": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-001",
+        "source_type": "user_input",
+        "content": "我想做一个给销售用的线索评分工具。",
+        "label": "Original user idea"
+      }
+    },
+    "CORE-001": {
+      "type": "CORE",
+      "payload": {
+        "id": "CORE-001",
+        "product_name": "Sales Lead Scoring Tool",
+        "one_line_summary": "Draft idea for a lead scoring tool for sales users.",
+        "target_users": [
+          "sales users"
+        ],
+        "personas": [],
+        "problem_statement": "The user wants lead scoring but has not defined inputs, scoring model, thresholds, or success criteria.",
+        "value_proposition": "Could help prioritize sales leads after scoring rules are defined.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "assumption_refs": [],
+        "status": "draft"
+      }
+    },
+    "SCOPE-001": {
+      "type": "SCOPE",
+      "payload": {
+        "id": "SCOPE-001",
+        "statement": "Preserve the idea as a draft and do not assume CRM, fields, model, thresholds, integrations, permissions, or metrics.",
+        "phase": "PHASE-001",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "PHASE-001": {
+      "type": "PHASE",
+      "payload": {
+        "id": "PHASE-001",
+        "name": "Draft clarification"
+      }
+    },
+    "REQ-001": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-001",
+        "title": "Keep lead scoring idea draft until scoring facts are known",
+        "description": "Do not generate executable scoring tasks until inputs, rules, verification, stop conditions, and done criteria are explicit.",
+        "user_value": "Prevents invented CRM and scoring assumptions.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "draft"
+      }
+    },
+    "AC-001": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-001",
+        "requirement_id": "REQ-001",
+        "criterion": "Agent PRD remains blocked or draft and task planning returns an empty executable graph.",
+        "verification_method": "inspection",
+        "blocking": true
+      }
+    },
+    "Q-001": {
+      "type": "Q",
+      "payload": {
+        "id": "Q-001",
+        "question": "Which lead inputs, scoring rules, verification cases, stop conditions, and done criteria are required for the first version?",
+        "impact": "Agent PRD and task planning cannot become ready.",
+        "owner": "user",
+        "phase": "PHASE-001",
+        "blocks_human_prd": false,
+        "blocks_agent_prd": true,
+        "status": "open",
+        "resolution_refs": []
+      }
+    },
+    "TRACE-001": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-001",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-001",
+        "relation": "stated_by"
+      }
+    },
+    "RB-001": {
+      "type": "RB",
+      "payload": {
+        "id": "RB-001",
+        "target": "human_prd",
+        "section": "Draft summary",
+        "content_type": "text",
+        "contract_refs": [
+          "CORE-001",
+          "REQ-001",
+          "Q-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "allowed_inference": "summary",
+        "unsupported_claims": [],
+        "status": "ready"
+      }
+    },
+    "RB-002": {
+      "type": "RB",
+      "payload": {
+        "id": "RB-002",
+        "target": "agent_prd",
+        "section": "Blocked execution status",
+        "content_type": "text",
+        "contract_refs": [
+          "REQ-001",
+          "Q-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "allowed_inference": "summary",
+        "unsupported_claims": [],
+        "status": "blocked"
+      }
+    },
+    "GATE-001": {
+      "type": "GATE",
+      "payload": {
+        "id": "GATE-001",
+        "name": "lead scoring execution readiness",
+        "blocking_condition": "Scoring inputs, rules, verification, stop, and done criteria are unknown.",
+        "status": "blocked",
+        "blocking": true,
+        "affected_targets": [
+          "agent_prd"
+        ],
+        "evidence_refs": [
+          "Q-001",
+          "REQ-001"
+        ]
+      }
+    },
+    "META-001": {
+      "type": "META",
+      "payload": {
+        "id": "META-001",
+        "title": "Spec Intake Package",
+        "version": "1.8",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    }
+  },
+  "contract_summary": {
+    "maturity": "L2",
+    "ready_targets": [],
+    "blocked_targets": [
+      "agent_prd"
+    ]
+  },
+  "traceability_summary": {
+    "render_traceability": [
+      "RB-001",
+      "RB-002"
+    ],
+    "requirement_traceability": [
+      "TRACE-001"
+    ],
+    "decision_traceability": [
+      {
+        "decision_type": "open_question",
+        "decision_ref": "Q-001",
+        "status": "open",
+        "affected_refs": [
+          "REQ-001",
+          "GATE-001"
+        ]
+      }
+    ]
+  },
+  "gate_report": [
+    {
+      "gate_id": "GATE-001",
+      "status": "blocked",
+      "blocking": true,
+      "affected_targets": [
+        "agent_prd"
+      ],
+      "evidence_refs": [
+        "Q-001",
+        "REQ-001"
+      ],
+      "message": "Lead scoring execution is blocked until scoring facts are explicit.",
+      "required_fix": "Answer Q-001 before rendering an execution-ready Agent PRD."
+    }
+  ],
+  "success_metrics": [],
+  "risks": [],
+  "quality_bars": [],
+  "references": [],
+  "document_metadata": [
+    "META-001"
+  ],
+  "next_actions": [
+    "Resolve blocking questions or missing execution contract refs before declaring readiness."
+  ],
+  "object_index": {
+    "CORE": [
+      "CORE-001"
+    ],
+    "USER": [],
+    "SCOPE": [
+      "SCOPE-001"
+    ],
+    "OOS": [],
+    "PHASE": [
+      "PHASE-001"
+    ],
+    "REQ": [
+      "REQ-001"
+    ],
+    "AC": [
+      "AC-001"
+    ],
+    "MET": [],
+    "FLOW": [],
+    "DATA": [],
+    "MOD": [],
+    "TECH": [],
+    "STATE": [],
+    "DCT": [],
+    "IN": [],
+    "EXE": [],
+    "VER": [],
+    "OUT": [],
+    "STOP": [],
+    "DONE": [],
+    "RISK": [],
+    "BAR": [],
+    "ASM": [],
+    "Q": [
+      "Q-001"
+    ],
+    "REF": [],
+    "SRC": [
+      "SRC-001"
+    ],
+    "TRACE": [
+      "TRACE-001"
+    ],
+    "RB": [
+      "RB-001",
+      "RB-002"
+    ],
+    "META": [
+      "META-001"
+    ],
+    "GATE": [
+      "GATE-001"
+    ]
+  }
+}

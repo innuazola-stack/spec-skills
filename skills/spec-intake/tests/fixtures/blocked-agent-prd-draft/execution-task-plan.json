@@ -1,0 +1,38 @@
+{
+  "plan_id": "ETP-BLOCKED-001",
+  "planning_source_mode": "contract_backed",
+  "source_artifacts": {
+    "contract_ref": "contract-envelope.json",
+    "contract_version": "1.8",
+    "agent_prd_ref": "agent-prd.md",
+    "agent_prd_status": "draft",
+    "phase_ref": "PHASE-001",
+    "phase_label": "Phase 1 MVP",
+    "phase_ref_kind": "canonical_id",
+    "phase_ref_fallback_reason": ""
+  },
+  "planning_status": "blocked",
+  "blocking_reasons": [
+    "agent_prd_not_execution_ready"
+  ],
+  "missing_required_refs": [],
+  "required_fixes": [
+    "Run Agent PRD gates until source_artifacts.agent_prd_status becomes execution_ready."
+  ],
+  "task_graph": [],
+  "dependency_edges": [],
+  "parallel_groups": [],
+  "stage_goal_coverage": [],
+  "planning_gate_report": [
+    {
+      "check_id": "CHECK-000",
+      "name": "source readiness",
+      "status": "blocked",
+      "evidence_refs": [
+        "PHASE-001"
+      ],
+      "evidence_summary": "The source Agent PRD is draft, so execution task planning cannot produce a ready task graph.",
+      "required_fix": "Make the Agent PRD execution-ready and rerun task planning."
+    }
+  ]
+}

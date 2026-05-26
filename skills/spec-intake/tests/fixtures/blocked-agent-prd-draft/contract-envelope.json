@@ -1,0 +1,338 @@
+{
+  "contract_version": "1.8",
+  "intake_id": "INTAKE-BLOCKED-001",
+  "source_idea": {
+    "raw_idea": "Draft-only fixture for blocked Agent PRD.",
+    "source_context_refs": [
+      "SRC-001"
+    ],
+    "created_at": "2026-05-26T00:00:00+08:00"
+  },
+  "core": "CORE-001",
+  "scope": {
+    "in_scope": [
+      "SCOPE-001"
+    ],
+    "out_of_scope": [],
+    "mvp_boundary": "Draft fixture only; execution scope is not ready.",
+    "roadmap": [
+      "PHASE-001"
+    ]
+  },
+  "requirements": [
+    "REQ-001"
+  ],
+  "acceptance_criteria": [
+    "AC-001"
+  ],
+  "implementation_model": {
+    "control_flow": [],
+    "data_flow": [],
+    "modules": [],
+    "technical_decisions": [],
+    "state_transitions": [],
+    "data_contracts": []
+  },
+  "agent_execution": {
+    "input_contracts": [],
+    "execution_rules": [],
+    "verification_cases": [],
+    "output_deliverables": [],
+    "stop_conditions": [],
+    "done_criteria": []
+  },
+  "assumptions": [],
+  "open_questions": [
+    "Q-001"
+  ],
+  "sources": [
+    "SRC-001"
+  ],
+  "traceability": [
+    "TRACE-001"
+  ],
+  "render_blocks": [
+    "RB-001",
+    "RB-002"
+  ],
+  "quality_gates": [
+    "GATE-001"
+  ],
+  "render_status": {
+    "human_prd": "draft",
+    "agent_prd": "draft"
+  },
+  "objects": {
+    "SRC-001": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-001",
+        "source_type": "user_input",
+        "content": "Draft-only fixture for blocked Agent PRD.",
+        "label": "Original user idea"
+      }
+    },
+    "CORE-001": {
+      "type": "CORE",
+      "payload": {
+        "id": "CORE-001",
+        "product_name": "Blocked Fixture",
+        "one_line_summary": "A draft-only fixture used to prove blocked planning behavior.",
+        "target_users": [],
+        "personas": [],
+        "problem_statement": "The Agent PRD is still draft.",
+        "value_proposition": "Show that task planning blocks until execution readiness is achieved.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "assumption_refs": [],
+        "status": "draft"
+      }
+    },
+    "SCOPE-001": {
+      "type": "SCOPE",
+      "payload": {
+        "id": "SCOPE-001",
+        "statement": "Validate blocked planning behavior for a draft Agent PRD.",
+        "phase": "PHASE-001",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "REQ-001": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-001",
+        "title": "Block task planning while Agent PRD is draft",
+        "description": "The package must not expose executable tasks until Agent PRD readiness gates pass.",
+        "user_value": "Prevents downstream execution from consuming an immature spec.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "draft"
+      }
+    },
+    "AC-001": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-001",
+        "requirement_id": "REQ-001",
+        "criterion": "Task planning returns planning_status=blocked and an empty executable graph.",
+        "verification_method": "inspection",
+        "blocking": true
+      }
+    },
+    "Q-001": {
+      "type": "Q",
+      "payload": {
+        "id": "Q-001",
+        "question": "Which execution inputs, verification cases, stop conditions, and done criteria make this Agent PRD execution-ready?",
+        "impact": "Agent PRD and task planning cannot become ready.",
+        "owner": "user",
+        "phase": "PHASE-001",
+        "blocks_human_prd": false,
+        "blocks_agent_prd": true,
+        "status": "open",
+        "resolution_refs": []
+      }
+    },
+    "PHASE-001": {
+      "type": "PHASE",
+      "payload": {
+        "id": "PHASE-001",
+        "name": "Phase 1 MVP"
+      }
+    },
+    "TRACE-001": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-001",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-001",
+        "relation": "stated_by"
+      }
+    },
+    "RB-001": {
+      "type": "RB",
+      "payload": {
+        "id": "RB-001",
+        "target": "human_prd",
+        "section": "Draft status",
+        "content_type": "text",
+        "contract_refs": [
+          "CORE-001",
+          "REQ-001",
+          "Q-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "allowed_inference": "summary",
+        "unsupported_claims": [],
+        "status": "ready"
+      }
+    },
+    "RB-002": {
+      "type": "RB",
+      "payload": {
+        "id": "RB-002",
+        "target": "agent_prd",
+        "section": "Blocked execution status",
+        "content_type": "text",
+        "contract_refs": [
+          "REQ-001",
+          "Q-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "allowed_inference": "summary",
+        "unsupported_claims": [],
+        "status": "ready"
+      }
+    },
+    "GATE-001": {
+      "type": "GATE",
+      "payload": {
+        "id": "GATE-001",
+        "name": "agent execution readiness",
+        "blocking_condition": "Agent PRD lacks execution inputs, verification, stop conditions, and done criteria.",
+        "status": "blocked",
+        "blocking": true,
+        "affected_targets": [
+          "agent_prd"
+        ],
+        "evidence_refs": [
+          "Q-001",
+          "REQ-001"
+        ]
+      }
+    },
+    "META-001": {
+      "type": "META",
+      "payload": {
+        "id": "META-001",
+        "title": "Spec Intake Package",
+        "version": "1.8",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    }
+  },
+  "contract_summary": {
+    "maturity": "L2",
+    "ready_targets": [],
+    "blocked_targets": [
+      "agent_prd"
+    ]
+  },
+  "traceability_summary": {
+    "render_traceability": [
+      "RB-001",
+      "RB-002"
+    ],
+    "requirement_traceability": [
+      "TRACE-001"
+    ],
+    "decision_traceability": [
+      {
+        "decision_type": "open_question",
+        "decision_ref": "Q-001",
+        "status": "open",
+        "affected_refs": [
+          "REQ-001",
+          "GATE-001"
+        ]
+      }
+    ]
+  },
+  "gate_report": [
+    {
+      "gate_id": "GATE-001",
+      "status": "blocked",
+      "blocking": true,
+      "affected_targets": [
+        "agent_prd"
+      ],
+      "evidence_refs": [
+        "Q-001",
+        "REQ-001"
+      ],
+      "message": "Agent PRD is draft and lacks execution readiness objects.",
+      "required_fix": "Define IN, EXE, VER, OUT, STOP, and DONE objects before task planning."
+    }
+  ],
+  "success_metrics": [],
+  "risks": [],
+  "quality_bars": [],
+  "references": [],
+  "document_metadata": [
+    "META-001"
+  ],
+  "next_actions": [
+    "Resolve blocking questions or missing execution contract refs before declaring readiness."
+  ],
+  "object_index": {
+    "CORE": [
+      "CORE-001"
+    ],
+    "USER": [],
+    "SCOPE": [
+      "SCOPE-001"
+    ],
+    "OOS": [],
+    "PHASE": [
+      "PHASE-001"
+    ],
+    "REQ": [
+      "REQ-001"
+    ],
+    "AC": [
+      "AC-001"
+    ],
+    "MET": [],
+    "FLOW": [],
+    "DATA": [],
+    "MOD": [],
+    "TECH": [],
+    "STATE": [],
+    "DCT": [],
+    "IN": [],
+    "EXE": [],
+    "VER": [],
+    "OUT": [],
+    "STOP": [],
+    "DONE": [],
+    "RISK": [],
+    "BAR": [],
+    "ASM": [],
+    "Q": [
+      "Q-001"
+    ],
+    "REF": [],
+    "SRC": [
+      "SRC-001"
+    ],
+    "TRACE": [
+      "TRACE-001"
+    ],
+    "RB": [
+      "RB-001",
+      "RB-002"
+    ],
+    "META": [
+      "META-001"
+    ],
+    "GATE": [
+      "GATE-001"
+    ]
+  }
+}

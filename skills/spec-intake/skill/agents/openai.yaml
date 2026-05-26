@@ -1,0 +1,3 @@
+display_name: Spec Intake
+short_description: Turn a raw idea into contract-backed Human PRD, Agent PRD, and execution tasks.
+default_prompt: Create a spec package from this idea, including contract envelope, Human PRD, Agent PRD, and execution task plan.

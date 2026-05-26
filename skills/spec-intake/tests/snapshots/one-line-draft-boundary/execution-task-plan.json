@@ -1,0 +1,46 @@
+{
+  "plan_id": "ETP-ONE-LINE-001",
+  "planning_source_mode": "contract_backed",
+  "source_artifacts": {
+    "contract_ref": "contract-envelope.json",
+    "contract_version": "1.8",
+    "agent_prd_ref": "agent-prd.md",
+    "agent_prd_status": "blocked",
+    "phase_ref": "PHASE-001",
+    "phase_label": "Draft clarification",
+    "phase_ref_kind": "canonical_id",
+    "phase_ref_fallback_reason": ""
+  },
+  "planning_status": "blocked",
+  "blocking_reasons": [
+    "agent_prd_blocked_by_missing_scoring_contract"
+  ],
+  "missing_required_refs": [
+    "IN-*",
+    "EXE-*",
+    "VER-*",
+    "OUT-*",
+    "STOP-*",
+    "DONE-*"
+  ],
+  "required_fixes": [
+    "Resolve Q-001 before creating executable tasks."
+  ],
+  "task_graph": [],
+  "dependency_edges": [],
+  "parallel_groups": [],
+  "stage_goal_coverage": [],
+  "planning_gate_report": [
+    {
+      "check_id": "CHECK-001",
+      "name": "source readiness",
+      "status": "blocked",
+      "evidence_refs": [
+        "Q-001",
+        "GATE-001"
+      ],
+      "evidence_summary": "Agent PRD is blocked by missing scoring contract facts.",
+      "required_fix": "Resolve Q-001."
+    }
+  ]
+}
