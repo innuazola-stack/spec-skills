@@ -22,6 +22,7 @@ validators:
   - validators/validate_harness.py
   - validators/validate_development_planning_package.py
   - tools/validate_skill_static.py
+release_builder: tools/build_release.py
 schemas:
   - schemas/development-planning.schema.json
 adapters:

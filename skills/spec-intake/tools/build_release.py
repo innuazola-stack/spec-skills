@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import argparse
 import json
 import shutil
 import subprocess
@@ -137,9 +138,17 @@ def write_release_manifest(dist: Path, artifacts: list[dict[str, str]]) -> None:
 
 
 def main(argv: list[str]) -> int:
-    root = Path(argv[1]).resolve() if len(argv) == 2 else Path(__file__).resolve().parents[1]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("root", nargs="?", help="optional spec-intake skill root")
+    parser.add_argument("--check", action="store_true", help="validate release inputs without writing artifacts")
+    args = parser.parse_args(argv[1:])
+
+    root = Path(args.root).resolve() if args.root else Path(__file__).resolve().parents[1]
     version = read_version(root)
     run_source_validation(root)
+    if args.check:
+        print("PASS: spec-intake release check")
+        return 0
 
     dist = root / "dist"
     staging_root = dist / ".staging"

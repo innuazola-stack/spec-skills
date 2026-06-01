@@ -4,12 +4,12 @@ artifacts:
   - path: dist/design-planning-0.2.0-source.zip
     sha256: 441dc01d61417ee34d249c4422be0972b7ce699b545302f944cedc21e9a47d78
   - path: dist/design-planning-0.2.0-codex.zip
-    sha256: 8c86a15d5f42be49246a3080c6ec2e0276ff7e2c03588d771e80841797298913
+    sha256: 5cf5ad0fd75dfe5e6d971ccca11e8559b1925b805410b62429d7a182ec0cc881
   - path: dist/design-planning-0.2.0-claude.zip
-    sha256: d6e85ebddde6b9b8e5bc3a4d9599942fe5dffd232fcc1c4b3f969f311fddda53
+    sha256: 9d192474e6d26b7d1304cc9b9794cf3bd0fe495a3495f27f89c0e111228cccd7
   - path: dist/design-planning-0.2.0-gemini.zip
-    sha256: 82c6601eb62568fe5a4f4cd40fc27d18f1328b744893691d8f8c6b038c8a01a5
+    sha256: 3909d4ff808c1aedeed7dfc94a1e8918b5bf6c690dbc427c245458973870dca7
   - path: dist/design-planning-0.2.0-openclaw.zip
-    sha256: 459410082e6904562841f47c567b832a37d7a493008874b2d6b0bd387a8905dd
+    sha256: 65e3ebd3960123becbe7eead90e5b79a9035dc8fbb4b5e82faf57c8b3d53764f
   - path: dist/design-planning-0.2.0-hermas.zip
-    sha256: 6c31a5af1751d5c69d6b19fc3cefb74f06f400b62b9fe192ac1df13017916847
+    sha256: 8c719a36a64a01e9e917fa6168ac33483951d2d1d4d8525a992abcaa1d24bd01

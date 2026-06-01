@@ -6,4 +6,4 @@ artifacts:
     sha256: 6cd9e9b2ebfd85ac43dfad4f6e7d51af43800d1d01146af82cb20f7a6d7dedcd
   - kind: codex
     path: dist/prd-writing-1.0.0-codex.zip
-    sha256: 7392fe951fd7a2f50ff30ec09f74622506c7308a074b7e2876621ce7d9f578c9
+    sha256: 53ccca5551768d9c0b9e910be5ee004725ff18793d759fe4d5fbb25ffce5f0ba

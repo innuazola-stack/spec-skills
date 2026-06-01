@@ -2,7 +2,7 @@ name: spec-intake
 artifacts:
   - kind: source
     path: dist/spec-intake-1.0.0-source.zip
-    sha256: 3e6b93cdd0b62b97f948958d117c70458595dcfc0287ecc8bd12d0f4dca4f153
+    sha256: 6c49ea77889e308b468fa7b6df3bfe1a49f469fe61a5249f98cdab869563cc89
   - kind: codex
     path: dist/spec-intake-1.0.0-codex.zip
-    sha256: a07f720b4e0c8f2d0b72e6846bddabb995200f44226a8403c516f2438fb3e962
+    sha256: 099b79bad7b5f064683f8b067a64e4cef84bc9721b37422794b9d1ba9ab9f0ab

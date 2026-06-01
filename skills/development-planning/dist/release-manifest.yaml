@@ -1,0 +1,9 @@
+name: development-planning
+version: 0.1.0
+artifacts:
+  - kind: source
+    path: dist/development-planning-0.1.0-source.zip
+    sha256: 97a66d55ad88cbcc333c10c9bff4edd8d0d1aa544b8f4ee38d82a8edf0e345b2
+  - kind: codex
+    path: dist/development-planning-0.1.0-codex.zip
+    sha256: 2a4fe0647f58412b2ced8373223d00dd3b96b7b37992acb1d610d47f04651c94
