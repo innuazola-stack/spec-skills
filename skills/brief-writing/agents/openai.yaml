@@ -1,0 +1,4 @@
+interface:
+  display_name: "Brief Writing"
+  short_description: "Write source-backed product, design, and technical briefs."
+  default_prompt: "Use $brief-writing to draft or review a concise source-backed brief."

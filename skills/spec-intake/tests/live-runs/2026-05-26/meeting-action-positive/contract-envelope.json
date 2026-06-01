@@ -58,7 +58,8 @@
   "assumptions": [],
   "open_questions": [],
   "sources": [
-    "SRC-001"
+    "SRC-001",
+    "SRC-002"
   ],
   "traceability": [
     "TRACE-001"
@@ -261,7 +262,7 @@
       "payload": {
         "id": "RB-002",
         "target": "agent_prd",
-        "section": "Execution contract",
+        "section": "Execution-ready Agent PRD",
         "content_type": "text",
         "contract_refs": [
           "REQ-001",
@@ -285,7 +286,7 @@
       "payload": {
         "id": "GATE-001",
         "name": "agent execution readiness",
-        "blocking_condition": "Agent PRD must have input, execution, verification, output, stop, and done refs.",
+        "blocking_condition": "Agent PRD must have complete PRD body sections plus input, execution, verification, output, stop, and done refs.",
         "status": "pass",
         "blocking": false,
         "affected_targets": [
@@ -310,6 +311,15 @@
         "source_refs": [
           "SRC-001"
         ]
+      }
+    },
+    "SRC-002": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-002",
+        "source_type": "user_confirmation",
+        "content": "Human reviewer approved the Human PRD and authorized Stage 3 HLD.",
+        "label": "Human PRD approval"
       }
     }
   },
@@ -347,7 +357,7 @@
         "STOP-001",
         "DONE-001"
       ],
-      "message": "Agent PRD is execution-ready for Phase 1.",
+      "message": "Agent PRD is a complete execution-ready PRD for Phase 1.",
       "required_fix": ""
     }
   ],
@@ -410,7 +420,8 @@
     "Q": [],
     "REF": [],
     "SRC": [
-      "SRC-001"
+      "SRC-001",
+      "SRC-002"
     ],
     "TRACE": [
       "TRACE-001"
@@ -424,6 +435,62 @@
     ],
     "GATE": [
       "GATE-001"
+    ]
+  },
+  "harness_workflow": {
+    "workflow_type": "review_gated_self_improving_generation",
+    "current_stage": "stage_3_hld",
+    "stage_order": [
+      "stage_1_requirements_table",
+      "stage_2_prd_review",
+      "stage_3_hld"
+    ],
+    "approval_gates": {
+      "human_prd_review": {
+        "status": "approved",
+        "approved_by_ref": "SRC-002"
+      }
+    },
+    "revision_policy": {
+      "max_review_rounds": 3,
+      "on_revise": "update_requirement_table_then_rerender_prds"
+    }
+  },
+  "requirement_table": [
+    {
+      "row_id": "RT-001",
+      "requirement_ref": "REQ-001",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "Teams lose follow-up accountability after meetings because action items are scattered in transcripts.",
+      "user_value": "Operators can trust and edit follow-up lists before sharing them.",
+      "mvp_scope": "Phase 1 accepts authorized transcript text, extracts action items with evidence, requires human confirmation, and exports Markdown.",
+      "acceptance_summary": "Given authorized transcript text with one explicit action item, the output includes action, owner, due date if present, evidence quote, and waits for confirmation before Markdown export.",
+      "target_artifact_refs": [
+        "REQ-001",
+        "AC-001",
+        "RB-001",
+        "RB-002",
+        "IN-001",
+        "EXE-001",
+        "VER-001",
+        "OUT-001",
+        "STOP-001",
+        "DONE-001"
+      ]
+    }
+  ],
+  "interaction_decision": {
+    "stage": "stage_1_requirements_table",
+    "decision": "proceed_without_questions",
+    "can_ask_user": true,
+    "reason": "The source idea and confirmed sources provide enough information to produce the requirement table without clarification.",
+    "question_refs": [],
+    "blocking_refs": [],
+    "source_refs": [
+      "SRC-001"
     ]
   }
 }

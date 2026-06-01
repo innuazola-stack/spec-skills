@@ -1,0 +1,59 @@
+name: design-planning
+version: 0.2.0
+type: harness-workflow
+paradigm: review-gated
+summary: >
+  Read PRD/HLD under a target project's docs directory, generate source-backed
+  detailed-design planning, emit documentation-only task fixtures, and require a
+  final design acceptance task.
+required_files:
+  - SKILL.md
+  - agent.md
+  - workflow.md
+  - rules.md
+  - schemas/design-planning.schema.json
+  - validators/validate_design_planning.py
+  - validators/validate_harness.py
+  - tools/build_release.py
+  - evals/cases/positive-rust-prd-hld.md
+  - evals/cases/negative-missing-hld.md
+  - evals/cases/boundary-future-phase.md
+  - skill/SKILL.md
+supported_adapters:
+  codex:
+    entry: adapters/codex/system-prompt.md
+  claude:
+    entry: adapters/claude/CLAUDE.md
+  gemini:
+    entry: adapters/gemini/GEMINI.md
+  openclaw:
+    entry: adapters/openclaw/OPENCLAW.md
+  hermas:
+    entry: adapters/hermas/HERMAS.md
+default_planning_output_root: tasks/design
+fixed_detailed_design_root: docs/design
+canonical_artifacts:
+  planning_json: <planning-output-root>/design-planning.json
+  overall_rust_design: docs/design/rust-implementation-design.md
+  task_fixtures: <planning-output-root>/fixtures/<TASK-ID>/
+  task_design_docs: docs/design/<TASK-ID>-*-design.md
+  final_acceptance_report: docs/design/TASK-*-detailed-design-acceptance-review.md
+validators:
+  structural:
+    command: python validators/validate_design_planning.py --project-root <target> --planning-json <target>/<planning-output-root>/design-planning.json
+semantic_review:
+  required: true
+  reviewer_role: senior Rust software design reviewer
+  verdicts:
+    - pass
+    - revise
+    - fail
+done_criteria:
+  - planning JSON is structurally valid
+  - all PRD/HLD sources are inventoried
+  - all design tasks are documentation-only
+  - each task has an exact docs/design/*.md design_doc_path
+  - final design acceptance task depends on every detailed design task
+  - DAG is acyclic and every edge has a semantic reason
+  - per-task prompt.md, AGENTS.md, and CLAUDE.md exist
+  - validator passes against the generated target output

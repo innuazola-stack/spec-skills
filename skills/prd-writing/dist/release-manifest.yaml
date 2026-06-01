@@ -1,0 +1,9 @@
+name: prd-writing
+version: 1.0.0
+artifacts:
+  - kind: source
+    path: dist/prd-writing-1.0.0-source.zip
+    sha256: 6cd9e9b2ebfd85ac43dfad4f6e7d51af43800d1d01146af82cb20f7a6d7dedcd
+  - kind: codex
+    path: dist/prd-writing-1.0.0-codex.zip
+    sha256: 7392fe951fd7a2f50ff30ec09f74622506c7308a074b7e2876621ce7d9f578c9

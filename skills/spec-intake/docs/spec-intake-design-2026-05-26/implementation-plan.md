@@ -14,7 +14,7 @@
 
 ## Goal
 
-Create a Codex skill that guides idea intake into contract-backed PRDs and task plans.
+Create a Codex skill that guides idea intake into contract-backed PRDs and HLD.
 
 ## Files To Create Or Update
 
@@ -30,7 +30,7 @@ Create a Codex skill that guides idea intake into contract-backed PRDs and task 
 
 ## Contracts To Preserve
 
-Contract-first facts, sibling PRDs, honest unknowns, execution-ready gate, and blocked task-plan invariants.
+Contract-first facts, sibling PRDs, honest unknowns, execution-ready gate, and blocked HLD invariants.
 
 ## Risks During Implementation
 

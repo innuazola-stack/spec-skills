@@ -1,0 +1,15 @@
+name: design-planning
+version: 0.2.0
+artifacts:
+  - path: dist/design-planning-0.2.0-source.zip
+    sha256: 441dc01d61417ee34d249c4422be0972b7ce699b545302f944cedc21e9a47d78
+  - path: dist/design-planning-0.2.0-codex.zip
+    sha256: 8c86a15d5f42be49246a3080c6ec2e0276ff7e2c03588d771e80841797298913
+  - path: dist/design-planning-0.2.0-claude.zip
+    sha256: d6e85ebddde6b9b8e5bc3a4d9599942fe5dffd232fcc1c4b3f969f311fddda53
+  - path: dist/design-planning-0.2.0-gemini.zip
+    sha256: 82c6601eb62568fe5a4f4cd40fc27d18f1328b744893691d8f8c6b038c8a01a5
+  - path: dist/design-planning-0.2.0-openclaw.zip
+    sha256: 459410082e6904562841f47c567b832a37d7a493008874b2d6b0bd387a8905dd
+  - path: dist/design-planning-0.2.0-hermas.zip
+    sha256: 6c31a5af1751d5c69d6b19fc3cefb74f06f400b62b9fe192ac1df13017916847

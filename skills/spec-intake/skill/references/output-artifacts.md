@@ -1,18 +1,41 @@
 # Output Artifacts
 
-Use this reference before writing `contract-envelope.json`, `human-prd.md`, or `agent-prd.md`.
+Use this reference before writing `contract-envelope.json`, `prd.md`, `prd-brief.md`, `high-level-design.json`, or `high-level-design.md`.
 
 ## Package Files
 
+Stage 1 package:
+
 ```text
 contract-envelope.json
-human-prd.md
-agent-prd.md
-execution-task-plan.json
+```
+
+Stage 1 is complete only when this file is written and `validate_spec_intake_package.py <output-dir> --stage stage1` passes. Stage 1 packages must not contain `prd.md`, `prd-brief.md`, `human-prd.md`, `agent-prd.md`, `high-level-design.json`, `high-level-design.md`, `hld-semantic-review.json`, or `execution-task-plan.json`.
+
+Stage 2 package:
+
+```text
+contract-envelope.json
+prd.md
+prd-brief.md
 intake-notes.md
 ```
 
-The package is a file-based adaptation of `docs/prd-intake/output-contract.md`: `contract-envelope.json` is the canonical contract plus audit layer, while `human-prd.md` and `agent-prd.md` are sibling renders from that contract.
+Stage 2 is complete only when these files are written and `validate_spec_intake_package.py <output-dir> --stage stage2` passes. Stage 2 packages must not contain `human-prd.md`, `agent-prd.md`, `high-level-design.json`, `high-level-design.md`, `hld-semantic-review.json`, or `execution-task-plan.json`. `render_status.prd` must be `review_ready`, `render_status.prd_brief` must be `review_ready`, `harness_workflow.current_stage` must be `stage_2_prd_review`, and `prd_review.status` must be `pending` or `approved`. `contract_summary.stage_ready` must include Stage 1 and Stage 2, must not include Stage 3, and pending PRD review must keep Stage 3 blocked.
+
+Final package:
+
+```text
+contract-envelope.json
+prd.md
+prd-brief.md
+high-level-design.json
+high-level-design.md
+hld-semantic-review.json
+intake-notes.md
+```
+
+The package is a file-based adaptation of the harness output contract: `contract-envelope.json` is the canonical contract plus audit layer, `prd.md` is the standard PRD produced by `prd-writer`, `prd-brief.md` is the concise human review brief, `high-level-design.json` is the structured HLD source, `high-level-design.md` is the formal human-readable HLD document, and `hld-semantic-review.json` is the independent semantic review artifact.
 
 ## Contract Envelope
 
@@ -20,7 +43,10 @@ The package is a file-based adaptation of `docs/prd-intake/output-contract.md`: 
 
 - `contract_version`
 - `intake_id`
+- `harness_workflow`
 - `source_idea`
+- `interaction_decision`
+- `requirement_table`
 - `core`
 - `scope`
 - `requirements`
@@ -39,6 +65,7 @@ The package is a file-based adaptation of `docs/prd-intake/output-contract.md`: 
 - `document_metadata`
 - `quality_gates`
 - `render_status`
+- `writer_invocations`
 - `objects`
 - `object_index`
 - `contract_summary`
@@ -50,28 +77,72 @@ Use canonical IDs: `CORE`, `USER`, `SCOPE`, `OOS`, `PHASE`, `REQ`, `AC`, `MET`, 
 
 Top-level arrays are indexes or views. `objects[ID].payload` owns the facts. `object_index` is derived from `objects` and must cover every object by canonical type.
 
-Every top-level view must match its object type exactly. For example, every `REQ-*` object appears in `requirements`, every `GATE-*` object appears in `quality_gates` and `gate_report`, and every `SRC-*` object appears in `sources`. Do not hide canonical objects only in `objects`.
+## Writer Invocation Evidence
 
-## Source Facts
+`writer_invocations` proves that `spec-intake` delegated writer-owned artifacts instead of hand-authoring them.
 
-Every rendered fact must trace to `SRC-*`, `ASM-*`, `Q-*`, or another canonical object.
+Required records:
 
-`SRC.source_type` must be one of:
+- `writer_invocations.prd` for Stage 2.
+- `writer_invocations.hld` for Stage 3.
 
-- `user_input`
-- `user_document`
-- `user_confirmation`
-- `external_reference`
-- `local_file`
-- `runtime_input`
-- `system_generated`
+Each writer record must include:
 
-For `user_input`, `user_document`, and `user_confirmation`, include `content` or `target`. Do not write "user confirmed" only in prose; record a `SRC.source_type=user_confirmation` object and link it through `TRACE` or `decision_traceability`.
+- `writer_skill`: `prd-writer` or `prd-writing` for PRD; `hld-writer` or `hld-writing` for HLD.
+- `status`: `completed`, `blocked`, `unavailable`, or `failed` after the stage is attempted.
+- `source_ref`: a `SRC-*` object with `source_type=system_generated` describing the writer invocation.
+- `input_refs`: canonical IDs supplied to the writer.
+- `output_artifacts`: for completed runs, path and sha256 for writer-owned outputs.
+- `required_fix`: required when status is `blocked`, `unavailable`, or `failed`.
+
+Ready Stage 2 requires `writer_invocations.prd.status=completed` and `output_artifacts.path=prd.md`.
+Ready Stage 3 requires `writer_invocations.hld.status=completed` and output artifacts for `high-level-design.json`, `high-level-design.md`, and `hld-semantic-review.json`.
+
+When a writer is unavailable, the package must be blocked and must include `required_fix`; do not silently handwrite the writer-owned artifact.
+
+## Harness Workflow State
+
+`harness_workflow.workflow_type` must be `review_gated_self_improving_generation`.
+
+`harness_workflow.stage_order` must be:
+
+1. `stage_1_requirements_table`
+2. `stage_2_prd_review`
+3. `stage_3_hld`
+
+`harness_workflow.approval_gates.prd_review` controls the Stage 2 to Stage 3 transition. Stage 3 may run only when:
+
+- `status=approved`
+- `approved_by_ref` points to a `SRC-*` object
+- that `SRC-*` has `source_type=user_confirmation`
+- that `SRC-*` has `confirmation_kind=prd_review_approval`
+- that `SRC-*` has `confirmation_intent=approve_prd_and_enter_stage_3`
+- `approved_artifacts` binds both `prd.md` and `prd-brief.md` by current sha256 digest
+
+When the user rejects or revises the PRD package, set the approval gate to `revise`, update the requirement table, rerun `prd-writer`, regenerate the PRD brief, and do not enter HLD.
+
+## Interaction Decision
+
+`interaction_decision` is the hard Stage 1 route decision. It records whether the workflow must ask the user, can proceed without questions, or can only produce a blocked draft.
+
+Required fields:
+
+- `stage=stage_1_requirements_table`
+- `decision`: `ask_user`, `proceed_without_questions`, or `blocked_draft`
+- `can_ask_user`
+- `reason`
+- `question_refs`
+- `blocking_refs`
+- `source_refs`
+
+`decision=ask_user` requires non-empty `question_refs` backed by `Q-*` objects. `decision=proceed_without_questions` is forbidden while unresolved blocking `Q-*`, `ASM-*`, triggered `STOP-*`, or blocking `GATE-*` refs remain.
+
+`decision=proceed_without_questions` also requires PRD-ready Stage 1 support. The contract must already contain source-backed product context, target-user posture, MVP boundary, current-phase requirement rows, acceptance/verification support, implementation approach support, and complete execution refs (`IN`, `EXE`, `VER`, `OUT`, `STOP`, `DONE`) when execution behavior is material. Missing support must route to `ask_user` or `blocked_draft`.
 
 ## Status Rules
 
-- Human PRD statuses: `not_requested`, `draft`, `review_ready`, `blocked`.
-- Agent PRD statuses: `not_requested`, `draft`, `execution_ready`, `blocked`.
+- PRD statuses: `not_requested`, `draft`, `review_ready`, `blocked`.
+- PRD brief statuses: `not_requested`, `draft`, `review_ready`, `blocked`.
 - `CORE` and `REQ`: `draft`, `confirmed`, `blocked`.
 - `Q` and `ASM`: `open`, `resolved`, `deferred`, `superseded`.
 - `RB`: `ready`, `blocked`.
@@ -80,56 +151,11 @@ For `user_input`, `user_document`, and `user_confirmation`, include `content` or
 
 Do not add `status` to object types that do not define it.
 
-## Readiness Blockers
-
-Ready output is forbidden when:
-
-- `CORE.status=blocked`
-- any current `REQ.status=blocked`
-- `Q` or `ASM` has `blocks_human_prd=true` or `blocks_agent_prd=true` and `status` is missing or `open`
-- `STOP.status=triggered` affects Agent PRD execution
-- `GATE.status=blocked` or `GATE.blocking=true` affects the target
-- `gate_report.status=warning` lacks `message` or `required_fix`
-- `gate_report.status=pass|warning` has `blocking=true`
-- `gate_report.blocking=true` has any status other than `blocked`
-
-`contract_summary.ready_targets` and `blocked_targets` must be derived from these blockers, not written by hand.
-
-Current requirements are phase-aware. The current phase is the first canonical `PHASE-*` in `scope.roadmap` unless a task plan provides a more specific canonical phase. Future-phase blocked requirements must not block the current phase, and future-phase requirements must not enter a ready current-phase task plan.
-
-## Human PRD
-
-Render in professional simplified Chinese. It answers:
-
-- 要做什么、给谁用
-- 为什么值得做
-- MVP 做什么、不做什么
-- 验收标准是什么
-- 风险、假设、开放问题是什么
-- 分阶段如何落地
-
-The Human PRD is for decision-making. It may be `draft` or `review_ready`; it is not an implementation task list.
-
-## Agent PRD
-
-Render in English. It must define:
-
-- Source of Truth
-- Input Contract
-- Scope Contract
-- Execution Contract
-- Data and State Contract
-- Verification Contract
-- Stop Conditions
-- Done Criteria
-
-Agent PRD can be `execution_ready` only when current execution requirements have visible `AC` and `VER`, execution objects are traceable, blocking gates pass, and unresolved decisions are either non-blocking or deferred.
-
 ## Render Block Rule
 
-Every meaningful PRD section must be backed by `RB-*` with:
+Every meaningful PRD or brief section must be backed by `RB-*` with:
 
-- target: `human_prd` or `agent_prd`
+- target: `prd` or `prd_brief`
 - section
 - content type
 - `contract_refs`
@@ -140,20 +166,4 @@ Every meaningful PRD section must be backed by `RB-*` with:
 
 Unsupported claims must be empty for ready outputs.
 
-Requested PRDs must have at least one `RB-*` for their target. Ready PRDs require every target `RB-*` to be `ready`, with non-empty `contract_refs` and `source_refs`.
-
-## Traceability Summary
-
-`traceability_summary.render_traceability` must match `render_blocks`.
-
-`traceability_summary.requirement_traceability` must match `traceability`.
-
-`decision_traceability` is typed:
-
-- `decision_type=open_question`: `decision_ref` must be `Q-*`; status is `open`, `resolved`, `deferred`, or `superseded`.
-- `decision_type=assumption`: `decision_ref` must be `ASM-*`; status is `open`, `resolved`, `deferred`, or `superseded`.
-- `decision_type=user_confirmation`: `decision_ref` must be `SRC-*` with `source_type=user_confirmation`; status must be `confirmed`.
-
-Every decision trace must include non-empty `affected_refs`.
-
-Resolved `Q-*` and `ASM-*` objects require non-empty `resolution_refs`. `TRACE.relation` must be one of `stated_by`, `confirmed_by`, `inferred_from`, `assumes`, `resolves`, `blocks`, or `renders`.
+Requested PRD artifacts must have at least one `RB-*` for their target. Ready artifacts require every target `RB-*` to be `ready`, with non-empty `contract_refs` and `source_refs`.

@@ -1,0 +1,295 @@
+{
+  "planning_status": "ready",
+  "output_root": "tasks/development",
+  "source_inventory": [
+    {
+      "path": "docs/prd.md",
+      "kind": "prd"
+    },
+    {
+      "path": "docs/hld.md",
+      "kind": "hld"
+    },
+    {
+      "path": "docs/lld.md",
+      "kind": "lld"
+    }
+  ],
+  "prd_hld_lld_interpretation": {
+    "current_phase": "MVP"
+  },
+  "development_scope": {
+    "in_scope": [
+      "CLI greeting flow"
+    ],
+    "out_of_scope": [
+      "network service"
+    ]
+  },
+  "project_stack": {
+    "language": "Python"
+  },
+  "planning_harness_model": {
+    "target_type": "harness-workflow",
+    "quality_standard": "review-gated-branching-dag-planning",
+    "stages": [
+      "STAGE-001",
+      "STAGE-002",
+      "STAGE-003",
+      "STAGE-004"
+    ]
+  },
+  "phase_reports": [
+    {
+      "stage_id": "STAGE-001",
+      "stage_name": "Overall Planning",
+      "purpose": "Create source-backed whole-plan outline.",
+      "inputs": [
+        "docs/prd.md",
+        "docs/hld.md",
+        "docs/lld.md"
+      ],
+      "outputs": [
+        "development_scope",
+        "project_stack"
+      ],
+      "review_checks": [
+        "source_readiness"
+      ],
+      "status": "pass",
+      "blocking_findings": []
+    },
+    {
+      "stage_id": "STAGE-002",
+      "stage_name": "Independent Task Formation",
+      "purpose": "Create cohesive task contracts.",
+      "inputs": [
+        "development_scope"
+      ],
+      "outputs": [
+        "tasks"
+      ],
+      "review_checks": [
+        "task_cohesion"
+      ],
+      "status": "pass",
+      "blocking_findings": []
+    },
+    {
+      "stage_id": "STAGE-003",
+      "stage_name": "Task Logic And Completeness Review",
+      "purpose": "Review every task contract.",
+      "inputs": [
+        "tasks"
+      ],
+      "outputs": [
+        "task_logic_review"
+      ],
+      "review_checks": [
+        "independent_acceptance"
+      ],
+      "status": "pass",
+      "blocking_findings": []
+    },
+    {
+      "stage_id": "STAGE-004",
+      "stage_name": "Whole-Plan Integrity And Dependency Review",
+      "purpose": "Review DAG, coverage, and final acceptance.",
+      "inputs": [
+        "tasks",
+        "dag"
+      ],
+      "outputs": [
+        "plan_integrity_review"
+      ],
+      "review_checks": [
+        "dag_soundness"
+      ],
+      "status": "pass",
+      "blocking_findings": []
+    }
+  ],
+  "tasks": [
+    {
+      "task_id": "TASK-001",
+      "title": "Implement CLI Greeting",
+      "task_type": "implementation",
+      "source_refs": [
+        "docs/prd.md",
+        "docs/hld.md",
+        "docs/lld.md"
+      ],
+      "inputs": [
+        "LLD command contract"
+      ],
+      "expected_outputs": [
+        "CLI greeting behavior",
+        "unit tests"
+      ],
+      "impacted_areas": [
+        "src/cli.py",
+        "tests/test_cli.py"
+      ],
+      "allowed_scope": [
+        "Implement greeting command only."
+      ],
+      "forbidden_scope": [
+        "Do not add network behavior."
+      ],
+      "acceptance": [
+        "CLI prints configured greeting."
+      ],
+      "verification": [
+        "pytest"
+      ],
+      "stop_conditions": [
+        "Missing CLI contract."
+      ],
+      "dependencies": [],
+      "handoff_requirements": [
+        "Report command behavior and tests."
+      ],
+      "task_description_path": "tasks/development/TASK-001/task.md",
+      "fixture_dir": "tasks/development/TASK-001",
+      "prompt_path": "tasks/development/TASK-999/prompt.md",
+      "agents_path": "tasks/development/TASK-001/AGENTS.md",
+      "claude_path": "tasks/development/TASK-001/CLAUDE.md"
+    },
+    {
+      "task_id": "TASK-002",
+      "title": "Delivery Acceptance",
+      "task_type": "delivery_acceptance",
+      "source_refs": [
+        "docs/prd.md",
+        "docs/hld.md",
+        "docs/lld.md"
+      ],
+      "inputs": [
+        "TASK-001 implementation and test evidence"
+      ],
+      "expected_outputs": [
+        "delivery acceptance report"
+      ],
+      "impacted_areas": [
+        "tasks/development/acceptance-report.md"
+      ],
+      "allowed_scope": [
+        "Verify planned scope only."
+      ],
+      "forbidden_scope": [
+        "Do not add new features."
+      ],
+      "acceptance": [
+        "All MVP acceptance criteria pass."
+      ],
+      "verification": [
+        "pytest"
+      ],
+      "stop_conditions": [
+        "TASK-001 incomplete."
+      ],
+      "dependencies": [
+        "TASK-001"
+      ],
+      "handoff_requirements": [
+        "Report final acceptance status."
+      ],
+      "task_description_path": "tasks/development/TASK-002/task.md",
+      "fixture_dir": "tasks/development/TASK-002",
+      "prompt_path": "tasks/development/TASK-002/prompt.md",
+      "agents_path": "tasks/development/TASK-002/AGENTS.md",
+      "claude_path": "tasks/development/TASK-002/CLAUDE.md"
+    }
+  ],
+  "dag": {
+    "nodes": [
+      "TASK-001",
+      "TASK-002"
+    ],
+    "edges": [
+      {
+        "from": "TASK-001",
+        "to": "TASK-002",
+        "reason": "Acceptance consumes implemented CLI behavior and test evidence.",
+        "consumed_output": "CLI greeting behavior and unit test evidence",
+        "source_refs": [
+          "docs/prd.md"
+        ]
+      }
+    ],
+    "parallel_groups": [],
+    "execution_order": [
+      "TASK-001",
+      "TASK-002"
+    ],
+    "cycle_check": {
+      "status": "pass",
+      "cycles": []
+    }
+  },
+  "task_descriptions": [
+    "tasks/development/TASK-001/task.md",
+    "tasks/development/TASK-002/task.md"
+  ],
+  "fixtures": [
+    "tasks/development/TASK-001/prompt.md",
+    "tasks/development/TASK-001/AGENTS.md",
+    "tasks/development/TASK-001/CLAUDE.md",
+    "tasks/development/TASK-002/prompt.md",
+    "tasks/development/TASK-002/AGENTS.md",
+    "tasks/development/TASK-002/CLAUDE.md"
+  ],
+  "coverage_matrix": [
+    {
+      "source_ref": "REQ-001",
+      "task_ids": [
+        "TASK-001",
+        "TASK-002"
+      ],
+      "status": "covered"
+    }
+  ],
+  "delivery_acceptance": {
+    "task_id": "TASK-002",
+    "status": "planned"
+  },
+  "task_logic_review": {
+    "status": "pass",
+    "reviewed_task_ids": [
+      "TASK-001",
+      "TASK-002"
+    ],
+    "checks": [
+      "cohesion",
+      "independent_acceptance",
+      "verification"
+    ],
+    "blocking_findings": [],
+    "required_revisions": []
+  },
+  "plan_integrity_review": {
+    "status": "pass",
+    "checks": [
+      "coverage",
+      "dag",
+      "execution_order",
+      "delivery_acceptance"
+    ],
+    "coverage_findings": [],
+    "dependency_findings": [],
+    "parallel_safety_findings": [],
+    "execution_order_findings": [],
+    "delivery_acceptance_findings": [],
+    "blocking_findings": [],
+    "required_revisions": []
+  },
+  "planning_gate_report": [
+    {
+      "gate": "dag_soundness",
+      "status": "pass"
+    }
+  ],
+  "external_dependencies": [],
+  "open_questions": [],
+  "required_fixes": []
+}

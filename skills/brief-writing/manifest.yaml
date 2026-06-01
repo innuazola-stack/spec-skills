@@ -1,0 +1,28 @@
+name: brief-writing
+version: 1.0.0
+kind: writing-skill
+summary: Write concise, source-backed Simplified Chinese product, design, technical, and hybrid briefs for human decision makers.
+skill_entry: SKILL.md
+portable_artifacts:
+  - <output>/brief.md
+references:
+  - references/brief-methodology.md
+  - references/brief-output-contract.md
+assets:
+  - assets/Brief.template.md
+ui_metadata:
+  - agents/openai.yaml
+validators:
+  - tools/validate_skill_static.py
+release_builder: tools/build_release.py
+done_requires:
+  - simplified_chinese_formal_style
+  - human_reader_oriented_prose
+  - revision_table_first
+  - source_backed_claims
+  - reference_round_trip
+  - final_view_only
+  - purpose_scoped_content
+  - concise_non_redundant_structure
+  - fit_for_purpose_expression_forms
+  - release_artifacts_built

@@ -12,19 +12,34 @@
 
 `skills/spec-intake/skill`
 
+## Planned Harness Source Shape
+
+Portable source files:
+
+- `manifest.yaml`
+- `agent.md`
+- `workflow.md`
+- `rules.md`
+- `schemas/contract-envelope.schema.md`
+- `adapters/codex/SKILL.md`
+- `adapters/codex/mapping.md`
+- `adapters/codex/install.md`
+- `evals/cases/*.md`
+- `validators/validate_harness.py`
+
 ## Planned SKILL.md Shape
 
 Frontmatter with `name` and `description`, followed by default workflow, references, hard rules, output package shape, and completion check.
 
 ## Planned agents/openai.yaml Alignment
 
-UI metadata mirrors the trigger: raw idea to contract-backed Human PRD, Agent PRD, and execution tasks.
+UI metadata mirrors the trigger: raw idea to requirement table, review-gated PRDs, and HLD.
 
 ## Planned references/ Files
 
 - `intake-method.md`
 - `output-artifacts.md`
-- `task-decomposition.md`
+- `hld-design.md`
 - `quality-gates.md`
 
 ## Planned scripts/ Files
@@ -42,11 +57,11 @@ Design brief, file plan, evaluation spec, implementation plan, test plan, releas
 
 ## Planned Validators Or Reviewers
 
-Structural output-package validator, no-dependency skill-package validator, and semantic quality-gate rubric.
+Structural output-package validator, no-dependency harness/skill package validator, source harness validator wrapper, source regression probes, and semantic quality-gate rubric.
 
 ## Planned Loop Artifacts
 
-Blocked and ready fixture packages under `tests/fixtures/`, semantic eval cases under `tests/cases/`, semantic eval record under `tests/snapshots/`, validator regression probes in `tests/validator_regression.py`, and future live-run snapshots under `tests/snapshots/`.
+Blocked and ready fixture packages under `tests/fixtures/`, canonical semantic eval cases under `evals/cases/`, compatibility copies under `tests/cases/`, semantic eval record under `tests/snapshots/`, validator regression probes in `tests/validator_regression.py`, source harness probes in `tests/harness_source_regression.py`, and future live-run snapshots under `tests/snapshots/`.
 
 ## UTF-8 Policy
 

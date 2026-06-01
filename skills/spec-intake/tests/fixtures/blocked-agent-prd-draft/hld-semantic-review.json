@@ -1,0 +1,20 @@
+{
+  "review_id": "HLD-SEM-BLOCKED-001",
+  "review_status": "blocked",
+  "source_artifacts": {
+    "contract_ref": "contract-envelope.json",
+    "hld_json_ref": "high-level-design.json",
+    "hld_markdown_ref": "high-level-design.md"
+  },
+  "dimensions": [
+    {
+      "dimension_key": "source_traceability",
+      "status": "blocked",
+      "finding": "The Agent PRD is not execution-ready, so no implementation-ready HLD semantic review can pass.",
+      "contract_refs": ["Q-001", "GATE-001"],
+      "source_refs": ["SRC-001"],
+      "required_fix": "Resolve blocking execution facts before Stage 3 HLD semantic review."
+    }
+  ],
+  "overall_findings": "HLD semantic review remains blocked because the source PRD and execution contract are not ready."
+}

@@ -1,0 +1,1474 @@
+{
+  "hld_id": "HLD-EXECUTOR-OPENCLAW-ADAPTER-001",
+  "source_artifacts": {
+    "contract_ref": "contract-envelope.json",
+    "contract_version": "spec-intake.v1",
+    "agent_prd_ref": "agent-prd.md",
+    "agent_prd_status": "execution_ready",
+    "phase_ref": "PHASE-001",
+    "phase_label": "Executor MVP",
+    "phase_ref_kind": "canonical_id",
+    "phase_ref_fallback_reason": ""
+  },
+  "design_status": "ready",
+  "blocking_reasons": [],
+  "missing_required_refs": [],
+  "required_fixes": [],
+  "contract_refs": [
+    "REQ-001",
+    "REQ-002",
+    "REQ-003",
+    "REQ-004",
+    "REQ-005",
+    "REQ-006",
+    "REQ-007",
+    "REQ-008",
+    "REQ-009",
+    "REQ-010",
+    "AC-001",
+    "AC-002",
+    "AC-003",
+    "AC-004",
+    "AC-005",
+    "AC-006",
+    "AC-007",
+    "AC-008",
+    "AC-009",
+    "AC-010",
+    "MET-001",
+    "FLOW-001",
+    "DATA-001",
+    "MOD-001",
+    "MOD-002",
+    "MOD-003",
+    "TECH-001",
+    "TECH-002",
+    "STATE-001",
+    "DCT-001",
+    "IN-001",
+    "EXE-001",
+    "VER-001",
+    "OUT-001",
+    "STOP-001",
+    "DONE-001",
+    "RISK-001",
+    "BAR-001",
+    "ASM-001",
+    "ASM-002",
+    "PHASE-001",
+    "SCOPE-001",
+    "OOS-001"
+  ],
+  "architecture_summary": "Executor is a local CLI orchestrator that reads one JSON or YAML task description, validates work context, permission boundaries, LaunchConfig generation, the exact cta command surface from ClaudeTmuxAdapter 1.0.0, and OpenClaw skill visibility, starts and observes Claude CLI through cta launch/capture/status/input/exit commands, invokes an OpenClaw agent turn carrying executor-progress-judgment for idle-screen progress decisions, performs mechanical delivery checks, and emits result, log, adapter evidence, skill evidence, and handoff artifacts.",
+  "component_boundaries": "Executor owns task parsing, LaunchConfig generation, run state, cta command invocation, adapter stdout normalization, monitoring policy, OpenClaw request assembly, progress decision validation, mechanical delivery checks, and output assembly. ClaudeTmuxAdapter owns the cta binary, launch/capture/status/input/exit subcommands, tmux/Claude mechanical control, and documented JSON results. OpenClaw owns skill install/check behavior and the agent turn used to run executor-progress-judgment.",
+  "data_and_state_design": "The run state is evidence-first. TaskDescription config enters the executor, AdapterEvidenceRecord values capture ClaudeTmuxTarget, ClaudeTmuxState, ScreenSnapshot, InputReceipt, and optional OutputWindow observations, ProgressJudgmentResult records skill decisions, MechanicalDeliveryCheckResult records deterministic completeness checks, and ExecutorResult links final JSON/log outputs to evidence paths.",
+  "integration_points": "Integration points are executor CLI, ClaudeTmuxAdapter cta CLI, OpenClaw skills install/check, OpenClaw agent JSON output, filesystem evidence paths, and reviewer handoff.",
+  "verification_strategy": "Acceptance executes one concrete task file against a concrete task workspace, verifies LaunchConfig generation and cta command-surface preflight before Claude launch, verifies adapter-mediated Claude control, verifies idle-screen skill judgment through OpenClaw agent mode, verifies returned next instructions through the adapter input operation, verifies monitoring timeout and no-action limits, verifies mechanical delivery checks, and captures output artifacts.",
+  "risk_controls": "The design prevents overclaiming by separating mechanical state from semantic completion, preserving adapter and skill evidence, stopping on invalid task context or missing adapter control, blocking delivery when deterministic checks fail, and reserving final task success for the reviewer or separate agent.",
+  "control_flow_design": [
+    {
+      "step_id": "FLOW-STEP-001",
+      "name": "Load task description and initialize run",
+      "trigger": "Operator invokes the local CLI with a task file such as executor run <task-file>.",
+      "actor_or_component": "Executor orchestration module",
+      "input_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "IN-001",
+        "DCT-001"
+      ],
+      "output_refs": [
+        "DATA-001"
+      ],
+      "interaction_refs": [
+        "EXE-001",
+        "STOP-001"
+      ],
+      "failure_or_branch_behavior": "If the task file is unavailable or required work environment, permissions, skill configuration, adapter config, or progress skill configuration is invalid, stop under STOP-001.",
+      "contract_refs": [
+        "AC-009",
+        "AC-010",
+        "DCT-001",
+        "EXE-001",
+        "IN-001",
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "REQ-009",
+        "REQ-010",
+        "STOP-001"
+      ]
+    },
+    {
+      "step_id": "FLOW-STEP-002",
+      "name": "Validate cta command surface and OpenClaw skill visibility",
+      "trigger": "TaskDescription passes schema and permission validation.",
+      "actor_or_component": "Executor preflight module",
+      "input_refs": [
+        "REQ-003",
+        "REQ-007",
+        "REQ-010",
+        "TECH-001",
+        "TECH-002"
+      ],
+      "output_refs": [
+        "DATA-001",
+        "OUT-001"
+      ],
+      "interaction_refs": [
+        "EXE-001",
+        "STOP-001"
+      ],
+      "failure_or_branch_behavior": "Stop under STOP-001 if cta is unavailable, any required cta subcommand is unavailable, command-shape probe cannot parse the documented or current v1.0.0 stdout shape, or executor-progress-judgment is not visible to the configured OpenClaw agent.",
+      "contract_refs": [
+        "REQ-003",
+        "REQ-007",
+        "REQ-010",
+        "AC-003",
+        "AC-010",
+        "MOD-002",
+        "MOD-003",
+        "TECH-001",
+        "TECH-002",
+        "EXE-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "step_id": "FLOW-STEP-003",
+      "name": "Launch Claude CLI through cta",
+      "trigger": "TaskDescription validation, cta command-shape probes, and OpenClaw skill visibility pass.",
+      "actor_or_component": "Executor monitoring loop through ClaudeTmuxAdapter",
+      "input_refs": [
+        "IN-001",
+        "EXE-001"
+      ],
+      "output_refs": [
+        "DATA-001",
+        "OUT-001"
+      ],
+      "interaction_refs": [
+        "REQ-006",
+        "VER-001",
+        "STOP-001"
+      ],
+      "failure_or_branch_behavior": "Run cta launch --config <launch-config.json>. Stop under STOP-001 if the process exits non-zero, stderr reports preflight failure, stdout is not JSON, or no session_id is present after normalizing LaunchSessionResponse or CommandResult<LaunchSessionResponse>.",
+      "contract_refs": [
+        "AC-009",
+        "AC-010",
+        "EXE-001",
+        "FLOW-001",
+        "MOD-001",
+        "MOD-002",
+        "OUT-001",
+        "REQ-006",
+        "REQ-009",
+        "REQ-010",
+        "STOP-001",
+        "VER-001"
+      ]
+    },
+    {
+      "step_id": "FLOW-STEP-004",
+      "name": "Capture idle screen and judge progress",
+      "trigger": "Adapter detect_state reports idle.",
+      "actor_or_component": "Progress-judgment skill invoked through OpenClaw",
+      "input_refs": [
+        "REQ-007",
+        "DATA-001",
+        "IN-001"
+      ],
+      "output_refs": [
+        "OUT-001"
+      ],
+      "interaction_refs": [
+        "EXE-001",
+        "VER-001",
+        "STOP-001"
+      ],
+      "failure_or_branch_behavior": "Use cta input --session-id <id> --instruction <text> for initial and next instructions. Use cta status --session-id <id> --samples 3 --interval 2 for state polling. Busy state continues polling after poll_interval_seconds. No-action decisions are limited by max_consecutive_no_action. Unknown states are limited by max_consecutive_unknown_state. Blocked, exited, timeout, or limit exhaustion stops under STOP-001 with captured evidence.",
+      "contract_refs": [
+        "AC-007",
+        "AC-009",
+        "AC-010",
+        "EXE-001",
+        "MOD-003",
+        "OUT-001",
+        "REQ-007",
+        "REQ-009",
+        "REQ-010",
+        "STOP-001",
+        "TECH-002",
+        "VER-001"
+      ]
+    },
+    {
+      "step_id": "FLOW-STEP-005",
+      "name": "Run mechanical delivery check and handoff",
+      "trigger": "Progress-judgment skill returns deliverable_ready.",
+      "actor_or_component": "Mechanical delivery checker in Executor orchestration module",
+      "input_refs": [
+        "REQ-008",
+        "DATA-001",
+        "OUT-001"
+      ],
+      "output_refs": [
+        "OUT-001"
+      ],
+      "interaction_refs": [
+        "VER-001",
+        "DONE-001",
+        "STOP-001"
+      ],
+      "failure_or_branch_behavior": "Run cta capture --session-id <id> before OpenClaw is invoked. Write progress request JSON to the evidence path, run the OpenClaw agent command with a message naming the request and decision files, then read progress-decision.json as the canonical decision. next_instruction is sent through cta input and polling resumes; deliverable_ready enters mechanical delivery checks; no_action records the decision and continues polling; blocked stops under STOP-001.",
+      "contract_refs": [
+        "AC-005",
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "DONE-001",
+        "OUT-001",
+        "REQ-005",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "STOP-001",
+        "VER-001"
+      ]
+    }
+  ],
+  "data_flow_design": [
+    {
+      "flow_id": "DATAFLOW-001",
+      "source": "Task file supplied to the local CLI and represented by IN-001 and DCT-001.",
+      "transformation": "Parse work environment, permissions, skill configuration, adapter configuration, progress-judgment skill configuration, and delivery standards into TaskDescription and ExecutorRunState.",
+      "target": "Validated run context used by the adapter integration and monitoring loop.",
+      "persistence_or_retention": "Persist the parsed task summary and validation result in the execution log and structured result metadata.",
+      "data_refs": [
+        "IN-001",
+        "DCT-001",
+        "DATA-001"
+      ],
+      "contract_refs": [
+        "AC-009",
+        "AC-010",
+        "DATA-001",
+        "DCT-001",
+        "IN-001",
+        "OUT-001",
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "REQ-009",
+        "REQ-010"
+      ]
+    },
+    {
+      "flow_id": "DATAFLOW-002",
+      "source": "ClaudeTmuxAdapter launch, detect_state, capture_screen, send_input, and optional read_output results.",
+      "transformation": "Normalize ClaudeTmuxTarget, ClaudeTmuxState, ScreenSnapshot, InputReceipt, and OutputWindow values into AdapterEvidenceRecord entries linked to polling iteration and evidence path.",
+      "target": "Execution log, adapter-evidence directory, progress-judgment skill input, and final ExecutorResult evidence index.",
+      "persistence_or_retention": "Retain adapter evidence for reviewer inspection in the run output directory.",
+      "data_refs": [
+        "DATA-001",
+        "OUT-001"
+      ],
+      "contract_refs": [
+        "AC-009",
+        "AC-010",
+        "DATA-001",
+        "EXE-001",
+        "MOD-002",
+        "OUT-001",
+        "REQ-003",
+        "REQ-006",
+        "REQ-009",
+        "REQ-010",
+        "TECH-001"
+      ]
+    },
+    {
+      "flow_id": "DATAFLOW-003",
+      "source": "Idle ScreenSnapshot text, adapter state, task context, prior skill decisions, and delivery criteria.",
+      "transformation": "Invoke executor-progress-judgment through OpenClaw and normalize its result into next_instruction, deliverable_ready, no_action, or blocked.",
+      "target": "Progress-judgment evidence, next adapter input, delivery-check trigger, or stop record.",
+      "persistence_or_retention": "Retain every skill request and response used to steer the run.",
+      "data_refs": [
+        "DATA-001",
+        "OUT-001"
+      ],
+      "contract_refs": [
+        "AC-009",
+        "AC-010",
+        "EXE-001",
+        "MOD-003",
+        "OUT-001",
+        "REQ-007",
+        "REQ-009",
+        "REQ-010",
+        "STOP-001",
+        "TECH-002",
+        "VER-001"
+      ]
+    },
+    {
+      "flow_id": "DATAFLOW-004",
+      "source": "Structured result candidate, execution log, adapter evidence, progress-judgment evidence, and stop/done state.",
+      "transformation": "Evaluate mechanical delivery-check criteria without making semantic success claims.",
+      "target": "delivery-check.json, result.json, execution.log, and handoff package for reviewer or separate agent.",
+      "persistence_or_retention": "Retain output and delivery-check evidence as the accepted executor deliverable surface.",
+      "data_refs": [
+        "DATA-001",
+        "OUT-001"
+      ],
+      "contract_refs": [
+        "AC-005",
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "DONE-001",
+        "OUT-001",
+        "REQ-005",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "STOP-001",
+        "VER-001"
+      ]
+    }
+  ],
+  "data_objects": [
+    {
+      "object_name": "TaskDescription",
+      "purpose": "Represents the JSON or YAML task file accepted by the executor CLI.",
+      "fields": [
+        {
+          "name": "task_id",
+          "required": true,
+          "meaning": "string; stable identifier matching ^[a-zA-Z0-9._-]+$."
+        },
+        {
+          "name": "working_directory",
+          "required": true,
+          "meaning": "absolute path; reference documents and task-local writes must stay under this directory unless explicitly allowed."
+        },
+        {
+          "name": "task_description",
+          "required": true,
+          "meaning": "non-empty string sent to Claude through the adapter launch or input operation."
+        },
+        {
+          "name": "permissions",
+          "required": true,
+          "meaning": "object with filesystem.read, filesystem.write, and commands arrays; Executor rejects operations outside these lists."
+        },
+        {
+          "name": "adapter",
+          "required": true,
+          "meaning": "object containing name, version, project_path, required_capabilities, launch_config mapping, and command_map for launch/capture/status/input/exit."
+        },
+        {
+          "name": "skill_configuration",
+          "required": true,
+          "meaning": "object containing OpenClaw agent id, required skill, visibility check, agent turn command, allowed decisions, and timeout."
+        },
+        {
+          "name": "monitoring_policy",
+          "required": true,
+          "meaning": "object containing poll interval, command timeouts, max no-action count, max unknown count, and max run seconds."
+        },
+        {
+          "name": "reference_documents",
+          "required": true,
+          "meaning": "array of existing file paths under working_directory or explicitly allowed source paths."
+        },
+        {
+          "name": "delivery_standard",
+          "required": true,
+          "meaning": "object naming output directory and required result/log/evidence artifact names."
+        }
+      ],
+      "lifecycle": "Loaded at CLI start, validated before external command execution, referenced throughout monitoring, and summarized in result metadata.",
+      "contract_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "REQ-010",
+        "IN-001",
+        "DCT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "object_name": "LaunchConfigArtifact",
+      "purpose": "Concrete JSON file generated by Executor for cta launch --config.",
+      "fields": [
+        {
+          "name": "workspace",
+          "required": true,
+          "meaning": "TaskDescription.working_directory; must exist or be creatable inside the permitted workspace."
+        },
+        {
+          "name": "config_values",
+          "required": true,
+          "meaning": "TaskDescription.adapter.launch_config.mapping.config_values; default empty object for the acceptance run."
+        },
+        {
+          "name": "permission_settings",
+          "required": true,
+          "meaning": "TaskDescription.adapter.launch_config.mapping.permission_settings; acceptance uses Default, matching ClaudeTmuxAdapter PermissionProfile."
+        },
+        {
+          "name": "claude_md",
+          "required": true,
+          "meaning": "ClaudeMdSource Content generated from task context unless an explicit existing Path is provided and verified."
+        },
+        {
+          "name": "task_prompt",
+          "required": true,
+          "meaning": "TaskDescription.task_description plus reference document list, delivery standard, and permission boundary summary."
+        }
+      ],
+      "lifecycle": "Generated after TaskDescription validation, written to adapter-evidence/${run_id}/launch-config.json, passed to cta launch --config, hashed, and retained as adapter evidence.",
+      "contract_refs": [
+        "REQ-002",
+        "REQ-003",
+        "REQ-006",
+        "AC-003",
+        "DCT-001",
+        "EXE-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "object_name": "CtaCommandSurface",
+      "purpose": "Binds Executor to the actual ClaudeTmuxAdapter 1.0.0 CLI implementation.",
+      "fields": [
+        {
+          "name": "binary",
+          "required": true,
+          "meaning": "literal cta from Cargo.toml [[bin]] and Clap command metadata."
+        },
+        {
+          "name": "launch",
+          "required": true,
+          "meaning": "argv: cta launch --config <launch-config.json>; stdout: LaunchSessionResponse or CommandResult<LaunchSessionResponse>."
+        },
+        {
+          "name": "capture",
+          "required": true,
+          "meaning": "argv: cta capture --session-id <id>; stdout: StructuredScreen or CommandResult<StructuredScreen>."
+        },
+        {
+          "name": "status",
+          "required": true,
+          "meaning": "argv: cta status --session-id <id> --samples 3 --interval 2; stdout: StatusDiff or CommandResult<StatusDiff>."
+        },
+        {
+          "name": "input",
+          "required": true,
+          "meaning": "argv: cta input --session-id <id> --instruction <text>; stdout: CommandResult<StructuredScreen>."
+        },
+        {
+          "name": "exit",
+          "required": true,
+          "meaning": "argv: cta exit --session-id <id> --mode graceful|force; stdout: CommandResult<TerminationResult>."
+        },
+        {
+          "name": "normalization_policy",
+          "required": true,
+          "meaning": "accept documented CommandResult envelopes and current v1.0.0 direct evidence shapes for launch/capture/status; normalize to AdapterEvidenceRecord."
+        }
+      ],
+      "lifecycle": "Validated during preflight, used by the adapter port for every cta subprocess call, and recorded in result metadata with cta version/source refs.",
+      "contract_refs": [
+        "REQ-003",
+        "REQ-006",
+        "AC-003",
+        "AC-006",
+        "MOD-002",
+        "TECH-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "object_name": "OpenClawProgressRequest",
+      "purpose": "Carries idle Claude screen evidence and task context into the progress-judgment skill through OpenClaw agent mode.",
+      "fields": [
+        {
+          "name": "run_id",
+          "required": true,
+          "meaning": "string; current ExecutorRunState id."
+        },
+        {
+          "name": "screen_snapshot_ref",
+          "required": true,
+          "meaning": "string; AdapterEvidenceRecord id for the idle capture."
+        },
+        {
+          "name": "screen_text",
+          "required": true,
+          "meaning": "string; raw screen text captured through ClaudeTmuxAdapter."
+        },
+        {
+          "name": "adapter_state",
+          "required": true,
+          "meaning": "object; status, confidence, signals, reason, and observed_at from adapter status output."
+        },
+        {
+          "name": "task_context",
+          "required": true,
+          "meaning": "object; task description, reference summaries, permission boundary, and delivery standard."
+        },
+        {
+          "name": "prior_decisions",
+          "required": true,
+          "meaning": "array of previous OpenClawProgressDecision summaries for this run."
+        },
+        {
+          "name": "allowed_decisions",
+          "required": true,
+          "meaning": "array exactly containing next_instruction, deliverable_ready, no_action, and blocked."
+        }
+      ],
+      "lifecycle": "Created after each idle screen capture, serialized to progress-judgment-request.json, passed through OpenClaw agent message input, and persisted with the response.",
+      "contract_refs": [
+        "REQ-007",
+        "REQ-010",
+        "AC-007",
+        "AC-010",
+        "MOD-003",
+        "TECH-002",
+        "DATA-001",
+        "OUT-001"
+      ]
+    },
+    {
+      "object_name": "OpenClawProgressDecision",
+      "purpose": "Captures the structured decision returned by executor-progress-judgment.",
+      "fields": [
+        {
+          "name": "decision",
+          "required": true,
+          "meaning": "enum; next_instruction, deliverable_ready, no_action, or blocked."
+        },
+        {
+          "name": "next_instruction",
+          "required": false,
+          "meaning": "string required only when decision is next_instruction; must pass permission and safety checks before adapter input."
+        },
+        {
+          "name": "rationale",
+          "required": true,
+          "meaning": "non-empty string; judgment reason for audit."
+        },
+        {
+          "name": "confidence",
+          "required": true,
+          "meaning": "enum; low, medium, or high; low confidence cannot produce deliverable_ready."
+        },
+        {
+          "name": "screen_evidence_ref",
+          "required": true,
+          "meaning": "string; ScreenSnapshot evidence used for the decision."
+        },
+        {
+          "name": "openclaw_evidence_path",
+          "required": true,
+          "meaning": "path; persisted OpenClaw request and response records."
+        }
+      ],
+      "lifecycle": "Created on each idle judgment and consumed by the monitoring loop or delivery checker.",
+      "contract_refs": [
+        "REQ-007",
+        "REQ-010",
+        "AC-010",
+        "MOD-003",
+        "TECH-002",
+        "EXE-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "object_name": "ExecutorRunState",
+      "purpose": "Tracks one executor invocation from initialization through handoff or stop.",
+      "fields": [
+        {
+          "name": "run_id",
+          "required": true,
+          "meaning": "unique run identifier used in artifact paths and OpenClaw session key."
+        },
+        {
+          "name": "task_ref",
+          "required": true,
+          "meaning": "path and sha256 for TaskDescription."
+        },
+        {
+          "name": "adapter_target",
+          "required": false,
+          "meaning": "session id or target identity after launch succeeds."
+        },
+        {
+          "name": "current_status",
+          "required": true,
+          "meaning": "initialized, adapter_launching, running_busy, idle_judgment_pending, instruction_sent, delivery_check_pending, delivered_for_review, or stopped."
+        },
+        {
+          "name": "counters",
+          "required": true,
+          "meaning": "poll_count, consecutive_no_action, consecutive_unknown_state, and elapsed_seconds."
+        },
+        {
+          "name": "evidence_index",
+          "required": true,
+          "meaning": "collection of adapter, OpenClaw, delivery-check, result, and log paths."
+        },
+        {
+          "name": "stop_reason",
+          "required": false,
+          "meaning": "structured STOP-001 reason when the run stops."
+        }
+      ],
+      "lifecycle": "Created after task validation, updated after each adapter or OpenClaw observation, and finalized in result.json.",
+      "contract_refs": [
+        "FLOW-001",
+        "STATE-001",
+        "DATA-001",
+        "EXE-001",
+        "OUT-001",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "object_name": "MechanicalDeliveryCheckResult",
+      "purpose": "Records deterministic completeness checks before handoff.",
+      "fields": [
+        {
+          "name": "result_json_present",
+          "required": true,
+          "meaning": "boolean; result.json exists in output directory."
+        },
+        {
+          "name": "execution_log_present",
+          "required": true,
+          "meaning": "boolean; execution.log exists in output directory."
+        },
+        {
+          "name": "adapter_evidence_present",
+          "required": true,
+          "meaning": "boolean; launch, status, screen, and input evidence exist."
+        },
+        {
+          "name": "progress_evidence_present",
+          "required": true,
+          "meaning": "boolean; OpenClaw request and response evidence exists."
+        },
+        {
+          "name": "stop_done_consistency",
+          "required": true,
+          "meaning": "boolean; final state agrees with STOP-001 and DONE-001."
+        },
+        {
+          "name": "passed",
+          "required": true,
+          "meaning": "boolean; true only when every required check passes."
+        }
+      ],
+      "lifecycle": "Created after deliverable_ready and required before reviewer handoff.",
+      "contract_refs": [
+        "REQ-008",
+        "REQ-009",
+        "AC-008",
+        "AC-009",
+        "VER-001",
+        "OUT-001",
+        "DONE-001",
+        "STOP-001"
+      ]
+    }
+  ],
+  "interface_contracts": [
+    {
+      "interface_name": "Executor CLI",
+      "provider": "Executor",
+      "consumer": "Local operator",
+      "invocation": "executor run <task-file> --output-dir <output-dir>",
+      "inputs": [
+        "JSON or YAML task file matching TaskDescription from IN-001 and DCT-001"
+      ],
+      "outputs": [
+        "result.json",
+        "execution.log",
+        "delivery-check.json",
+        "adapter-evidence/",
+        "progress-judgment-evidence/",
+        "reviewer-acceptance-record.md under output directory"
+      ],
+      "error_semantics": "Return structured stopped result and STOP-001 reason on invalid input, command absence, adapter failure, OpenClaw failure, permission violation, or delivery-check failure.",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "contract_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "REQ-005",
+        "REQ-009",
+        "IN-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "interface_name": "ClaudeTmuxAdapter cta CLI",
+      "provider": "ClaudeTmuxAdapter 1.0.0 cta binary",
+      "consumer": "Executor adapter port",
+      "invocation": "Use exact cta commands: cta launch --config <launch-config.json>; cta capture --session-id <id>; cta status --session-id <id> --samples 3 --interval 2; cta input --session-id <id> --instruction <text>; cta exit --session-id <id> --mode graceful|force. Executor never calls tmux or Claude CLI directly.",
+      "inputs": [
+        "LaunchConfig JSON file generated from TaskDescription: workspace=working_directory, config_values={}, permission_settings=Default for acceptance, claude_md=Content generated from task context, task_prompt=task_description plus references and delivery standard",
+        "session_id",
+        "instruction string",
+        "status samples=3",
+        "status interval=2",
+        "exit mode graceful or force"
+      ],
+      "outputs": [
+        "LaunchSessionResponse or CommandResult<LaunchSessionResponse>",
+        "StructuredScreen or CommandResult<StructuredScreen>",
+        "StatusDiff or CommandResult<StatusDiff>",
+        "CommandResult<StructuredScreen>",
+        "CommandResult<TerminationResult>"
+      ],
+      "error_semantics": "Non-zero exit status, stderr preflight failure, non-JSON stdout, missing required field, unsupported adapter state, or CommandResult.success=false becomes STOP-001 with cta stdout, stderr, exit code, and parsed error code captured.",
+      "source_refs": [
+        "SRC-015",
+        "SRC-016",
+        "SRC-017",
+        "SRC-005",
+        "SRC-018"
+      ],
+      "contract_refs": [
+        "REQ-003",
+        "REQ-006",
+        "AC-003",
+        "AC-006",
+        "MOD-002",
+        "TECH-001",
+        "STATE-001",
+        "EXE-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "interface_name": "OpenClaw skill visibility interface",
+      "provider": "OpenClaw skills CLI",
+      "consumer": "Executor OpenClaw integration",
+      "invocation": "Install/update local skill when required with: openclaw skills install C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/skills/executor-progress-judgment --as executor-progress-judgment --agent executor-progress-agent. Verify runtime visibility with: openclaw skills check --agent executor-progress-agent --json.",
+      "inputs": [
+        "OpenClaw agent id from task skill_configuration",
+        "required skill name executor-progress-judgment",
+        "local skill source path C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/skills/executor-progress-judgment"
+      ],
+      "outputs": [
+        "JSON skill visibility report for the configured agent"
+      ],
+      "error_semantics": "If executor-progress-judgment is absent from the configured agent skill set, stop under STOP-001 before launching Claude.",
+      "source_refs": [
+        "SRC-008",
+        "SRC-010",
+        "SRC-019"
+      ],
+      "contract_refs": [
+        "REQ-007",
+        "REQ-010",
+        "AC-010",
+        "MOD-003",
+        "TECH-002",
+        "EXE-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "interface_name": "OpenClaw progress judgment agent turn",
+      "provider": "OpenClaw agent CLI plus executor-progress-judgment skill",
+      "consumer": "Executor monitoring loop",
+      "invocation": "openclaw agent --agent executor-progress-agent --session-key agent:executor-progress-agent:${run_id} --message \"Use the executor-progress-judgment skill. Read the progress request JSON from progress-judgment-evidence/${run_id}/${iteration}/progress-judgment-request.json. Write the decision JSON to progress-judgment-evidence/${run_id}/${iteration}/progress-decision.json. Return a concise summary.\" --local --timeout 180 --json",
+      "inputs": [
+        "progress request JSON at progress-judgment-evidence/${run_id}/${iteration}/progress-judgment-request.json",
+        "decision output path progress-judgment-evidence/${run_id}/${iteration}/progress-decision.json",
+        "configured OpenClaw agent id executor-progress-agent",
+        "stable agent-prefixed session key derived from run id"
+      ],
+      "outputs": [
+        "OpenClaw CLI stdout JSON from --json",
+        "canonical OpenClawProgressDecision JSON written to progress-judgment-evidence/${run_id}/${iteration}/progress-decision.json"
+      ],
+      "error_semantics": "Timeout, non-zero exit, non-JSON stdout, missing decision file, invalid decision JSON, decision outside next_instruction/deliverable_ready/no_action/blocked, low-confidence deliverable_ready, or unsafe next_instruction stops under STOP-001 with stdout, stderr, exit code, request JSON, and decision file evidence.",
+      "source_refs": [
+        "SRC-006",
+        "SRC-008",
+        "SRC-009",
+        "SRC-010"
+      ],
+      "contract_refs": [
+        "REQ-007",
+        "REQ-010",
+        "AC-007",
+        "AC-010",
+        "MOD-003",
+        "TECH-002",
+        "EXE-001",
+        "VER-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "interface_name": "Reviewer handoff interface",
+      "provider": "Executor",
+      "consumer": "Separate reviewer or agent",
+      "invocation": "Read result.json, execution.log, delivery-check.json, adapter-evidence/, progress-judgment-evidence/, and reviewer-acceptance-record.md from the run output directory.",
+      "inputs": [
+        "ExecutorResult",
+        "MechanicalDeliveryCheckResult",
+        "adapter evidence",
+        "OpenClaw progress evidence"
+      ],
+      "outputs": [
+        "Semantic acceptance, rejection, or follow-up decision recorded outside adapter state."
+      ],
+      "error_semantics": "Reviewer rejection does not rewrite adapter evidence; it becomes a separate acceptance outcome.",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-007"
+      ],
+      "contract_refs": [
+        "REQ-005",
+        "REQ-008",
+        "REQ-009",
+        "AC-005",
+        "AC-008",
+        "AC-009",
+        "OUT-001",
+        "DONE-001",
+        "STOP-001"
+      ]
+    }
+  ],
+  "state_model": [
+    {
+      "state": "initialized",
+      "owner": "Executor orchestration module",
+      "transitions": [
+        "to stopped when task context is invalid",
+        "to adapter_launched when task context is valid and adapter launch succeeds"
+      ],
+      "contract_refs": [
+        "AC-009",
+        "AC-010",
+        "IN-001",
+        "REQ-001",
+        "REQ-002",
+        "REQ-009",
+        "REQ-010",
+        "STOP-001"
+      ]
+    },
+    {
+      "state": "adapter_launched",
+      "owner": "ClaudeTmuxAdapter integration boundary",
+      "transitions": [
+        "to instruction_sent after initial send_input succeeds",
+        "to stopped when target or input receipt evidence is missing"
+      ],
+      "contract_refs": [
+        "AC-009",
+        "AC-010",
+        "EXE-001",
+        "REQ-003",
+        "REQ-006",
+        "REQ-009",
+        "REQ-010",
+        "STOP-001",
+        "TECH-001"
+      ]
+    },
+    {
+      "state": "running_busy",
+      "owner": "Executor monitoring loop",
+      "transitions": [
+        "remain running_busy while detect_state is busy",
+        "to idle_judgment_pending when detect_state is idle",
+        "to stopped when detect_state is blocked, exited, or unsupported unknown"
+      ],
+      "contract_refs": [
+        "AC-009",
+        "AC-010",
+        "EXE-001",
+        "FLOW-001",
+        "REQ-006",
+        "REQ-009",
+        "REQ-010",
+        "STOP-001"
+      ]
+    },
+    {
+      "state": "idle_judgment_pending",
+      "owner": "OpenClaw progress-judgment skill boundary",
+      "transitions": [
+        "to instruction_sent when next_instruction is returned",
+        "to delivery_check_pending when deliverable_ready is returned",
+        "to running_busy or stopped for no_action or blocked according to STOP-001"
+      ],
+      "contract_refs": [
+        "AC-007",
+        "AC-009",
+        "AC-010",
+        "MOD-003",
+        "REQ-007",
+        "REQ-009",
+        "REQ-010",
+        "STOP-001",
+        "TECH-002"
+      ]
+    },
+    {
+      "state": "delivery_check_pending",
+      "owner": "Mechanical delivery checker",
+      "transitions": [
+        "to delivered_for_review when deterministic checks pass",
+        "to stopped when any required output or evidence is missing"
+      ],
+      "contract_refs": [
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "DONE-001",
+        "OUT-001",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "STOP-001",
+        "VER-001"
+      ]
+    },
+    {
+      "state": "delivered_for_review",
+      "owner": "Separate agent or reviewer",
+      "transitions": [
+        "to accepted when reviewer accepts semantic completion",
+        "to stopped when reviewer rejects completion"
+      ],
+      "contract_refs": [
+        "AC-009",
+        "AC-010",
+        "DONE-001",
+        "REQ-005",
+        "REQ-009",
+        "REQ-010",
+        "STOP-001",
+        "VER-001"
+      ]
+    }
+  ],
+  "technical_decisions": [
+    {
+      "decision": "Keep Executor as a local CLI entry point for the MVP.",
+      "rationale": "REQ-004 and SRC-002 confirm local CLI only for the first implementation boundary.",
+      "implementation_notes": "Implement executor run <task-file> --output-dir <output-dir> as the canonical entry point and reject untraced library/API or remote invocation modes.",
+      "contract_refs": [
+        "AC-004",
+        "AC-009",
+        "AC-010",
+        "BAR-001",
+        "EXE-001",
+        "REQ-004",
+        "REQ-009",
+        "REQ-010"
+      ]
+    },
+    {
+      "decision": "Call ClaudeTmuxAdapter through the actual cta CLI.",
+      "rationale": "The adapter implementation defines cta as the binary and launch/capture/status/input/exit as the subcommands; docs/cli.md defines expected JSON envelopes and error codes.",
+      "implementation_notes": "Use argv-array subprocess calls for cta. Normalize launch/capture/status direct evidence or CommandResult envelope output, and require CommandResult envelopes for input/exit. Capture stdout, stderr, exit code, and parsed JSON for every call.",
+      "contract_refs": [
+        "REQ-003",
+        "REQ-006",
+        "TECH-001",
+        "MOD-002",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "decision": "Invoke progress judgment through OpenClaw agent mode with file-backed JSON request evidence.",
+      "rationale": "Official OpenClaw docs support skills visibility and agent one-shot execution, while REQ-010 requires a dedicated progress-judgment skill.",
+      "implementation_notes": "Write OpenClawProgressRequest to progress-judgment-request.json, run openclaw agent with --message text naming the request and decision file paths, --local, --timeout 180, and --json, then parse progress-decision.json as the canonical decision.",
+      "contract_refs": [
+        "REQ-007",
+        "REQ-010",
+        "AC-007",
+        "AC-010",
+        "MOD-003",
+        "TECH-002",
+        "EXE-001",
+        "VER-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "decision": "Use explicit monitoring limits.",
+      "rationale": "A progress loop without intervals, timeouts, and no-action limits can hang indefinitely or over-drive external tools.",
+      "implementation_notes": "Default poll_interval_seconds=5, state_command_timeout_seconds=30, screen_capture_timeout_seconds=30, openclaw_turn_timeout_seconds=180, max_consecutive_no_action=6, max_consecutive_unknown_state=2, and max_run_seconds=7200. Task configuration may tighten but not remove these limits.",
+      "contract_refs": [
+        "REQ-006",
+        "REQ-007",
+        "REQ-010",
+        "EXE-001",
+        "STOP-001",
+        "BAR-001"
+      ]
+    },
+    {
+      "decision": "Require mechanical delivery checks before reviewer handoff.",
+      "rationale": "REQ-008 and AC-008 require evidence and output completeness before delivery, while DONE-001 reserves semantic acceptance for a separate reviewer or agent.",
+      "implementation_notes": "Implement deterministic checks for structured JSON, execution log, adapter evidence, progress evidence, sent instructions, and stop/done consistency.",
+      "contract_refs": [
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "DONE-001",
+        "OUT-001",
+        "REQ-005",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "STOP-001",
+        "VER-001"
+      ]
+    }
+  ],
+  "implementation_design": [
+    {
+      "component_or_concern": "CLI and task parser",
+      "design": "Parse JSON and YAML into TaskDescription, validate required field types, normalize paths against working_directory, verify reference documents, verify permissions.commands includes executor, cta, and openclaw, verify adapter launch_config and command_map operations, verify monitoring_policy limits, verify OpenClaw agent and required skill config, and initialize evidence directories.",
+      "contract_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "REQ-010",
+        "IN-001",
+        "DCT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "component_or_concern": "ClaudeTmuxAdapter cta subprocess port",
+      "design": "Generate LaunchConfig from TaskDescription before launch: workspace=working_directory, config_values from adapter.launch_config or {}, permission_settings from adapter.launch_config or Default, claude_md as Content generated from task context unless an explicit existing Path is provided, and task_prompt from task_description plus references and delivery standard. Write it to adapter-evidence/${run_id}/launch-config.json, then execute cta launch/capture/status/input/exit through argv-array subprocess calls. For capture/status/input/exit, pass session id and arguments exactly as src/cli/mod.rs defines. Normalize documented and current stdout shapes, validate required fields, record stdout/stderr/exit status, and write AdapterEvidenceRecord entries.",
+      "contract_refs": [
+        "REQ-003",
+        "REQ-006",
+        "MOD-002",
+        "TECH-001",
+        "DATA-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "component_or_concern": "OpenClaw progress-judgment skill package",
+      "design": "Ship executor-progress-judgment as a real local skill package at C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/skills/executor-progress-judgment/SKILL.md. Its SKILL.md defines the decision rubric, input contract, output JSON schema, confidence rules, safety checks, and evidence expectations. The skill never controls Claude directly.",
+      "contract_refs": [
+        "REQ-007",
+        "REQ-010",
+        "AC-010",
+        "MOD-003",
+        "TECH-002",
+        "OUT-001",
+        "BAR-001"
+      ]
+    },
+    {
+      "component_or_concern": "OpenClaw integration",
+      "design": "Install or update the local executor-progress-judgment skill from C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/skills/executor-progress-judgment, check visibility with openclaw skills check --agent executor-progress-agent --json, write OpenClawProgressRequest to file, run openclaw agent with --agent, --session-key, --message, --local, --timeout 180, and --json, then parse the decision file as canonical output.",
+      "contract_refs": [
+        "REQ-007",
+        "REQ-010",
+        "AC-007",
+        "AC-010",
+        "EXE-001",
+        "VER-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "component_or_concern": "Monitoring loop",
+      "design": "Poll adapter status every poll_interval_seconds. Busy retains the loop; idle requires capture then OpenClaw judgment; blocked, exited, timeout, max consecutive no_action, max consecutive unknown, and max run duration route to STOP-001.",
+      "contract_refs": [
+        "REQ-006",
+        "REQ-007",
+        "REQ-010",
+        "FLOW-001",
+        "STATE-001",
+        "EXE-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "component_or_concern": "Delivery checker and output writer",
+      "design": "After deliverable_ready, run deterministic completeness checks and write result.json, execution.log, adapter evidence, progress evidence, and delivery-check.json. The checker cannot claim semantic task success.",
+      "contract_refs": [
+        "AC-005",
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "DONE-001",
+        "OUT-001",
+        "REQ-005",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "STOP-001",
+        "VER-001"
+      ]
+    }
+  ],
+  "environment_requirements": [
+    {
+      "requirement": "Run acceptance against the concrete task workspace and output directory packaged under the final live run.",
+      "provided_by_or_source": "SRC-011 identifies the final package workspace, SRC-012 identifies the concrete task file, and SRC-014 identifies the concrete reference document in the task workspace.",
+      "required_for": "Task parsing, reference document containment, permission boundary, output directory, and HLD acceptance input location.",
+      "contract_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "REQ-008",
+        "REQ-009",
+        "VER-001",
+        "OUT-001"
+      ]
+    },
+    {
+      "requirement": "Use source-confirmed ClaudeTmuxAdapter cta command families with a validated cta command surface.",
+      "provided_by_or_source": "SRC-003, SRC-004, SRC-005, and SRC-013 confirm the adapter command families, data outputs, and JSON envelope expectations.",
+      "required_for": "Adapter launch, capture, status, input, and exit behavior without inventing undocumented binary flags.",
+      "contract_refs": [
+        "REQ-003",
+        "REQ-006",
+        "AC-003",
+        "AC-006",
+        "MOD-002",
+        "TECH-001"
+      ]
+    },
+    {
+      "requirement": "Use OpenClaw official CLI boundaries for skill visibility and agent one-shot execution.",
+      "provided_by_or_source": "SRC-008, SRC-009, and SRC-010 document the OpenClaw skill and agent interfaces used by this design.",
+      "required_for": "Progress-judgment skill invocation without inventing a direct skill-run command.",
+      "contract_refs": [
+        "REQ-007",
+        "REQ-010",
+        "AC-010",
+        "MOD-003",
+        "TECH-002",
+        "EXE-001",
+        "VER-001"
+      ]
+    }
+  ],
+  "real_acceptance_plan": {
+    "environment": "Concrete acceptance workspace C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/acceptance/workspace with concrete reference document C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/acceptance/workspace/docs/executor-operator-brief.md, output directory C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/acceptance-output/executor-openclaw-adapter-real-acceptance-001, local ClaudeTmuxAdapter source at C:/Users/54256213/Documents/github/claude-tmux-adapter, OpenClaw CLI, Claude CLI, tmux-compatible session control, Executor CLI installed from the real implementation build, and local OpenClaw skill package at C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/skills/executor-progress-judgment.",
+    "real_data": "Concrete executor task file C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/acceptance/executor-real-task.json with sha256 3a4020e029be8dae9bcc32ec8dd3c418e48cbb2485881ece1235c74c222c9fb6, reference document sha256 b749ae76111958283dd5ded4aa0c1c5dc9565ba8237fe90eac122e43e907b807, and executor-progress-judgment skill C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/skills/executor-progress-judgment/SKILL.md with sha256 39c2b623cbb995b4156a4ebd3f69d7f3f5a34246d5bc413b3a8922cc71c343a9.",
+    "acceptance_owner": "Human reviewer recorded in SRC-007 for Human PRD approval and Stage 3 authorization.",
+    "acceptance_command": "executor run C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/acceptance/executor-real-task.json --output-dir C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/acceptance-output/executor-openclaw-adapter-real-acceptance-001",
+    "preconditions": [
+      "Executor CLI command is installed from the implementation build and callable from the shell used for acceptance.",
+      "Claude CLI and tmux-compatible session control are available.",
+      "ClaudeTmuxAdapter 1.0.0 source and documentation are available at C:/Users/54256213/Documents/github/claude-tmux-adapter.",
+      "ClaudeTmuxAdapter cta binary is built from C:/Users/54256213/Documents/github/claude-tmux-adapter and callable as cta.",
+      "cta command-shape probes pass for launch, capture, status, input, and exit using the exact argv forms in this HLD.",
+      "OpenClaw CLI is available; openclaw skills install C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/skills/executor-progress-judgment --as executor-progress-judgment --agent executor-progress-agent installs the local skill from an existing SKILL.md when absent; openclaw skills check --agent executor-progress-agent --json confirms executor-progress-judgment visibility.",
+      "The concrete task file hash matches 3a4020e029be8dae9bcc32ec8dd3c418e48cbb2485881ece1235c74c222c9fb6, the reference document hash matches b749ae76111958283dd5ded4aa0c1c5dc9565ba8237fe90eac122e43e907b807, and the progress-judgment skill hash matches 39c2b623cbb995b4156a4ebd3f69d7f3f5a34246d5bc413b3a8922cc71c343a9."
+    ],
+    "execution_steps": [
+      "Run executor run C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/acceptance/executor-real-task.json --output-dir C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/acceptance-output/executor-openclaw-adapter-real-acceptance-001.",
+      "Verify TaskDescription parsing for working_directory, task_description, permissions, adapter.launch_config, adapter.command_map, skill_configuration, monitoring_policy, reference_documents, and delivery_standard.",
+      "Verify cta command-shape probes for launch, capture, status, input, and exit, including stdout normalization for current v1.0.0 output shapes.",
+      "Verify LaunchConfig is generated at adapter-evidence/${run_id}/launch-config.json with workspace, config_values, permission_settings, claude_md, and task_prompt, then verify cta launch --config <launch-config.json> records session_id, workspace, claude_md_path, permission_profile, started_at, and status.",
+      "Verify initial instruction uses cta input --session-id <id> --instruction <text> and records CommandResult evidence.",
+      "Verify state polling uses cta status --session-id <id> --samples 3 --interval 2 and follows Executor monitoring limits.",
+      "Verify idle state causes cta capture --session-id <id>, ScreenSnapshot evidence capture, OpenClawProgressRequest creation, and openclaw agent --agent executor-progress-agent --session-key agent:executor-progress-agent:${run_id} --message \"Use the executor-progress-judgment skill. Read the progress request JSON from progress-judgment-evidence/${run_id}/${iteration}/progress-judgment-request.json. Write the decision JSON to progress-judgment-evidence/${run_id}/${iteration}/progress-decision.json. Return a concise summary.\" --local --timeout 180 --json invocation.",
+      "Verify no_action, unknown state, and total runtime counters stop the run at configured limits.",
+      "Verify next_instruction decisions are sent through ClaudeTmuxAdapter input and deliverable_ready decisions trigger mechanical delivery checks.",
+      "Verify mechanical delivery checks cover result.json, execution.log, adapter evidence, progress evidence, delivery-check result, and stop/done consistency before reviewer handoff."
+    ],
+    "expected_results": [
+      "Executor starts from local CLI and parses the concrete task file into TaskDescription.",
+      "cta command probes prove the real ClaudeTmuxAdapter CLI commands are callable and parseable.",
+      "LaunchConfig generation produces a retained adapter-evidence launch-config.json with fields matching ClaudeTmuxAdapter src/config/mod.rs.",
+      "Claude CLI launch, state observation, screen capture, input sending, and exit capability occur only through cta evidence records.",
+      "Idle-screen subjective progress judgment occurs only through OpenClaw agent mode with executor-progress-judgment visible to the configured agent.",
+      "The handoff package contains structured result, execution log, adapter evidence, progress-judgment evidence, delivery-check result, and reviewer acceptance record.",
+      "Executor does not declare semantic task success from adapter state or screen text."
+    ],
+    "expected_artifact_paths": [
+      "result.json",
+      "execution.log",
+      "delivery-check.json",
+      "adapter-evidence/",
+      "progress-judgment-evidence/",
+      "reviewer-acceptance-record.md"
+    ],
+    "mechanical_checks": [
+      "Verify result.json exists and contains run identity, final status, task hash, cta command-surface source, monitoring counters, and evidence index.",
+      "Verify execution.log records CLI invocation, task parsing, adapter preflight, adapter launch, polling, idle capture, OpenClaw invocation, decision routing, and handoff.",
+      "Verify adapter-evidence contains cta launch, capture, status, input, exit, and command-shape probe records with stdout, stderr, exit code, and parsed JSON.",
+      "Verify adapter-evidence contains generated launch-config.json with sha256 and the exact cta launch argv that consumed it.",
+      "Verify progress-judgment-evidence contains OpenClawProgressRequest, OpenClaw stdout/stderr/exit status, and parsed progress-decision.json for each idle judgment.",
+      "Verify delivery-check.json reports pass only when result, log, adapter evidence, progress evidence, and stop/done consistency are present."
+    ],
+    "failure_criteria": [
+      "Fail if Claude CLI is controlled outside ClaudeTmuxAdapter evidence.",
+      "Fail if cta is unavailable or any required cta subcommand probe fails.",
+      "Fail if generated LaunchConfig is missing, not retained as evidence, or omits workspace, config_values, permission_settings, claude_md, or task_prompt.",
+      "Fail if idle state is judged without ScreenSnapshot evidence and OpenClawProgressDecision evidence.",
+      "Fail if executor-progress-judgment is absent from the configured OpenClaw agent skill set.",
+      "Fail if no_action, unknown state, or total runtime limits are ignored.",
+      "Fail if deliverable_ready bypasses mechanical delivery checks.",
+      "Fail if Executor declares semantic task success without reviewer or separate-agent acceptance.",
+      "Fail if any required result, log, or evidence artifact is absent."
+    ],
+    "evidence_to_capture": [
+      "Concrete task file path and sha256.",
+      "Concrete reference document path and sha256.",
+      "Executor CLI invocation record and parsed TaskDescription summary.",
+      "cta command-shape probe argv, stdout, stderr, exit status, and parsed JSON outputs.",
+      "Generated LaunchConfig JSON path, sha256, and parsed fields.",
+      "OpenClaw skills check JSON result.",
+      "ClaudeTmuxAdapter target or session identity and launch metadata.",
+      "Status polling records, monitoring counters, and timeout decisions.",
+      "ScreenSnapshot records for idle observations.",
+      "InputReceipt or CommandResult records for initial and next instructions.",
+      "OpenClawProgressRequest and OpenClawProgressDecision records.",
+      "delivery-check.json, result.json, execution.log, and reviewer-acceptance-record.md."
+    ],
+    "mock_policy": "forbidden",
+    "environment_source_refs": [
+      "SRC-003",
+      "SRC-004",
+      "SRC-005",
+      "SRC-008",
+      "SRC-009",
+      "SRC-010",
+      "SRC-011",
+      "SRC-013",
+      "SRC-014",
+      "SRC-015",
+      "SRC-016",
+      "SRC-017",
+      "SRC-018",
+      "SRC-019"
+    ],
+    "real_data_source_refs": [
+      "SRC-012",
+      "SRC-014",
+      "SRC-018",
+      "SRC-019"
+    ],
+    "acceptance_owner_source_refs": [
+      "SRC-007"
+    ],
+    "contract_refs": [
+      "REQ-001",
+      "REQ-002",
+      "REQ-003",
+      "REQ-004",
+      "REQ-005",
+      "REQ-006",
+      "REQ-007",
+      "REQ-008",
+      "REQ-009",
+      "REQ-010",
+      "AC-001",
+      "AC-002",
+      "AC-003",
+      "AC-004",
+      "AC-005",
+      "AC-006",
+      "AC-007",
+      "AC-008",
+      "AC-009",
+      "AC-010",
+      "VER-001",
+      "OUT-001",
+      "DONE-001",
+      "STOP-001"
+    ]
+  },
+  "design_gate_report": [
+    {
+      "check_id": "CHECK-001",
+      "name": "HLD source readiness",
+      "gate_key": "source_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-001",
+        "REQ-010",
+        "AC-010",
+        "IN-001",
+        "EXE-001",
+        "VER-001",
+        "OUT-001",
+        "DONE-001"
+      ],
+      "evidence_summary": "The HLD derives from approved Stage 2 PRDs, the Stage 1 requirement table, and canonical execution refs without adding untraced product scope.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-002",
+      "name": "Control flow readiness",
+      "gate_key": "control_flow_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-001",
+        "REQ-003",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-010",
+        "FLOW-001",
+        "STOP-001"
+      ],
+      "evidence_summary": "The HLD defines ordered CLI load, adapter launch, send_input, detect_state polling, idle capture, OpenClaw judgment, delivery check, and handoff steps with branch behavior.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-003",
+      "name": "Data flow and object readiness",
+      "gate_key": "data_flow_and_object_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-002",
+        "REQ-006",
+        "REQ-007",
+        "REQ-010",
+        "DATA-001",
+        "DCT-001",
+        "IN-001",
+        "OUT-001"
+      ],
+      "evidence_summary": "The HLD defines task, run state, adapter evidence, progress judgment, and delivery-check data objects with required fields, meanings, lifecycle, and data flows.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-004",
+      "name": "Interface and state readiness",
+      "gate_key": "interface_state_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-004",
+        "REQ-006",
+        "REQ-007",
+        "REQ-010",
+        "MOD-001",
+        "MOD-002",
+        "MOD-003",
+        "TECH-001",
+        "TECH-002",
+        "STATE-001"
+      ],
+      "evidence_summary": "The HLD defines Executor CLI, LaunchConfigArtifact, CtaCommandSurface, ClaudeTmuxAdapter cta command families, OpenClaw local skill install/check, OpenClaw agent judgment, reviewer handoff interfaces, and state transitions.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-005",
+      "name": "Technical implementation readiness",
+      "gate_key": "technical_implementation_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-003",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-010",
+        "TECH-001",
+        "TECH-002",
+        "MOD-002",
+        "MOD-003",
+        "BAR-001"
+      ],
+      "evidence_summary": "The HLD records implementation decisions for local CLI scope, LaunchConfig generation, validated cta command surface, OpenClaw agent-mode judgment, monitoring limits, mechanical delivery checks, and overclaim prevention.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-006",
+      "name": "Real acceptance readiness",
+      "gate_key": "real_acceptance_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-007",
+        "REQ-008",
+        "REQ-010",
+        "VER-001",
+        "OUT-001",
+        "DONE-001"
+      ],
+      "evidence_summary": "The HLD names concrete acceptance workspace, task file, reference document, output directory, acceptance command, preconditions, expected artifacts, checks, failure criteria, evidence, and owner.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-007",
+      "name": "HLD document readiness",
+      "gate_key": "hld_document_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-001",
+        "REQ-003",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-010",
+        "MOD-002",
+        "MOD-003",
+        "TECH-001",
+        "TECH-002",
+        "VER-001",
+        "OUT-001"
+      ],
+      "evidence_summary": "The Markdown HLD renders source-backed interface precision and executable acceptance design with command, preconditions, expected artifacts, mechanical checks, and failure criteria.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-008",
+      "name": "Task boundary readiness",
+      "gate_key": "task_boundary_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-010",
+        "BAR-001",
+        "STOP-001"
+      ],
+      "evidence_summary": "The HLD stays at implementation design level and contains no task plan, task graph, dependency edge, parallel group, or implementation task card.",
+      "required_fix": ""
+    }
+  ]
+}

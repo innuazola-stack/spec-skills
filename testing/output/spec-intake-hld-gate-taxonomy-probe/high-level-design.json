@@ -1,0 +1,318 @@
+{
+  "hld_id": "HLD-001",
+  "source_artifacts": {
+    "contract_ref": "contract-envelope.json",
+    "contract_version": "1.8",
+    "agent_prd_ref": "agent-prd.md",
+    "agent_prd_status": "execution_ready",
+    "phase_ref": "PHASE-001",
+    "phase_label": "Phase 1 MVP",
+    "phase_ref_kind": "canonical_id",
+    "phase_ref_fallback_reason": ""
+  },
+  "design_status": "ready",
+  "blocking_reasons": [],
+  "missing_required_refs": [],
+  "required_fixes": [],
+  "contract_refs": [
+    "AC-001",
+    "DONE-001",
+    "EXE-001",
+    "IN-001",
+    "OUT-001",
+    "REQ-001",
+    "STOP-001",
+    "VER-001"
+  ],
+  "architecture_summary": "Build the Phase 1 capability as a bounded extraction and export path governed by the Agent PRD contract.",
+  "component_boundaries": "Keep transcript input, evidence-backed extraction, human confirmation, and Markdown export as explicit component boundaries.",
+  "data_and_state_design": "Treat authorized transcript text as input, extracted action items as review state, and confirmed Markdown as the only output.",
+  "integration_points": "No external task-system integration is allowed in Phase 1; Markdown export is the integration boundary.",
+  "verification_strategy": "Use the contract verification refs and acceptance criteria to prove extraction, confirmation, stop, and export behavior.",
+  "risk_controls": "Stop when authorization is missing or a request attempts automatic external task creation.",
+  "control_flow_design": [
+    {
+      "step_id": "FLOW-STEP-001",
+      "name": "Accept authorized transcript input",
+      "trigger": "A reviewer provides authorized transcript text for Phase 1 extraction.",
+      "actor_or_component": "Transcript input boundary",
+      "input_refs": [
+        "IN-001"
+      ],
+      "output_refs": [
+        "REQ-001"
+      ],
+      "interaction_refs": [
+        "EXE-001",
+        "STOP-001"
+      ],
+      "failure_or_branch_behavior": "If authorization is missing or the request asks for external task creation, stop under STOP-001.",
+      "contract_refs": [
+        "REQ-001",
+        "IN-001",
+        "EXE-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "step_id": "FLOW-STEP-002",
+      "name": "Extract and confirm action items",
+      "trigger": "Authorized transcript text is available.",
+      "actor_or_component": "Extraction and human confirmation boundary",
+      "input_refs": [
+        "REQ-001",
+        "IN-001"
+      ],
+      "output_refs": [
+        "OUT-001"
+      ],
+      "interaction_refs": [
+        "AC-001",
+        "VER-001",
+        "DONE-001"
+      ],
+      "failure_or_branch_behavior": "Items without source evidence remain unexported; confirmed items are rendered to Markdown only after human confirmation.",
+      "contract_refs": [
+        "REQ-001",
+        "AC-001",
+        "VER-001",
+        "OUT-001",
+        "DONE-001"
+      ]
+    }
+  ],
+  "data_flow_design": [
+    {
+      "flow_id": "DATAFLOW-A",
+      "source": "Authorized transcript text from IN-001.",
+      "transformation": "Extract action item, owner, due date when present, and source evidence under EXE-001.",
+      "target": "Review state for human confirmation and confirmed Markdown output.",
+      "persistence_or_retention": "Only confirmed Markdown is an output artifact; unconfirmed extraction state is not an accepted deliverable.",
+      "data_refs": [
+        "IN-001",
+        "REQ-001",
+        "OUT-001"
+      ],
+      "contract_refs": [
+        "REQ-001",
+        "IN-001",
+        "EXE-001",
+        "OUT-001"
+      ]
+    }
+  ],
+  "data_objects": [
+    {
+      "object_name": "ActionItemCandidate",
+      "purpose": "Represents an extracted action item awaiting human confirmation.",
+      "fields": [
+        {
+          "name": "action",
+          "required": true,
+          "meaning": "The follow-up action extracted from transcript text."
+        },
+        {
+          "name": "owner",
+          "required": false,
+          "meaning": "The responsible person when present in the transcript."
+        },
+        {
+          "name": "due_date",
+          "required": false,
+          "meaning": "The due date when present in the transcript."
+        },
+        {
+          "name": "source_evidence",
+          "required": true,
+          "meaning": "Transcript evidence supporting the candidate item."
+        },
+        {
+          "name": "confirmation_status",
+          "required": true,
+          "meaning": "Human confirmation state before Markdown export."
+        }
+      ],
+      "lifecycle": "Created from authorized transcript text, reviewed by a human, and exported only after confirmation.",
+      "contract_refs": [
+        "REQ-001",
+        "AC-001",
+        "OUT-001"
+      ]
+    }
+  ],
+  "interface_contracts": [
+    {
+      "interface_name": "Transcript input interface",
+      "provider": "Reviewer or authorized transcript source",
+      "consumer": "Meeting Action Extractor",
+      "invocation": "Provide authorized transcript text as the Phase 1 input boundary.",
+      "inputs": [
+        "authorized_transcript_text from IN-001"
+      ],
+      "outputs": [
+        "reviewable action item candidates"
+      ],
+      "error_semantics": "Reject missing authorization and requests for automatic external task creation.",
+      "contract_refs": [
+        "IN-001",
+        "REQ-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "interface_name": "Markdown export interface",
+      "provider": "Meeting Action Extractor",
+      "consumer": "Human reviewer",
+      "invocation": "Export confirmed action items after confirmation.",
+      "inputs": [
+        "confirmed ActionItemCandidate records"
+      ],
+      "outputs": [
+        "Confirmed Markdown action-item list from OUT-001"
+      ],
+      "error_semantics": "Do not export unconfirmed candidates.",
+      "contract_refs": [
+        "AC-001",
+        "OUT-001",
+        "DONE-001"
+      ]
+    }
+  ],
+  "state_model": [
+    {
+      "state": "authorized_input_received",
+      "owner": "Transcript input boundary",
+      "transitions": [
+        "to extraction when authorization is present",
+        "to stopped when authorization is missing or external task creation is requested"
+      ],
+      "contract_refs": [
+        "IN-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "state": "confirmed_for_export",
+      "owner": "Human confirmation boundary",
+      "transitions": [
+        "to Markdown export after human confirmation",
+        "remain unexported when confirmation is absent"
+      ],
+      "contract_refs": [
+        "AC-001",
+        "OUT-001",
+        "DONE-001"
+      ]
+    }
+  ],
+  "technical_decisions": [
+    {
+      "decision": "Keep Phase 1 export limited to Markdown.",
+      "rationale": "OOS-001 excludes automatic Jira, Linear, Asana, calendar, or email task creation.",
+      "implementation_notes": "Implement external task-system creation as unavailable in Phase 1 and guard it through STOP-001.",
+      "contract_refs": [
+        "OOS-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "decision": "Require source evidence for every exported action item.",
+      "rationale": "REQ-001 and AC-001 require source evidence and human confirmation.",
+      "implementation_notes": "Carry source_evidence through the candidate object and block export if evidence is absent.",
+      "contract_refs": [
+        "REQ-001",
+        "AC-001",
+        "EXE-001"
+      ]
+    }
+  ],
+  "implementation_design": [
+    {
+      "component_or_concern": "Extraction boundary",
+      "design": "Extract only evidence-backed candidates from authorized transcript text and preserve enough state for human confirmation.",
+      "contract_refs": [
+        "REQ-001",
+        "IN-001",
+        "EXE-001"
+      ]
+    },
+    {
+      "component_or_concern": "Export boundary",
+      "design": "Generate Markdown only from confirmed candidates and keep external task-system creation out of Phase 1.",
+      "contract_refs": [
+        "AC-001",
+        "OUT-001",
+        "OOS-001",
+        "DONE-001"
+      ]
+    }
+  ],
+  "environment_requirements": [
+    {
+      "requirement": "Run acceptance on the actual Phase 1 extractor build with Markdown export enabled.",
+      "provided_by_or_source": "Confirmed acceptance runtime C:/tmp/spec-intake-acceptance/meeting-action-extractor from SRC-003.",
+      "required_for": "Proving AC-001, VER-001, OUT-001, STOP-001, and DONE-001.",
+      "contract_refs": [
+        "AC-001",
+        "VER-001",
+        "OUT-001",
+        "STOP-001",
+        "DONE-001"
+      ]
+    }
+  ],
+  "real_acceptance_plan": {
+    "environment": "Confirmed local Phase 1 extractor runtime at C:/tmp/spec-intake-acceptance/meeting-action-extractor with Markdown export enabled and external task-system connectors disabled.",
+    "real_data": "Confirmed authorized transcript file at C:/tmp/spec-intake-acceptance/data/authorized-meeting-transcript-001.txt.",
+    "execution_steps": [
+      "Run the actual extractor with the authorized transcript text from IN-001.",
+      "Confirm the extracted item through the human confirmation boundary required by AC-001.",
+      "Export the confirmed Markdown action-item list from OUT-001.",
+      "Attempt an external task-creation request and verify STOP-001 prevents it."
+    ],
+    "expected_results": [
+      "The result contains action, owner when present, due date when present, and source evidence.",
+      "Markdown export occurs only after human confirmation.",
+      "External task-system creation remains unavailable in Phase 1."
+    ],
+    "evidence_to_capture": [
+      "Input transcript identifier or acceptance fixture path approved for real acceptance.",
+      "Extractor run output before and after human confirmation.",
+      "Final Markdown output.",
+      "Stop-condition evidence for attempted external task creation."
+    ],
+    "acceptance_owner": "Named product reviewer recorded in C:/tmp/spec-intake-acceptance/evidence/reviewer-approval.md.",
+    "mock_policy": "forbidden",
+    "environment_source_refs": [
+      "SRC-003"
+    ],
+    "real_data_source_refs": [
+      "SRC-004"
+    ],
+    "acceptance_owner_source_refs": [
+      "SRC-005"
+    ],
+    "contract_refs": [
+      "REQ-001",
+      "AC-001",
+      "VER-001",
+      "IN-001",
+      "EXE-001",
+      "OUT-001",
+      "STOP-001",
+      "DONE-001"
+    ]
+  },
+  "design_gate_report": [
+    {
+      "check_id": "CHECK-001",
+      "name": "Generic pass",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-001"
+      ],
+      "evidence_summary": "Looks fine.",
+      "required_fix": ""
+    }
+  ]
+}

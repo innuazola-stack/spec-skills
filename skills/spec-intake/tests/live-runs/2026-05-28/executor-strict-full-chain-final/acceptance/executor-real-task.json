@@ -1,0 +1,217 @@
+{
+  "task_id": "executor-openclaw-adapter-real-acceptance-001",
+  "working_directory": "C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/acceptance/workspace",
+  "task_description": "Drive Claude CLI through ClaudeTmuxAdapter, monitor adapter state, capture idle screen content, invoke the executor-progress-judgment skill through OpenClaw agent mode, send returned next instructions through the adapter, and produce result, log, adapter evidence, progress-judgment evidence, and delivery-check artifacts.",
+  "permissions": {
+    "filesystem": {
+      "read": [
+        "C:/Users/54256213/Documents/github/spec-skills",
+        "C:/Users/54256213/Documents/github/claude-tmux-adapter"
+      ],
+      "write": [
+        "C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/acceptance-output"
+      ]
+    },
+    "commands": [
+      "executor",
+      "cta",
+      "openclaw"
+    ]
+  },
+  "adapter": {
+    "name": "ClaudeTmuxAdapter",
+    "version": "1.0.0",
+    "project_path": "C:/Users/54256213/Documents/github/claude-tmux-adapter",
+    "required_capabilities": [
+      "launch",
+      "detect_state",
+      "capture_screen",
+      "send_input",
+      "read_output"
+    ],
+    "command_map": {
+      "binary": "cta",
+      "source_files": [
+        "C:/Users/54256213/Documents/github/claude-tmux-adapter/src/cli/mod.rs",
+        "C:/Users/54256213/Documents/github/claude-tmux-adapter/src/main.rs",
+        "C:/Users/54256213/Documents/github/claude-tmux-adapter/docs/cli.md",
+        "C:/Users/54256213/Documents/github/claude-tmux-adapter/Cargo.toml"
+      ],
+      "version_source": "Cargo.toml package version 1.0.0 and bin name cta",
+      "output_compatibility_policy": "docs/cli.md defines CommandResult<T> envelopes for all commands; current src/main.rs prints direct LaunchSessionResponse, StructuredScreen, and StatusDiff for launch/capture/status, while input/exit print CommandResult envelopes. Executor must normalize both documented envelope and current direct-evidence shapes.",
+      "commands": {
+        "launch": {
+          "argv_template": [
+            "cta",
+            "launch",
+            "--config",
+            "${launch_config_path}"
+          ],
+          "stdout_shapes": [
+            "CommandResult<LaunchSessionResponse>",
+            "LaunchSessionResponse"
+          ],
+          "required_fields": [
+            "session_id",
+            "workspace",
+            "claude_md_path",
+            "permission_profile",
+            "started_at",
+            "status"
+          ]
+        },
+        "capture": {
+          "argv_template": [
+            "cta",
+            "capture",
+            "--session-id",
+            "${session_id}"
+          ],
+          "stdout_shapes": [
+            "CommandResult<StructuredScreen>",
+            "StructuredScreen"
+          ],
+          "required_fields": [
+            "session_id",
+            "captured_at",
+            "raw_screen",
+            "messages",
+            "input",
+            "status"
+          ]
+        },
+        "status": {
+          "argv_template": [
+            "cta",
+            "status",
+            "--session-id",
+            "${session_id}",
+            "--samples",
+            "3",
+            "--interval",
+            "2"
+          ],
+          "stdout_shapes": [
+            "CommandResult<StatusDiff>",
+            "StatusDiff"
+          ],
+          "required_fields": [
+            "session_id",
+            "state",
+            "current_capture",
+            "previous_capture_ref",
+            "diff",
+            "rule_hits",
+            "confidence_source"
+          ]
+        },
+        "input": {
+          "argv_template": [
+            "cta",
+            "input",
+            "--session-id",
+            "${session_id}",
+            "--instruction",
+            "${instruction}"
+          ],
+          "stdout_shapes": [
+            "CommandResult<StructuredScreen>"
+          ],
+          "required_fields": [
+            "session_id",
+            "operation",
+            "success",
+            "evidence",
+            "error"
+          ]
+        },
+        "exit": {
+          "argv_template": [
+            "cta",
+            "exit",
+            "--session-id",
+            "${session_id}",
+            "--mode",
+            "graceful"
+          ],
+          "force_argv_template": [
+            "cta",
+            "exit",
+            "--session-id",
+            "${session_id}",
+            "--mode",
+            "force"
+          ],
+          "stdout_shapes": [
+            "CommandResult<TerminationResult>"
+          ],
+          "required_fields": [
+            "session_id",
+            "operation",
+            "success",
+            "evidence",
+            "error"
+          ]
+        }
+      }
+    },
+    "launch_config": {
+      "path_template": "adapter-evidence/${run_id}/launch-config.json",
+      "mapping": {
+        "workspace": "${working_directory}",
+        "config_values": {},
+        "permission_settings": "Default",
+        "claude_md": {
+          "Content": "# Executor task context\n\nThis Claude session is controlled only through ClaudeTmuxAdapter by Executor. Work inside the configured workspace, use the listed reference documents, respect the permission boundary, and leave deliverables where the task delivery standard requires."
+        },
+        "task_prompt_template": "Task: ${task_description}\n\nReference documents:\n${reference_documents}\n\nDelivery standard:\n${delivery_standard}\n\nAll progress and follow-up instructions will be mediated by Executor."
+      },
+      "required_adapter_fields": [
+        "workspace",
+        "config_values",
+        "permission_settings",
+        "claude_md",
+        "task_prompt"
+      ],
+      "source_file": "C:/Users/54256213/Documents/github/claude-tmux-adapter/src/config/mod.rs"
+    }
+  },
+  "skill_configuration": {
+    "openclaw_agent_id": "executor-progress-agent",
+    "required_skill": "executor-progress-judgment",
+    "skill_visibility_check": "openclaw skills check --agent executor-progress-agent --json",
+    "agent_turn_command_template": "openclaw agent --agent executor-progress-agent --session-key agent:executor-progress-agent:${run_id} --message \"Use the executor-progress-judgment skill. Read the progress request JSON from progress-judgment-evidence/${run_id}/${iteration}/progress-judgment-request.json. Write the decision JSON to progress-judgment-evidence/${run_id}/${iteration}/progress-decision.json. Return a concise summary.\" --local --timeout 180 --json",
+    "allowed_decisions": [
+      "next_instruction",
+      "deliverable_ready",
+      "no_action",
+      "blocked"
+    ],
+    "skill_install_command": "openclaw skills install C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/skills/executor-progress-judgment --as executor-progress-judgment --agent executor-progress-agent",
+    "request_path_template": "progress-judgment-evidence/${run_id}/${iteration}/progress-judgment-request.json",
+    "decision_path_template": "progress-judgment-evidence/${run_id}/${iteration}/progress-decision.json",
+    "skill_source_path": "C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/skills/executor-progress-judgment",
+    "skill_source_sha256": "39c2b623cbb995b4156a4ebd3f69d7f3f5a34246d5bc413b3a8922cc71c343a9"
+  },
+  "reference_documents": [
+    "C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/acceptance/workspace/docs/executor-operator-brief.md"
+  ],
+  "delivery_standard": {
+    "result_json": "result.json",
+    "execution_log": "execution.log",
+    "delivery_check": "delivery-check.json",
+    "adapter_evidence_dir": "adapter-evidence/",
+    "progress_judgment_evidence_dir": "progress-judgment-evidence/",
+    "reviewer_acceptance_record": "reviewer-acceptance-record.md",
+    "output_directory": "C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-strict-full-chain-final/acceptance-output/executor-openclaw-adapter-real-acceptance-001"
+  },
+  "monitoring_policy": {
+    "poll_interval_seconds": 5,
+    "state_command_timeout_seconds": 30,
+    "screen_capture_timeout_seconds": 30,
+    "openclaw_turn_timeout_seconds": 180,
+    "max_consecutive_no_action": 6,
+    "max_consecutive_unknown_state": 2,
+    "max_run_seconds": 7200
+  }
+}

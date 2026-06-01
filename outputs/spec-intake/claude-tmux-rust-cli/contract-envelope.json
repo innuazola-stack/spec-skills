@@ -1,0 +1,2073 @@
+{
+  "contract_version": "1.9",
+  "intake_id": "INTAKE-CLAUDE-TMUX-RUST-001",
+  "source_idea": {
+    "raw_idea": "创建一个 rust cli 应用包裹 claude cli，能够设定环境并在 tmux 中启动 claude cli 返回 session id，捕捉指定 tmux session 当前屏幕并输出结构化内容，基于当前与历史结构化屏幕 diff 机械识别空闲/忙碌且空闲和忙碌准确率均达到 99%，向指定 session 输入指令并执行且 1 秒后捕捉屏幕确认输入成功，以及通过 /exit 或强制 kill 结束 tmux session。所有特性都是机械的，必须完成。",
+    "source_context_refs": [
+      "SRC-001"
+    ],
+    "created_at": "2026-05-26T15:06:00+08:00"
+  },
+  "core": "CORE-001",
+  "scope": {
+    "in_scope": [
+      "SCOPE-001"
+    ],
+    "out_of_scope": [
+      "OOS-001"
+    ],
+    "mvp_boundary": "Phase 1 delivers a Rust CLI wrapper around Claude CLI running inside tmux, with mechanical launch, capture, status detection, input, and termination operations.",
+    "roadmap": [
+      "PHASE-001"
+    ]
+  },
+  "requirements": [
+    "REQ-001",
+    "REQ-002",
+    "REQ-003",
+    "REQ-004",
+    "REQ-005"
+  ],
+  "acceptance_criteria": [
+    "AC-001",
+    "AC-002",
+    "AC-003",
+    "AC-004",
+    "AC-005"
+  ],
+  "success_metrics": [
+    "MET-001",
+    "MET-002"
+  ],
+  "implementation_model": {
+    "control_flow": [
+      "FLOW-001"
+    ],
+    "data_flow": [
+      "DATA-001"
+    ],
+    "modules": [
+      "MOD-001",
+      "MOD-002",
+      "MOD-003",
+      "MOD-004",
+      "MOD-005",
+      "MOD-006",
+      "MOD-007"
+    ],
+    "technical_decisions": [
+      "TECH-001",
+      "TECH-002",
+      "TECH-003"
+    ],
+    "state_transitions": [
+      "STATE-001"
+    ],
+    "data_contracts": [
+      "DCT-001",
+      "DCT-002",
+      "DCT-003",
+      "DCT-004"
+    ]
+  },
+  "agent_execution": {
+    "input_contracts": [
+      "IN-001",
+      "IN-002",
+      "IN-003",
+      "IN-004",
+      "IN-005"
+    ],
+    "execution_rules": [
+      "EXE-001",
+      "EXE-002",
+      "EXE-003",
+      "EXE-004",
+      "EXE-005"
+    ],
+    "verification_cases": [
+      "VER-001",
+      "VER-002",
+      "VER-003",
+      "VER-004",
+      "VER-005",
+      "VER-006"
+    ],
+    "output_deliverables": [
+      "OUT-001",
+      "OUT-002",
+      "OUT-003",
+      "OUT-004",
+      "OUT-005"
+    ],
+    "stop_conditions": [
+      "STOP-001",
+      "STOP-002",
+      "STOP-003",
+      "STOP-004",
+      "STOP-005"
+    ],
+    "done_criteria": [
+      "DONE-001",
+      "DONE-002",
+      "DONE-003",
+      "DONE-004",
+      "DONE-005"
+    ]
+  },
+  "risks": [
+    "RISK-001",
+    "RISK-002",
+    "RISK-003"
+  ],
+  "quality_bars": [
+    "BAR-001",
+    "BAR-002",
+    "BAR-003"
+  ],
+  "assumptions": [
+    "ASM-001",
+    "ASM-002",
+    "ASM-003"
+  ],
+  "open_questions": [],
+  "references": [
+    "REF-001",
+    "REF-002",
+    "REF-003",
+    "REF-004",
+    "REF-005"
+  ],
+  "sources": [
+    "SRC-001"
+  ],
+  "traceability": [
+    "TRACE-001",
+    "TRACE-002",
+    "TRACE-003",
+    "TRACE-004",
+    "TRACE-005",
+    "TRACE-006",
+    "TRACE-007",
+    "TRACE-008",
+    "TRACE-009",
+    "TRACE-010"
+  ],
+  "render_blocks": [
+    "RB-001",
+    "RB-002",
+    "RB-003",
+    "RB-004"
+  ],
+  "document_metadata": [
+    "META-001"
+  ],
+  "quality_gates": [
+    "GATE-001",
+    "GATE-002",
+    "GATE-003"
+  ],
+  "render_status": {
+    "human_prd": "review_ready",
+    "agent_prd": "execution_ready"
+  },
+  "objects": {
+    "SRC-001": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-001",
+        "source_type": "user_input",
+        "content": "创建一个 rust cli 应用包裹 claude cli，提供 tmux 启动、屏幕捕捉、状态检测、输入执行、退出或 kill 的机械能力，空闲和忙碌识别准确率均要求 99%。",
+        "label": "Original user idea"
+      }
+    },
+    "CORE-001": {
+      "type": "CORE",
+      "payload": {
+        "id": "CORE-001",
+        "product_name": "Claude Tmux CLI Adapter",
+        "one_line_summary": "A Rust CLI wrapper that controls Claude CLI inside tmux through mechanical launch, capture, status, input, and termination commands.",
+        "target_users": [
+          "agent runtime developers",
+          "spec-driven development automation operators"
+        ],
+        "personas": [
+          "Developer integrating Claude CLI into a supervised automation pipeline"
+        ],
+        "problem_statement": "Agent workflows need a deterministic command-line control layer around Claude CLI sessions, but tmux screen interaction is unstructured unless captured, parsed, diffed, and controlled by strict mechanical rules.",
+        "value_proposition": "Provide a predictable Rust CLI adapter that can start Claude CLI with a configured environment, observe it, classify idle or busy state, send commands, and terminate sessions without semantic guessing.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "assumption_refs": [
+          "ASM-001",
+          "ASM-002",
+          "ASM-003"
+        ],
+        "status": "confirmed"
+      }
+    },
+    "USER-001": {
+      "type": "USER",
+      "payload": {
+        "id": "USER-001",
+        "role": "automation operator",
+        "description": "Uses the Rust CLI to manage Claude CLI sessions running inside tmux for spec-driven development tasks.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "SCOPE-001": {
+      "type": "SCOPE",
+      "payload": {
+        "id": "SCOPE-001",
+        "statement": "Phase 1 implements local Rust CLI commands for configuring and launching Claude CLI in tmux, capturing and parsing screens, detecting idle or busy state from structured diffs, sending input, and exiting or killing a session.",
+        "phase": "PHASE-001",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "OOS-001": {
+      "type": "OOS",
+      "payload": {
+        "id": "OOS-001",
+        "statement": "Phase 1 does not implement semantic understanding of Claude messages, remote orchestration, multi-host tmux management, or non-tmux terminal backends.",
+        "phase": "PHASE-001",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "PHASE-001": {
+      "type": "PHASE",
+      "payload": {
+        "id": "PHASE-001",
+        "name": "Phase 1 mechanical tmux adapter MVP"
+      }
+    },
+    "REQ-001": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-001",
+        "title": "Launch Claude CLI in a configured tmux session",
+        "description": "The Rust CLI must accept environment/config inputs, prepare CLAUDE.md and task prompt context, launch Claude CLI inside tmux with configured permissions, start spec-driven development, and return the tmux session id.",
+        "user_value": "Operators can start controlled Claude CLI sessions reproducibly.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-001"
+        ],
+        "verification_refs": [
+          "VER-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed"
+      }
+    },
+    "REQ-002": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-002",
+        "title": "Capture and mechanically structure the current tmux screen",
+        "description": "Given a tmux session id, the Rust CLI must capture the current Claude CLI screen and return structured content containing messages, input, and status fields extracted by mechanical parsing rules.",
+        "user_value": "Callers can observe Claude CLI state without reading raw terminal text.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-002"
+        ],
+        "verification_refs": [
+          "VER-002"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed"
+      }
+    },
+    "REQ-003": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-003",
+        "title": "Detect idle or busy state by structured screen diff",
+        "description": "Given the current structured screen and historical structured screens for the same session, the Rust CLI must mechanically classify Claude CLI as idle or busy, return a structured diff, and meet 99% idle accuracy and 99% busy accuracy on the verification corpus.",
+        "user_value": "Automation can wait or send commands only when Claude CLI is actually idle.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-003"
+        ],
+        "verification_refs": [
+          "VER-003",
+          "VER-006"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed"
+      }
+    },
+    "REQ-004": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-004",
+        "title": "Send command input to a Claude CLI tmux session and confirm delivery",
+        "description": "Given a tmux session id and instruction text, the Rust CLI must input the instruction into Claude CLI, trigger execution, wait one second, capture the screen, and return structured confirmation that the input was delivered.",
+        "user_value": "Callers can command a running Claude CLI session and verify the send operation mechanically.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-004"
+        ],
+        "verification_refs": [
+          "VER-004"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed"
+      }
+    },
+    "REQ-005": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-005",
+        "title": "Exit or kill a Claude CLI tmux session",
+        "description": "Given a tmux session id, the Rust CLI must either send /exit to Claude CLI or force kill the tmux session, then return a structured termination result.",
+        "user_value": "Operators can cleanly or forcibly end managed sessions.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-005"
+        ],
+        "verification_refs": [
+          "VER-005"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed"
+      }
+    },
+    "AC-001": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-001",
+        "requirement_id": "REQ-001",
+        "criterion": "Given config, CLAUDE.md content, task prompt, and permission settings, the launch command creates a tmux session running Claude CLI and returns a non-empty session id plus launch metadata.",
+        "verification_method": "VER-001",
+        "blocking": true
+      }
+    },
+    "AC-002": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-002",
+        "requirement_id": "REQ-002",
+        "criterion": "Given a valid session id, the capture command returns raw screen text, parsed messages, parsed input area, parser status, and capture timestamp without semantic interpretation.",
+        "verification_method": "VER-002",
+        "blocking": true
+      }
+    },
+    "AC-003": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-003",
+        "requirement_id": "REQ-003",
+        "criterion": "Given current and historical structured captures, the status command returns idle or busy plus structured diff details, with idle accuracy >= 99% and busy accuracy >= 99% on the labeled corpus.",
+        "verification_method": "VER-003",
+        "blocking": true
+      }
+    },
+    "AC-004": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-004",
+        "requirement_id": "REQ-004",
+        "criterion": "Given a valid session id and instruction, the input command sends the instruction, presses Enter, waits one second, captures the screen, and returns confirmation evidence or a structured failure.",
+        "verification_method": "VER-004",
+        "blocking": true
+      }
+    },
+    "AC-005": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-005",
+        "requirement_id": "REQ-005",
+        "criterion": "Given a valid session id, the exit command sends /exit when graceful mode is requested or kills the tmux session when force mode is requested, and reports whether the session still exists.",
+        "verification_method": "VER-005",
+        "blocking": true
+      }
+    },
+    "MET-001": {
+      "type": "MET",
+      "payload": {
+        "id": "MET-001",
+        "metric": "idle_detection_accuracy",
+        "target": ">= 99% on labeled screen-diff corpus",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "MET-002": {
+      "type": "MET",
+      "payload": {
+        "id": "MET-002",
+        "metric": "busy_detection_accuracy",
+        "target": ">= 99% on labeled screen-diff corpus",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "FLOW-001": {
+      "type": "FLOW",
+      "payload": {
+        "id": "FLOW-001",
+        "flow": "launch -> capture -> status/diff -> input -> capture confirmation -> exit/kill",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "DATA-001": {
+      "type": "DATA",
+      "payload": {
+        "id": "DATA-001",
+        "data_name": "tmux_screen_capture_history",
+        "description": "Session-scoped current and historical structured captures used for mechanical diff and status classification.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "MOD-001": {
+      "type": "MOD",
+      "payload": {
+        "id": "MOD-001",
+        "module": "cli_command_router",
+        "responsibility": "Expose launch, capture, status, input, and exit commands."
+      }
+    },
+    "MOD-002": {
+      "type": "MOD",
+      "payload": {
+        "id": "MOD-002",
+        "module": "environment_builder",
+        "responsibility": "Materialize config values, permission settings, CLAUDE.md, and task prompt files."
+      }
+    },
+    "MOD-003": {
+      "type": "MOD",
+      "payload": {
+        "id": "MOD-003",
+        "module": "tmux_controller",
+        "responsibility": "Create, address, send keys to, capture, and kill tmux sessions."
+      }
+    },
+    "MOD-004": {
+      "type": "MOD",
+      "payload": {
+        "id": "MOD-004",
+        "module": "screen_parser",
+        "responsibility": "Parse raw tmux screen text into structured messages, input, and parser status using mechanical rules."
+      }
+    },
+    "MOD-005": {
+      "type": "MOD",
+      "payload": {
+        "id": "MOD-005",
+        "module": "status_detector",
+        "responsibility": "Compute structured diffs and classify idle or busy by deterministic rules."
+      }
+    },
+    "MOD-006": {
+      "type": "MOD",
+      "payload": {
+        "id": "MOD-006",
+        "module": "input_sender",
+        "responsibility": "Send instruction text and Enter, then capture confirmation after one second."
+      }
+    },
+    "MOD-007": {
+      "type": "MOD",
+      "payload": {
+        "id": "MOD-007",
+        "module": "termination_controller",
+        "responsibility": "Send /exit or force kill a tmux session and report final state."
+      }
+    },
+    "TECH-001": {
+      "type": "TECH",
+      "payload": {
+        "id": "TECH-001",
+        "decision": "Implement the wrapper as a Rust CLI application.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "area": "CLI runtime",
+        "rationale": "The user explicitly requested a Rust CLI wrapper and Rust gives deterministic command execution, typed JSON output, and testable subprocess boundaries.",
+        "applies_to": [
+          "MOD-001",
+          "MOD-002"
+        ],
+        "phase": "PHASE-001",
+        "agent_constraint": "Keep command behavior deterministic and testable through Rust unit and integration tests.",
+        "negative_rules": [
+          "Do not replace the Rust CLI with a shell script or long-running daemon in Phase 1."
+        ]
+      }
+    },
+    "TECH-002": {
+      "type": "TECH",
+      "payload": {
+        "id": "TECH-002",
+        "decision": "Use tmux as the session boundary and interact through tmux commands.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "area": "Session boundary",
+        "rationale": "tmux is the required mechanical control surface for launch, capture, input, and termination.",
+        "applies_to": [
+          "MOD-003",
+          "MOD-006",
+          "MOD-007"
+        ],
+        "phase": "PHASE-001",
+        "agent_constraint": "Use tmux commands as the only terminal session boundary in Phase 1.",
+        "negative_rules": [
+          "Do not add non-tmux terminal backends or remote orchestration."
+        ]
+      }
+    },
+    "TECH-003": {
+      "type": "TECH",
+      "payload": {
+        "id": "TECH-003",
+        "decision": "Keep capture parsing and status classification mechanical and deterministic; do not use LLM judgment.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "area": "Parsing and status",
+        "rationale": "The requested idle/busy behavior must be mechanical and reach 99%/99% accuracy without semantic guessing.",
+        "applies_to": [
+          "MOD-004",
+          "MOD-005"
+        ],
+        "phase": "PHASE-001",
+        "agent_constraint": "Use explicit parser and diff rule hits; never call an LLM or infer Claude intent for status.",
+        "negative_rules": [
+          "Do not classify idle/busy from natural-language meaning of Claude messages."
+        ]
+      }
+    },
+    "STATE-001": {
+      "type": "STATE",
+      "payload": {
+        "id": "STATE-001",
+        "state_model": "unknown -> launched -> observed -> idle|busy -> input_sent -> exiting|killed -> terminated",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "DCT-001": {
+      "type": "DCT",
+      "payload": {
+        "id": "DCT-001",
+        "name": "LaunchSessionResponse",
+        "fields": [
+          "session_id",
+          "workspace",
+          "claude_md_path",
+          "permission_profile",
+          "started_at",
+          "status"
+        ],
+        "schema_type": "object",
+        "required_fields": [
+          "session_id",
+          "workspace",
+          "claude_md_path",
+          "permission_profile",
+          "started_at",
+          "status"
+        ],
+        "constraints": [
+          "Do not return success without a non-empty session_id.",
+          "Include structured error information through DCT-004 on failure."
+        ],
+        "produced_by": [
+          "OUT-001"
+        ],
+        "field_contract": {
+          "session_id": "Required structured field.",
+          "workspace": "Required structured field.",
+          "claude_md_path": "Required structured field.",
+          "permission_profile": "Required structured field.",
+          "started_at": "Required structured field.",
+          "status": "Required structured field."
+        }
+      }
+    },
+    "DCT-002": {
+      "type": "DCT",
+      "payload": {
+        "id": "DCT-002",
+        "name": "StructuredScreen",
+        "fields": [
+          "session_id",
+          "captured_at",
+          "raw_screen",
+          "messages",
+          "input",
+          "status"
+        ],
+        "schema_type": "object",
+        "required_fields": [
+          "session_id",
+          "captured_at",
+          "raw_screen",
+          "messages",
+          "input",
+          "status"
+        ],
+        "constraints": [
+          "Keep raw_screen as evidence.",
+          "Record parser status when screen shape is unsupported."
+        ],
+        "produced_by": [
+          "OUT-002"
+        ],
+        "field_contract": {
+          "session_id": "Required structured field.",
+          "captured_at": "Required structured field.",
+          "raw_screen": "Required structured field.",
+          "messages": "Required structured field.",
+          "input": "Required structured field.",
+          "status": "Required structured field."
+        }
+      }
+    },
+    "DCT-003": {
+      "type": "DCT",
+      "payload": {
+        "id": "DCT-003",
+        "name": "StatusDiff",
+        "fields": [
+          "session_id",
+          "state",
+          "current_capture",
+          "previous_capture_ref",
+          "diff",
+          "rule_hits",
+          "confidence_source"
+        ],
+        "schema_type": "object",
+        "required_fields": [
+          "session_id",
+          "state",
+          "current_capture",
+          "previous_capture_ref",
+          "diff",
+          "rule_hits",
+          "confidence_source"
+        ],
+        "constraints": [
+          "Return unknown/failure under STOP-003 when rule hits are insufficient.",
+          "Expose diff details in OUT-003."
+        ],
+        "produced_by": [
+          "OUT-003"
+        ],
+        "field_contract": {
+          "session_id": "Required structured field.",
+          "state": "Required structured field.",
+          "current_capture": "Required structured field.",
+          "previous_capture_ref": "Required structured field.",
+          "diff": "Required structured field.",
+          "rule_hits": "Required structured field.",
+          "confidence_source": "Required structured field."
+        }
+      }
+    },
+    "DCT-004": {
+      "type": "DCT",
+      "payload": {
+        "id": "DCT-004",
+        "name": "CommandResult",
+        "fields": [
+          "session_id",
+          "operation",
+          "success",
+          "evidence",
+          "error"
+        ],
+        "schema_type": "object",
+        "required_fields": [
+          "session_id",
+          "operation",
+          "success",
+          "evidence",
+          "error"
+        ],
+        "constraints": [
+          "Every command must distinguish success from failure.",
+          "Do not return raw logs as the only output."
+        ],
+        "produced_by": [
+          "OUT-004",
+          "OUT-005"
+        ],
+        "field_contract": {
+          "session_id": "Required structured field.",
+          "operation": "Required structured field.",
+          "success": "Required structured field.",
+          "evidence": "Required structured field.",
+          "error": "Required structured field."
+        }
+      }
+    },
+    "IN-001": {
+      "type": "IN",
+      "payload": {
+        "id": "IN-001",
+        "input_name": "launch_config",
+        "required": true,
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "IN-002": {
+      "type": "IN",
+      "payload": {
+        "id": "IN-002",
+        "input_name": "tmux_session_id",
+        "required": true,
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "IN-003": {
+      "type": "IN",
+      "payload": {
+        "id": "IN-003",
+        "input_name": "structured_screen_history",
+        "required": true,
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "IN-004": {
+      "type": "IN",
+      "payload": {
+        "id": "IN-004",
+        "input_name": "instruction_text",
+        "required": true,
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "IN-005": {
+      "type": "IN",
+      "payload": {
+        "id": "IN-005",
+        "input_name": "termination_mode",
+        "required": true,
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "EXE-001": {
+      "type": "EXE",
+      "payload": {
+        "id": "EXE-001",
+        "rule": "Launch must write or select CLAUDE.md, apply config and permission settings, start Claude CLI in tmux, and return the tmux session id.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "EXE-002": {
+      "type": "EXE",
+      "payload": {
+        "id": "EXE-002",
+        "rule": "Screen capture must use mechanical tmux output and deterministic parsing into messages, input, and status fields.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "EXE-003": {
+      "type": "EXE",
+      "payload": {
+        "id": "EXE-003",
+        "rule": "Status detection must compare current and historical structured screens and classify idle or busy only by explicit diff rules.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "EXE-004": {
+      "type": "EXE",
+      "payload": {
+        "id": "EXE-004",
+        "rule": "Input must send instruction text to the tmux session, trigger execution, wait one second, and capture confirmation evidence.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "EXE-005": {
+      "type": "EXE",
+      "payload": {
+        "id": "EXE-005",
+        "rule": "Termination must support graceful /exit and force tmux kill paths.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "VER-001": {
+      "type": "VER",
+      "payload": {
+        "id": "VER-001",
+        "case": "Launch smoke test creates a tmux session running Claude CLI with configured CLAUDE.md and returns session metadata.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "case_type": "positive",
+        "related_requirement_refs": [
+          "REQ-001"
+        ],
+        "related_ac_refs": [
+          "AC-001"
+        ],
+        "input_refs": [
+          "IN-001"
+        ],
+        "expected_result": "tmux session running Claude CLI exists and OUT-001 contains required launch metadata.",
+        "blocking": true,
+        "evidence_refs": [
+          "OUT-001"
+        ]
+      }
+    },
+    "VER-002": {
+      "type": "VER",
+      "payload": {
+        "id": "VER-002",
+        "case": "Capture parser fixture tests convert raw tmux screens into structured messages, input, and status without semantic inference.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "case_type": "fixture",
+        "related_requirement_refs": [
+          "REQ-002"
+        ],
+        "related_ac_refs": [
+          "AC-002"
+        ],
+        "input_refs": [
+          "IN-002"
+        ],
+        "expected_result": "Raw tmux fixtures convert to DCT-002 without semantic inference.",
+        "blocking": true,
+        "evidence_refs": [
+          "OUT-002"
+        ]
+      }
+    },
+    "VER-003": {
+      "type": "VER",
+      "payload": {
+        "id": "VER-003",
+        "case": "Status detector tests compare current and historical structured captures and return idle or busy plus diff details.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "case_type": "behavior",
+        "related_requirement_refs": [
+          "REQ-003"
+        ],
+        "related_ac_refs": [
+          "AC-003"
+        ],
+        "input_refs": [
+          "IN-003"
+        ],
+        "expected_result": "Status detector returns idle/busy/unknown with DCT-003 diff and rule hits.",
+        "blocking": true,
+        "evidence_refs": [
+          "OUT-003"
+        ]
+      }
+    },
+    "VER-004": {
+      "type": "VER",
+      "payload": {
+        "id": "VER-004",
+        "case": "Input integration test sends a command, waits one second, captures the screen, and verifies delivery evidence.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "case_type": "integration",
+        "related_requirement_refs": [
+          "REQ-004"
+        ],
+        "related_ac_refs": [
+          "AC-004"
+        ],
+        "input_refs": [
+          "IN-002",
+          "IN-004"
+        ],
+        "expected_result": "Input sends text, triggers execution, waits one second, and returns confirmation evidence.",
+        "blocking": true,
+        "evidence_refs": [
+          "OUT-004"
+        ]
+      }
+    },
+    "VER-005": {
+      "type": "VER",
+      "payload": {
+        "id": "VER-005",
+        "case": "Termination tests cover graceful /exit and force kill, and verify final session existence state.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "case_type": "integration",
+        "related_requirement_refs": [
+          "REQ-005"
+        ],
+        "related_ac_refs": [
+          "AC-005"
+        ],
+        "input_refs": [
+          "IN-002",
+          "IN-005"
+        ],
+        "expected_result": "Graceful /exit and force kill report operation mode and final session existence.",
+        "blocking": true,
+        "evidence_refs": [
+          "OUT-005"
+        ]
+      }
+    },
+    "VER-006": {
+      "type": "VER",
+      "payload": {
+        "id": "VER-006",
+        "case": "Labeled status corpus demonstrates idle accuracy >= 99% and busy accuracy >= 99%.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "case_type": "accuracy_gate",
+        "related_requirement_refs": [
+          "REQ-003"
+        ],
+        "related_ac_refs": [
+          "AC-003"
+        ],
+        "input_refs": [
+          "IN-003"
+        ],
+        "expected_result": "Idle accuracy >= 99% and busy accuracy >= 99% on the labeled status corpus.",
+        "blocking": true,
+        "evidence_refs": [
+          "OUT-003",
+          "MET-001",
+          "MET-002"
+        ]
+      }
+    },
+    "OUT-001": {
+      "type": "OUT",
+      "payload": {
+        "id": "OUT-001",
+        "deliverable": "LaunchSessionResponse containing tmux session id and launch metadata.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "OUT-002": {
+      "type": "OUT",
+      "payload": {
+        "id": "OUT-002",
+        "deliverable": "StructuredScreen containing messages, input, parser status, and raw screen evidence.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "OUT-003": {
+      "type": "OUT",
+      "payload": {
+        "id": "OUT-003",
+        "deliverable": "StatusDiff containing idle or busy state and structured diff details.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "OUT-004": {
+      "type": "OUT",
+      "payload": {
+        "id": "OUT-004",
+        "deliverable": "Input confirmation response containing the post-send screen capture and delivery evidence.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "OUT-005": {
+      "type": "OUT",
+      "payload": {
+        "id": "OUT-005",
+        "deliverable": "Termination response containing operation mode, success flag, and final session existence state.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "STOP-001": {
+      "type": "STOP",
+      "payload": {
+        "id": "STOP-001",
+        "condition": "Stop launch if tmux or Claude CLI executable is unavailable or the configured workspace cannot be created.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "trigger": "launch_preflight_failed",
+        "reason": "Launch cannot satisfy REQ-001 without tmux, Claude CLI, or writable workspace.",
+        "required_action": "Return a structured launch failure and do not claim a session id.",
+        "failure_output_ref": "OUT-001",
+        "blocking": true,
+        "related_refs": [
+          "REQ-001",
+          "IN-001"
+        ]
+      }
+    },
+    "STOP-002": {
+      "type": "STOP",
+      "payload": {
+        "id": "STOP-002",
+        "condition": "Stop capture or status if the tmux session id does not exist or screen capture returns no observable content.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "trigger": "session_capture_unavailable",
+        "reason": "Capture/status cannot satisfy REQ-002 or REQ-003 without an addressable session and observable screen.",
+        "required_action": "Return a structured capture/status failure.",
+        "failure_output_ref": "OUT-002",
+        "blocking": true,
+        "related_refs": [
+          "REQ-002",
+          "REQ-003",
+          "IN-002"
+        ]
+      }
+    },
+    "STOP-003": {
+      "type": "STOP",
+      "payload": {
+        "id": "STOP-003",
+        "condition": "Do not classify status by semantic guessing when mechanical diff rules are insufficient; return unknown or structured failure instead.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "trigger": "classification_rules_insufficient",
+        "reason": "Semantic guessing would violate BAR-001.",
+        "required_action": "Return unknown or structured failure instead of idle/busy.",
+        "failure_output_ref": "OUT-003",
+        "blocking": true,
+        "related_refs": [
+          "REQ-003",
+          "BAR-001"
+        ]
+      }
+    },
+    "STOP-004": {
+      "type": "STOP",
+      "payload": {
+        "id": "STOP-004",
+        "condition": "Stop input if the target tmux session is missing or not addressable.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "trigger": "input_target_unavailable",
+        "reason": "Input cannot satisfy REQ-004 without an addressable tmux session.",
+        "required_action": "Return a structured input failure.",
+        "failure_output_ref": "OUT-004",
+        "blocking": true,
+        "related_refs": [
+          "REQ-004",
+          "IN-004"
+        ]
+      }
+    },
+    "STOP-005": {
+      "type": "STOP",
+      "payload": {
+        "id": "STOP-005",
+        "condition": "After graceful exit failure, report failure unless force kill was explicitly requested.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "trigger": "graceful_exit_failed_without_force",
+        "reason": "Force kill requires explicit termination authority.",
+        "required_action": "Report graceful failure unless the caller requested force mode.",
+        "failure_output_ref": "OUT-005",
+        "blocking": true,
+        "related_refs": [
+          "REQ-005",
+          "IN-005"
+        ]
+      }
+    },
+    "DONE-001": {
+      "type": "DONE",
+      "payload": {
+        "id": "DONE-001",
+        "criterion": "Launch is done when a configured tmux Claude CLI session starts and returns a usable session id.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "verification_refs": [
+          "VER-001"
+        ],
+        "acceptance_refs": [
+          "AC-001"
+        ],
+        "output_refs": [
+          "OUT-001"
+        ],
+        "blocking": true
+      }
+    },
+    "DONE-002": {
+      "type": "DONE",
+      "payload": {
+        "id": "DONE-002",
+        "criterion": "Capture is done when raw screen, messages, input, and parser status are returned structurally.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "verification_refs": [
+          "VER-002"
+        ],
+        "acceptance_refs": [
+          "AC-002"
+        ],
+        "output_refs": [
+          "OUT-002"
+        ],
+        "blocking": true
+      }
+    },
+    "DONE-003": {
+      "type": "DONE",
+      "payload": {
+        "id": "DONE-003",
+        "criterion": "Status detection is done when idle/busy classification, structured diff, and 99%/99% corpus evidence are implemented.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "verification_refs": [
+          "VER-003",
+          "VER-006"
+        ],
+        "acceptance_refs": [
+          "AC-003"
+        ],
+        "output_refs": [
+          "OUT-003"
+        ],
+        "blocking": true
+      }
+    },
+    "DONE-004": {
+      "type": "DONE",
+      "payload": {
+        "id": "DONE-004",
+        "criterion": "Input is done when instruction send, execution trigger, one-second confirmation capture, and structured result work.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "verification_refs": [
+          "VER-004"
+        ],
+        "acceptance_refs": [
+          "AC-004"
+        ],
+        "output_refs": [
+          "OUT-004"
+        ],
+        "blocking": true
+      }
+    },
+    "DONE-005": {
+      "type": "DONE",
+      "payload": {
+        "id": "DONE-005",
+        "criterion": "Termination is done when graceful /exit and force kill modes return reliable structured outcomes.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "verification_refs": [
+          "VER-005"
+        ],
+        "acceptance_refs": [
+          "AC-005"
+        ],
+        "output_refs": [
+          "OUT-005"
+        ],
+        "blocking": true
+      }
+    },
+    "RISK-001": {
+      "type": "RISK",
+      "payload": {
+        "id": "RISK-001",
+        "risk": "Claude CLI screen format may change, breaking parser rules.",
+        "mitigation": "Keep parser fixtures versioned and return parser status/failure when mechanical rules do not match."
+      }
+    },
+    "RISK-002": {
+      "type": "RISK",
+      "payload": {
+        "id": "RISK-002",
+        "risk": "99% idle and busy accuracy cannot be proven without a labeled corpus.",
+        "mitigation": "Make the labeled corpus part of verification and block release if VER-006 fails."
+      }
+    },
+    "RISK-003": {
+      "type": "RISK",
+      "payload": {
+        "id": "RISK-003",
+        "risk": "Sending text into tmux may fail for special characters or multiline prompts.",
+        "mitigation": "Implement escaping tests and capture confirmation after one second."
+      }
+    },
+    "BAR-001": {
+      "type": "BAR",
+      "payload": {
+        "id": "BAR-001",
+        "bar": "All screen parsing and status detection must be mechanical and deterministic."
+      }
+    },
+    "BAR-002": {
+      "type": "BAR",
+      "payload": {
+        "id": "BAR-002",
+        "bar": "Idle and busy accuracy must each be at least 99% on the labeled corpus before release."
+      }
+    },
+    "BAR-003": {
+      "type": "BAR",
+      "payload": {
+        "id": "BAR-003",
+        "bar": "Every command must return structured JSON output with explicit success or failure fields."
+      }
+    },
+    "ASM-001": {
+      "type": "ASM",
+      "payload": {
+        "id": "ASM-001",
+        "statement": "The target runtime is a local Unix-like environment where tmux and Claude CLI can be invoked by subprocess.",
+        "status": "deferred",
+        "blocks_human_prd": false,
+        "blocks_agent_prd": false,
+        "affected_refs": [
+          "REQ-001",
+          "REQ-002",
+          "REQ-004",
+          "REQ-005"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "validation_need": "Before launch or capture integration tests, verify the target runtime exposes tmux and Claude CLI through subprocess calls.",
+        "owner": "implementation agent",
+        "expiry_condition": "Expires when preflight checks and CI/local environment documentation prove supported runtime availability.",
+        "agent_handling": "Proceed only for local Unix-like tmux runtime; return STOP-001 or STOP-002 structured failure when tmux or Claude CLI is unavailable.",
+        "phase": "PHASE-001",
+        "impact": "Affects launch, capture, input, and termination commands because all session control is delegated to tmux subprocesses.",
+        "resolution_refs": [
+          "STOP-001",
+          "STOP-002",
+          "VER-001",
+          "VER-002"
+        ]
+      }
+    },
+    "ASM-002": {
+      "type": "ASM",
+      "payload": {
+        "id": "ASM-002",
+        "statement": "Permission settings can be represented as CLI args, environment variables, or generated config files selected by the implementation.",
+        "status": "deferred",
+        "blocks_human_prd": false,
+        "blocks_agent_prd": false,
+        "affected_refs": [
+          "REQ-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "validation_need": "During CLI/config design, choose exactly one permission representation and expose it in launch metadata.",
+        "owner": "implementation agent",
+        "expiry_condition": "Expires when launch config schema, tests, and OUT-001 document the selected permission representation.",
+        "agent_handling": "Select CLI args, environment variables, or generated config files during implementation, then make the selected profile visible in OUT-001.",
+        "phase": "PHASE-001",
+        "impact": "Affects launch_config shape, environment materialization, and reproducibility of Claude CLI permissions.",
+        "resolution_refs": [
+          "IN-001",
+          "OUT-001",
+          "TECH-001",
+          "VER-001"
+        ]
+      }
+    },
+    "ASM-003": {
+      "type": "ASM",
+      "payload": {
+        "id": "ASM-003",
+        "statement": "The 99% accuracy target is measured on an implementation-owned labeled fixture corpus for known Claude CLI screen states.",
+        "status": "deferred",
+        "blocks_human_prd": false,
+        "blocks_agent_prd": false,
+        "affected_refs": [
+          "REQ-003",
+          "VER-006"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "validation_need": "Create or import a labeled idle/busy screen-diff corpus and run accuracy metrics before release.",
+        "owner": "implementation agent",
+        "expiry_condition": "Expires when VER-006 reports idle accuracy >= 99% and busy accuracy >= 99% on the labeled corpus.",
+        "agent_handling": "Treat VER-006 as a blocking release gate; do not mark status detection done when either accuracy metric is below 99%.",
+        "phase": "PHASE-001",
+        "impact": "Affects release readiness for status detection and prevents unsupported accuracy claims.",
+        "resolution_refs": [
+          "MET-001",
+          "MET-002",
+          "VER-006",
+          "BAR-002"
+        ]
+      }
+    },
+    "TRACE-001": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-001",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-001",
+        "relation": "stated_by"
+      }
+    },
+    "TRACE-002": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-002",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-002",
+        "relation": "stated_by"
+      }
+    },
+    "TRACE-003": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-003",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-003",
+        "relation": "stated_by"
+      }
+    },
+    "TRACE-004": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-004",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-004",
+        "relation": "stated_by"
+      }
+    },
+    "TRACE-005": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-005",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-005",
+        "relation": "stated_by"
+      }
+    },
+    "TRACE-006": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-006",
+        "from_ref": "SRC-001",
+        "to_ref": "MET-001",
+        "relation": "stated_by"
+      }
+    },
+    "TRACE-007": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-007",
+        "from_ref": "SRC-001",
+        "to_ref": "MET-002",
+        "relation": "stated_by"
+      }
+    },
+    "TRACE-008": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-008",
+        "from_ref": "SRC-001",
+        "to_ref": "TECH-001",
+        "relation": "stated_by"
+      }
+    },
+    "TRACE-009": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-009",
+        "from_ref": "SRC-001",
+        "to_ref": "TECH-002",
+        "relation": "stated_by"
+      }
+    },
+    "TRACE-010": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-010",
+        "from_ref": "SRC-001",
+        "to_ref": "BAR-001",
+        "relation": "stated_by"
+      }
+    },
+    "RB-001": {
+      "type": "RB",
+      "payload": {
+        "id": "RB-001",
+        "target": "human_prd",
+        "section": "Product summary and MVP",
+        "content_type": "text",
+        "contract_refs": [
+          "CORE-001",
+          "USER-001",
+          "SCOPE-001",
+          "OOS-001",
+          "REQ-001",
+          "REQ-002",
+          "REQ-003",
+          "REQ-004",
+          "REQ-005",
+          "REF-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "allowed_inference": "organize user-stated capabilities into MVP sections",
+        "unsupported_claims": [],
+        "status": "ready"
+      }
+    },
+    "RB-002": {
+      "type": "RB",
+      "payload": {
+        "id": "RB-002",
+        "target": "human_prd",
+        "section": "Quality and risk",
+        "content_type": "text",
+        "contract_refs": [
+          "AC-003",
+          "MET-001",
+          "MET-002",
+          "BAR-001",
+          "BAR-002",
+          "RISK-001",
+          "RISK-002",
+          "RISK-003",
+          "REF-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "allowed_inference": "explain verification implications of the stated 99% requirement",
+        "unsupported_claims": [],
+        "status": "ready"
+      }
+    },
+    "RB-003": {
+      "type": "RB",
+      "payload": {
+        "id": "RB-003",
+        "target": "agent_prd",
+        "section": "Execution contract",
+        "content_type": "text",
+        "contract_refs": [
+          "REQ-001",
+          "REQ-002",
+          "REQ-003",
+          "REQ-004",
+          "REQ-005",
+          "IN-001",
+          "IN-002",
+          "IN-003",
+          "IN-004",
+          "IN-005",
+          "EXE-001",
+          "EXE-002",
+          "EXE-003",
+          "EXE-004",
+          "EXE-005",
+          "REF-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "allowed_inference": "translate user-stated operations into implementation-facing contract sections",
+        "unsupported_claims": [],
+        "status": "ready"
+      }
+    },
+    "RB-004": {
+      "type": "RB",
+      "payload": {
+        "id": "RB-004",
+        "target": "agent_prd",
+        "section": "Verification and done",
+        "content_type": "text",
+        "contract_refs": [
+          "AC-001",
+          "AC-002",
+          "AC-003",
+          "AC-004",
+          "AC-005",
+          "VER-001",
+          "VER-002",
+          "VER-003",
+          "VER-004",
+          "VER-005",
+          "VER-006",
+          "OUT-001",
+          "OUT-002",
+          "OUT-003",
+          "OUT-004",
+          "OUT-005",
+          "STOP-001",
+          "STOP-002",
+          "STOP-003",
+          "STOP-004",
+          "STOP-005",
+          "DONE-001",
+          "DONE-002",
+          "DONE-003",
+          "DONE-004",
+          "DONE-005",
+          "REF-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "allowed_inference": "group acceptance, verification, output, stop, and done refs",
+        "unsupported_claims": [],
+        "status": "ready"
+      }
+    },
+    "GATE-001": {
+      "type": "GATE",
+      "payload": {
+        "id": "GATE-001",
+        "name": "agent execution readiness",
+        "blocking_condition": "Agent PRD must include traceable input, execution, verification, output, stop, and done refs for all current requirements.",
+        "status": "pass",
+        "blocking": false,
+        "affected_targets": [
+          "agent_prd"
+        ],
+        "evidence_refs": [
+          "IN-001",
+          "IN-002",
+          "IN-003",
+          "IN-004",
+          "IN-005",
+          "EXE-001",
+          "EXE-002",
+          "EXE-003",
+          "EXE-004",
+          "EXE-005",
+          "VER-001",
+          "VER-002",
+          "VER-003",
+          "VER-004",
+          "VER-005",
+          "VER-006",
+          "OUT-001",
+          "OUT-002",
+          "OUT-003",
+          "OUT-004",
+          "OUT-005",
+          "STOP-001",
+          "STOP-002",
+          "STOP-003",
+          "STOP-004",
+          "STOP-005",
+          "DONE-001",
+          "DONE-002",
+          "DONE-003",
+          "DONE-004",
+          "DONE-005",
+          "REF-001"
+        ]
+      }
+    },
+    "GATE-002": {
+      "type": "GATE",
+      "payload": {
+        "id": "GATE-002",
+        "name": "mechanical-only status gate",
+        "blocking_condition": "Status detection cannot rely on semantic interpretation.",
+        "status": "pass",
+        "blocking": false,
+        "affected_targets": [
+          "agent_prd"
+        ],
+        "evidence_refs": [
+          "REQ-003",
+          "EXE-003",
+          "BAR-001",
+          "STOP-003",
+          "REF-001"
+        ]
+      }
+    },
+    "GATE-003": {
+      "type": "GATE",
+      "payload": {
+        "id": "GATE-003",
+        "name": "accuracy verification gate",
+        "blocking_condition": "Release must prove 99% idle and 99% busy detection accuracy.",
+        "status": "pass",
+        "blocking": false,
+        "affected_targets": [
+          "agent_prd"
+        ],
+        "evidence_refs": [
+          "REQ-003",
+          "AC-003",
+          "MET-001",
+          "MET-002",
+          "VER-006",
+          "BAR-002",
+          "REF-001"
+        ]
+      }
+    },
+    "META-001": {
+      "type": "META",
+      "payload": {
+        "id": "META-001",
+        "title": "Claude Tmux CLI Adapter Spec Package",
+        "version": "1.0",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "REF-001": {
+      "type": "REF",
+      "payload": {
+        "id": "REF-001",
+        "ref_type": "canonical_contract",
+        "title": "contract-envelope.json",
+        "target": "contract-envelope.json",
+        "authority": "primary",
+        "usage": "Canonical structured source of truth for requirements, execution contracts, traceability, render status, and task planning refs."
+      }
+    },
+    "REF-002": {
+      "type": "REF",
+      "payload": {
+        "id": "REF-002",
+        "ref_type": "rendered_artifact",
+        "title": "human-prd.md",
+        "target": "human-prd.md",
+        "authority": "derived",
+        "usage": "Human-facing PRD rendered from REF-001 for product review."
+      }
+    },
+    "REF-003": {
+      "type": "REF",
+      "payload": {
+        "id": "REF-003",
+        "ref_type": "rendered_artifact",
+        "title": "agent-prd.md",
+        "target": "agent-prd.md",
+        "authority": "derived",
+        "usage": "Agent-facing execution PRD rendered from REF-001."
+      }
+    },
+    "REF-004": {
+      "type": "REF",
+      "payload": {
+        "id": "REF-004",
+        "ref_type": "rendered_artifact",
+        "title": "execution-task-plan.json",
+        "target": "execution-task-plan.json",
+        "authority": "derived",
+        "usage": "Execution task decomposition derived from REF-001 and REF-003."
+      }
+    },
+    "REF-005": {
+      "type": "REF",
+      "payload": {
+        "id": "REF-005",
+        "ref_type": "rendered_artifact",
+        "title": "docs/tasks/task-specs.md",
+        "target": "docs/tasks/task-specs.md",
+        "authority": "derived",
+        "usage": "Index for formal one-task-per-file implementation specs under docs/tasks/, regenerated from REF-004 with canonical acceptance and verification refs.",
+        "child_refs": [
+          "docs/tasks/task-001.md",
+          "docs/tasks/task-002.md",
+          "docs/tasks/task-003.md",
+          "docs/tasks/task-004.md",
+          "docs/tasks/task-005.md",
+          "docs/tasks/task-006.md",
+          "docs/tasks/task-010.md",
+          "docs/tasks/task-007.md",
+          "docs/tasks/task-008.md",
+          "docs/tasks/task-009.md"
+        ]
+      }
+    }
+  },
+  "object_index": {
+    "CORE": [
+      "CORE-001"
+    ],
+    "USER": [
+      "USER-001"
+    ],
+    "SCOPE": [
+      "SCOPE-001"
+    ],
+    "OOS": [
+      "OOS-001"
+    ],
+    "PHASE": [
+      "PHASE-001"
+    ],
+    "REQ": [
+      "REQ-001",
+      "REQ-002",
+      "REQ-003",
+      "REQ-004",
+      "REQ-005"
+    ],
+    "AC": [
+      "AC-001",
+      "AC-002",
+      "AC-003",
+      "AC-004",
+      "AC-005"
+    ],
+    "MET": [
+      "MET-001",
+      "MET-002"
+    ],
+    "FLOW": [
+      "FLOW-001"
+    ],
+    "DATA": [
+      "DATA-001"
+    ],
+    "MOD": [
+      "MOD-001",
+      "MOD-002",
+      "MOD-003",
+      "MOD-004",
+      "MOD-005",
+      "MOD-006",
+      "MOD-007"
+    ],
+    "TECH": [
+      "TECH-001",
+      "TECH-002",
+      "TECH-003"
+    ],
+    "STATE": [
+      "STATE-001"
+    ],
+    "DCT": [
+      "DCT-001",
+      "DCT-002",
+      "DCT-003",
+      "DCT-004"
+    ],
+    "IN": [
+      "IN-001",
+      "IN-002",
+      "IN-003",
+      "IN-004",
+      "IN-005"
+    ],
+    "EXE": [
+      "EXE-001",
+      "EXE-002",
+      "EXE-003",
+      "EXE-004",
+      "EXE-005"
+    ],
+    "VER": [
+      "VER-001",
+      "VER-002",
+      "VER-003",
+      "VER-004",
+      "VER-005",
+      "VER-006"
+    ],
+    "OUT": [
+      "OUT-001",
+      "OUT-002",
+      "OUT-003",
+      "OUT-004",
+      "OUT-005"
+    ],
+    "STOP": [
+      "STOP-001",
+      "STOP-002",
+      "STOP-003",
+      "STOP-004",
+      "STOP-005"
+    ],
+    "DONE": [
+      "DONE-001",
+      "DONE-002",
+      "DONE-003",
+      "DONE-004",
+      "DONE-005"
+    ],
+    "RISK": [
+      "RISK-001",
+      "RISK-002",
+      "RISK-003"
+    ],
+    "BAR": [
+      "BAR-001",
+      "BAR-002",
+      "BAR-003"
+    ],
+    "ASM": [
+      "ASM-001",
+      "ASM-002",
+      "ASM-003"
+    ],
+    "Q": [],
+    "REF": [
+      "REF-001",
+      "REF-002",
+      "REF-003",
+      "REF-004",
+      "REF-005"
+    ],
+    "SRC": [
+      "SRC-001"
+    ],
+    "TRACE": [
+      "TRACE-001",
+      "TRACE-002",
+      "TRACE-003",
+      "TRACE-004",
+      "TRACE-005",
+      "TRACE-006",
+      "TRACE-007",
+      "TRACE-008",
+      "TRACE-009",
+      "TRACE-010"
+    ],
+    "RB": [
+      "RB-001",
+      "RB-002",
+      "RB-003",
+      "RB-004"
+    ],
+    "META": [
+      "META-001"
+    ],
+    "GATE": [
+      "GATE-001",
+      "GATE-002",
+      "GATE-003"
+    ]
+  },
+  "contract_summary": {
+    "maturity": "L4",
+    "ready_targets": [
+      "human_prd",
+      "agent_prd"
+    ],
+    "blocked_targets": []
+  },
+  "traceability_summary": {
+    "render_traceability": [
+      "RB-001",
+      "RB-002",
+      "RB-003",
+      "RB-004"
+    ],
+    "requirement_traceability": [
+      "TRACE-001",
+      "TRACE-002",
+      "TRACE-003",
+      "TRACE-004",
+      "TRACE-005",
+      "TRACE-006",
+      "TRACE-007",
+      "TRACE-008",
+      "TRACE-009",
+      "TRACE-010"
+    ],
+    "decision_traceability": [
+      {
+        "decision_type": "assumption",
+        "decision_ref": "ASM-001",
+        "status": "deferred",
+        "affected_refs": [
+          "REQ-001",
+          "REQ-002",
+          "REQ-004",
+          "REQ-005"
+        ]
+      },
+      {
+        "decision_type": "assumption",
+        "decision_ref": "ASM-002",
+        "status": "deferred",
+        "affected_refs": [
+          "REQ-001"
+        ]
+      },
+      {
+        "decision_type": "assumption",
+        "decision_ref": "ASM-003",
+        "status": "deferred",
+        "affected_refs": [
+          "REQ-003",
+          "VER-006"
+        ]
+      }
+    ]
+  },
+  "gate_report": [
+    {
+      "gate_id": "GATE-001",
+      "status": "pass",
+      "blocking": false,
+      "affected_targets": [
+        "agent_prd"
+      ],
+      "evidence_refs": [
+        "IN-001",
+        "IN-002",
+        "IN-003",
+        "IN-004",
+        "IN-005",
+        "EXE-001",
+        "EXE-002",
+        "EXE-003",
+        "EXE-004",
+        "EXE-005",
+        "VER-001",
+        "VER-002",
+        "VER-003",
+        "VER-004",
+        "VER-005",
+        "VER-006",
+        "OUT-001",
+        "OUT-002",
+        "OUT-003",
+        "OUT-004",
+        "OUT-005",
+        "STOP-001",
+        "STOP-002",
+        "STOP-003",
+        "STOP-004",
+        "STOP-005",
+        "DONE-001",
+        "DONE-002",
+        "DONE-003",
+        "DONE-004",
+        "DONE-005",
+        "REF-001"
+      ],
+      "message": "Agent PRD has execution contracts for all five mechanical operations.",
+      "required_fix": ""
+    },
+    {
+      "gate_id": "GATE-002",
+      "status": "pass",
+      "blocking": false,
+      "affected_targets": [
+        "agent_prd"
+      ],
+      "evidence_refs": [
+        "REQ-003",
+        "EXE-003",
+        "BAR-001",
+        "STOP-003",
+        "REF-001"
+      ],
+      "message": "Status detection is constrained to mechanical diff rules.",
+      "required_fix": ""
+    },
+    {
+      "gate_id": "GATE-003",
+      "status": "pass",
+      "blocking": false,
+      "affected_targets": [
+        "agent_prd"
+      ],
+      "evidence_refs": [
+        "REQ-003",
+        "AC-003",
+        "MET-001",
+        "MET-002",
+        "VER-006",
+        "BAR-002",
+        "REF-001"
+      ],
+      "message": "The 99% idle and busy accuracy targets are explicit release criteria.",
+      "required_fix": ""
+    }
+  ],
+  "next_actions": []
+}

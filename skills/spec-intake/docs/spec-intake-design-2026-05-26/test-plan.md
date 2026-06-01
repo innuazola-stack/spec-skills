@@ -24,7 +24,7 @@ Prove the initial skill package has structural validation and realistic semantic
 
 ## Positive Case Coverage
 
-Meeting action item idea with Markdown-only MVP should produce contract-backed PRDs and either ready tasks or explicit blockers.
+Meeting action item idea with Markdown-only MVP should produce contract-backed PRDs and ready HLD or explicit blockers.
 
 ## Negative Case Coverage
 
@@ -40,9 +40,9 @@ Run `skill/scripts/validate_skill_package.py skill`.
 
 Run `skill/scripts/validate_spec_intake_package.py tests/fixtures/blocked-agent-prd-draft`.
 
-Run `skill/scripts/validate_spec_intake_package.py tests/fixtures/ready-agent-prd-task-plan`.
+Run `skill/scripts/validate_spec_intake_package.py tests/fixtures/ready-agent-prd-hld`.
 
-Run `python tests/validator_regression.py` to prove known false-positive probes fail, including derived consistency probes for object indexes, source artifacts, readiness blockers, quality gates, traceability summaries, planning evidence refs, and blocked-plan source truth.
+Run `python tests/validator_regression.py` to prove known false-positive probes fail, including derived consistency probes for object indexes, source artifacts, readiness blockers, quality gates, traceability summaries, HLD evidence refs, and blocked-HLD source truth.
 
 Check `tests/cases/*.md` for prompt, expected behavior, forbidden behavior, scoring rule, and pass bar.
 
@@ -69,6 +69,6 @@ The regression suite must reject all known root-cause classes that previously al
 - Traceability rows whose `decision_type` does not match their `decision_ref`, including `user_confirmation` rows that must point to confirmed `SRC-*` facts.
 - invalid `TRACE.relation`, non-ISO `source_idea.created_at`, or resolved `Q-*` / `ASM-*` without resolution refs.
 - Agent PRD packages missing the Data and State section.
-- Task plans that claim contract-backed readiness from rendered labels instead of canonical contract refs.
-- Rendered-only task plans that are not explicitly blocked with `planning_source_mode=rendered_agent_prd_only`.
-- ready task plans with no current-phase requirement, future-phase requirements in current tasks, invalid task types, blocked task statuses, empty closure fields, invalid stage goal refs, missing planning evidence, or execution-plan IDs inside dependency `contract_refs`.
+- HLD that claims readiness from rendered labels instead of canonical contract refs.
+- ready HLD with missing approval, draft Agent PRD source, empty design sections, missing design evidence, or non-contract refs.
+- legacy task-plan artifacts such as `execution-task-plan.json`, task graphs, dependency edges, or parallel groups.

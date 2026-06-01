@@ -1,0 +1,52 @@
+{
+  "hld_id": "HLD-001",
+  "source_artifacts": {
+    "contract_ref": "contract-envelope.json",
+    "contract_version": "1.8",
+    "agent_prd_ref": "agent-prd.md",
+    "agent_prd_status": "execution_ready",
+    "phase_ref": "PHASE-001",
+    "phase_label": "Phase 1 MVP",
+    "phase_ref_kind": "canonical_id",
+    "phase_ref_fallback_reason": ""
+  },
+  "design_status": "ready",
+  "blocking_reasons": [],
+  "missing_required_refs": [],
+  "required_fixes": [],
+  "contract_refs": [
+    "AC-001",
+    "DONE-001",
+    "EXE-001",
+    "IN-001",
+    "OUT-001",
+    "REQ-001",
+    "STOP-001",
+    "VER-001"
+  ],
+  "architecture_summary": "Build the Phase 1 capability as a bounded extraction and export path governed by the Agent PRD contract.",
+  "component_boundaries": "Keep transcript input, evidence-backed extraction, human confirmation, and Markdown export as explicit component boundaries.",
+  "data_and_state_design": "Treat authorized transcript text as input, extracted action items as review state, and confirmed Markdown as the only output.",
+  "integration_points": "No external task-system integration is allowed in Phase 1; Markdown export is the integration boundary.",
+  "verification_strategy": "Use the contract verification refs and acceptance criteria to prove extraction, confirmation, stop, and export behavior.",
+  "risk_controls": "Stop when authorization is missing or a request attempts automatic external task creation.",
+  "design_gate_report": [
+    {
+      "check_id": "CHECK-001",
+      "name": "HLD source readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-001",
+        "AC-001",
+        "VER-001",
+        "IN-001",
+        "EXE-001",
+        "OUT-001",
+        "STOP-001",
+        "DONE-001"
+      ],
+      "evidence_summary": "The HLD is derived from approved PRD and execution-ready Agent PRD contract refs.",
+      "required_fix": ""
+    }
+  ]
+}

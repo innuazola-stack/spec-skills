@@ -1,0 +1,5062 @@
+{
+  "contract_version": "spec-intake.v1",
+  "intake_id": "INTAKE-SCHEDULER-STAGE2-20260529-001",
+  "harness_workflow": {
+    "workflow_type": "review_gated_self_improving_generation",
+    "stage_order": [
+      "stage_1_requirements_table",
+      "stage_2_prd_review",
+      "stage_3_hld"
+    ],
+    "current_stage": "stage_2_prd_review",
+    "completed_stages": [
+      "stage_1_requirements_table"
+    ],
+    "approval_gates": {
+      "human_prd_review": {
+        "status": "pending",
+        "approved_artifacts": [],
+        "next_allowed_stage": "stage_3_hld"
+      }
+    },
+    "revision_policy": {
+      "max_review_rounds": 3,
+      "on_revise": "update_requirement_table_then_rerender_prds"
+    },
+    "execution_mode": "live_interactive",
+    "execution_mode_reason": "The user requested a real spec-intake run and answered Stage 1 closed-form clarification questions in this conversation."
+  },
+  "source_idea": {
+    "raw_idea": "Scheduler 是独立的调度控制器与状态裁判，负责把已经存在的工作流路线推进为可执行、可恢复、可审计的作业状态流。它不拥有路线设计权，也不执行具体任务；它的产品价值在于用确定性规则控制“何时可以派发、何时可以接受、何时必须阻断”。控制流上，Scheduler 应按固定循环工作：读取当前路线、节点状态、作业定义、权限与租约信息；先处理过期或失效的执行权；再判断哪些节点满足可调度条件；对满足条件的节点生成一次作业实例和执行租约；等待或读取 Executor 返回的运行结果与证据；根据证据将作业实例标记为 accepted、rejected、expired 等，并将节点推进为 scheduled、deliveried、failed 或 blocked；当没有运行中的作业且没有可调度节点时，输出明确的路线耗尽状态，而不是自行判断项目成功。\n\n数据流上，Scheduler 只消费调度所需的权威状态和 Executor 结果，只产出作业实例、租约、状态变更、接受或拒绝记录、阻断原因和路线耗尽记录。它必须完成 readiness 判断、幂等派发、租约与 fencing token 管理、重复执行防护、陈旧结果拒绝、结果证据校验、失败与不可判断结果收束、状态事件记录。它不能修改路线定义，不能生成新节点，不能直接运行命令，不能修改交付产物，不能跳过证据验收，不能把 Executor 的 completed 等同于节点 deliveried，不能基于执行过程自述认定成功，也不能在无下一节点时自行宣布业务完成。Scheduler 的核心特性应体现为机械、保守、可追溯：只调度已满足条件的节点，只接受证据充分且身份有效的 Executor 结果，只用状态机表达推进、失败、阻断和耗尽。",
+    "source_context_refs": [
+      "SRC-001",
+      "SRC-002",
+      "SRC-003",
+      "SRC-004",
+      "SRC-005",
+      "SRC-006",
+      "SRC-007",
+      "SRC-008",
+      "SRC-009"
+    ],
+    "created_at": "2026-05-29T09:00:00+08:00",
+    "source_refs": [
+      "SRC-001",
+      "SRC-002",
+      "SRC-003",
+      "SRC-004",
+      "SRC-005",
+      "SRC-006",
+      "SRC-007",
+      "SRC-008",
+      "SRC-009"
+    ]
+  },
+  "interaction_decision": {
+    "stage": "stage_1_requirements_table",
+    "decision": "proceed_without_questions",
+    "can_ask_user": true,
+    "reason": "The user supplied Scheduler idea, clarified daemon/API and runtime-DAG main loop, and then requested discovery of hidden necessary product features. The missing capabilities are inferable from the Scheduler boundary, Executor contract, runtime DAG semantics, and audit/recovery goals without requiring new open user choices.",
+    "question_refs": [],
+    "blocking_refs": [],
+    "source_refs": [
+      "SRC-001",
+      "SRC-002",
+      "SRC-004",
+      "SRC-005",
+      "SRC-006",
+      "SRC-007",
+      "SRC-008",
+      "SRC-009"
+    ]
+  },
+  "requirement_table": [
+    {
+      "row_id": "RT-001",
+      "requirement_ref": "REQ-001",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "Scheduler must consume existing route state and Executor results only, and must not own route design, node creation, task execution, command execution, or deliverable mutation.",
+      "user_value": "Prevents the scheduler from becoming a hidden planner or executor.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Given an existing route, Scheduler reads route and node state but never mutates route definition, creates a new node, runs a command, or modifies a deliverable.",
+      "target_artifact_refs": [
+        "REQ-001",
+        "AC-001",
+        "VER-001",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-002",
+      "requirement_ref": "REQ-002",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "problem": "Scheduler must repeatedly read route, node, job definition, permission, and lease state; expire invalid execution rights; find schedulable nodes; issue job instances and leases; ingest Executor results; apply state transitions; and emit route exhaustion when appropriate.",
+      "user_value": "Gives operators a predictable state-control loop.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Given route, node, job, permission, lease, and Executor-result inputs, one Scheduler loop processes expired leases before schedulability, emits at most one new active job per eligible node generation, and then applies result acceptance rules.",
+      "target_artifact_refs": [
+        "REQ-002",
+        "AC-002",
+        "VER-002",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-003",
+      "requirement_ref": "REQ-003",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "problem": "Scheduler must dispatch only nodes whose dependencies, permissions, prior state, and lease constraints make them schedulable, and repeated scheduling attempts must not create duplicate active job instances for the same node generation.",
+      "user_value": "Avoids duplicate execution and unsafe dispatch.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Given repeated dispatch attempts for the same schedulable node and unchanged generation, Scheduler returns the existing active job/lease or a no-op state event rather than creating duplicate active jobs.",
+      "target_artifact_refs": [
+        "REQ-003",
+        "AC-003",
+        "VER-003",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-004",
+      "requirement_ref": "REQ-004",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "problem": "Scheduler must create, expire, and validate execution leases with fencing tokens so stale actors cannot overwrite newer scheduling decisions.",
+      "user_value": "Makes recovery and concurrent observation safe.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Given an expired lease or lower fencing token, Scheduler marks the prior job expired or rejects the stale result and preserves the newer authority.",
+      "target_artifact_refs": [
+        "REQ-004",
+        "AC-004",
+        "VER-004",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-005",
+      "requirement_ref": "REQ-005",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "Scheduler must reject stale, identity-invalid, insufficient, failed, or undecidable Executor results; Executor completed is never sufficient by itself to mark a node deliveried.",
+      "user_value": "Protects delivery state from unverified self-reporting.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Given Executor completed without required evidence, wrong lease identity, stale fencing token, failed status, or undecidable evidence, Scheduler rejects or blocks the result instead of marking the node deliveried.",
+      "target_artifact_refs": [
+        "REQ-005",
+        "AC-005",
+        "VER-005",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-006",
+      "requirement_ref": "REQ-006",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "Scheduler must mark job instances as accepted, rejected, expired, or blocked and nodes as scheduled, deliveried, failed, or blocked only through valid state transitions backed by evidence.",
+      "user_value": "Makes progress, failure, and blocking reviewable.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Given accepted evidence with valid identity and sufficient mechanical checks, Scheduler marks the job accepted and advances the node through valid state transitions only.",
+      "target_artifact_refs": [
+        "REQ-006",
+        "AC-006",
+        "VER-006",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-007",
+      "requirement_ref": "REQ-007",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "Scheduler must emit state events, acceptance/rejection records, blocking reasons, lease changes, and route exhaustion records with enough identity and evidence references to audit every decision.",
+      "user_value": "Allows post-run investigation and compliance review.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Every dispatch, lease expiry, result acceptance, result rejection, block, node transition, and route exhaustion decision writes an auditable event with IDs, prior/new state, evidence refs, and reason.",
+      "target_artifact_refs": [
+        "REQ-007",
+        "AC-007",
+        "VER-007",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-008",
+      "requirement_ref": "REQ-008",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "When no job is running and no node is schedulable, Scheduler must emit route_exhausted with reasons and must not infer project success or business completion.",
+      "user_value": "Preserves product boundary and honest completion semantics.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Given no active jobs and no schedulable nodes, Scheduler emits a route_exhausted record with blocked/completed/no-ready reasons and does not emit business_success or project_done.",
+      "target_artifact_refs": [
+        "REQ-008",
+        "AC-008",
+        "VER-008",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-009",
+      "requirement_ref": "REQ-009",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-004",
+        "SRC-005"
+      ],
+      "problem": "For each selected DAG node, Scheduler must derive a complete kunora-workflow-executor Job Instance description using schema_version job-instance.v1, including job_id, provider, objective, workspace, environment, instructions, delivery_requirements, admission_policy, retry_policy, timeout_policy, and trace metadata.",
+      "user_value": "Executor receives the exact job description it needs while Scheduler keeps DAG scheduling identity, dependencies, and lease authority auditable.",
+      "mvp_scope": "Generate Executor job-instance.v1 input from schedulable DAG nodes inside Phase 1.",
+      "acceptance_summary": "Given a schedulable DAG node with job metadata, Scheduler produces a job-instance.v1 payload containing all required kunora-workflow-executor fields and preserving DAG/node/job/lease trace metadata.",
+      "target_artifact_refs": [
+        "REQ-009",
+        "AC-009",
+        "VER-009",
+        "EXE-004",
+        "OUT-006",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-010",
+      "requirement_ref": "REQ-010",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-004"
+      ],
+      "problem": "Scheduler must invoke kunora-workflow-executor for generated JOBs, wait for or read Executor completion records, validate identity and evidence, update the persisted DAG node/job state from the Executor conclusion, and trigger the next one or more schedulable DAG jobs.",
+      "user_value": "The DAG advances automatically and safely from Executor conclusions instead of requiring manual state edits or unsupported success inference.",
+      "mvp_scope": "Invoke Executor, update DAG from validated conclusion, and trigger one or more successors inside Phase 1.",
+      "acceptance_summary": "Given Executor returns a valid completed Delivery Report for one DAG node, Scheduler validates the result, updates that node state, records audit evidence, and schedules all newly unblocked successor nodes; invalid results are rejected or blocked.",
+      "target_artifact_refs": [
+        "REQ-010",
+        "AC-010",
+        "VER-010",
+        "EXE-005",
+        "OUT-003",
+        "OUT-006",
+        "DONE-003"
+      ]
+    },
+    {
+      "row_id": "RT-011",
+      "requirement_ref": "REQ-011",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-006",
+        "SRC-007"
+      ],
+      "problem": "Scheduler must expose a daemon main loop centered on runtime DAG advancement: classify DAGs by runtime state, skip non-runtime DAGs for scheduling, iterate runtime DAGs, decide whether intervention is required, and only then compute next jobs, invoke Executor, update DAG state, or record no-op/exhaustion.",
+      "user_value": "Reviewers and implementers can understand how Scheduler continuously and safely advances DAG state without relying on vague background processing.",
+      "mvp_scope": "Make daemon main loop behavior explicit in Phase 1 PRD/HLD-ready requirements.",
+      "acceptance_summary": "The PRD/HLD-ready design describes the daemon loop as an ordered repeatable cycle with wake triggers, transaction scope, result handling, scheduling branch, idle/exhaustion branch, audit records, and shutdown behavior.",
+      "target_artifact_refs": [
+        "REQ-011",
+        "AC-011",
+        "VER-011",
+        "EXE-006",
+        "OUT-003",
+        "STOP-005",
+        "DONE-003"
+      ]
+    },
+    {
+      "row_id": "RT-012",
+      "requirement_ref": "REQ-012",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-007"
+      ],
+      "problem": "Scheduler must distinguish DAG definitions from runtime DAG instances. It drives only DAGs in a running/runtime state; non-runtime DAGs are not scheduled or advanced and only support query behavior.",
+      "user_value": "The Scheduler cannot accidentally mutate static or inactive DAGs and keeps execution semantics tied to explicit runtime state.",
+      "mvp_scope": "Runtime-state distinction is included in Phase 1 daemon loop behavior.",
+      "acceptance_summary": "Given one non-runtime DAG and one runtime DAG, Scheduler exposes query data for both but only evaluates scheduling and writes state for the runtime DAG.",
+      "target_artifact_refs": [
+        "REQ-012",
+        "AC-012",
+        "VER-012",
+        "EXE-006",
+        "STOP-006",
+        "DONE-003"
+      ]
+    },
+    {
+      "row_id": "RT-013",
+      "requirement_ref": "REQ-013",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-007"
+      ],
+      "problem": "Scheduler must process multiple runtime DAGs by checking each runtime DAG in turn, deciding whether it requires Scheduler intervention, and only for DAGs requiring intervention computing next JOBs, creating job instances, and invoking Executor.",
+      "user_value": "The main loop remains simple and conservative: do nothing for runtime DAGs that do not need intervention, and act only where state actually requires Scheduler progress.",
+      "mvp_scope": "Multiple runtime DAG iteration and intervention-first scheduling are included in Phase 1 daemon loop behavior.",
+      "acceptance_summary": "Given multiple runtime DAGs, Scheduler checks each runtime DAG, records no-op for DAGs not requiring intervention, and only creates Executor jobs for DAGs whose runtime state requires intervention.",
+      "target_artifact_refs": [
+        "REQ-013",
+        "AC-013",
+        "VER-013",
+        "EXE-006",
+        "OUT-003",
+        "DONE-003"
+      ]
+    },
+    {
+      "row_id": "RT-014",
+      "requirement_ref": "REQ-014",
+      "origin": "bounded_inference",
+      "source_refs": [
+        "SRC-002",
+        "SRC-007",
+        "SRC-008"
+      ],
+      "problem": "Scheduler must expose a daemon API for DAG definition/runtime query, runtime lifecycle control, scheduling state inspection, Executor result intake, and audit retrieval while forbidding route-definition mutation through that API.",
+      "user_value": "API callers can operate and inspect Scheduler without giving it route-design authority.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP as a necessary product capability inferred from the declared Scheduler boundary and runtime DAG execution model.",
+      "acceptance_summary": "Given API calls against defined, running, paused, blocked, exhausted, and closed DAGs, Scheduler returns query/runtime information and rejects any route-definition mutation attempt.",
+      "target_artifact_refs": [
+        "REQ-014",
+        "AC-014",
+        "VER-014"
+      ]
+    },
+    {
+      "row_id": "RT-015",
+      "requirement_ref": "REQ-015",
+      "origin": "bounded_inference",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-008"
+      ],
+      "problem": "Scheduler must persist DAG runtime snapshots, node runtime states, job instances, leases, fencing tokens, Executor results, evidence records, and audit events as the authoritative state; in-memory daemon state must never be authoritative.",
+      "user_value": "The daemon can recover and explain decisions after restart.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP as a necessary product capability inferred from the declared Scheduler boundary and runtime DAG execution model.",
+      "acceptance_summary": "Given daemon restart during active jobs, Scheduler rebuilds runtime state from persistent records and does not lose active leases or pending results.",
+      "target_artifact_refs": [
+        "REQ-015",
+        "AC-015",
+        "VER-015"
+      ]
+    },
+    {
+      "row_id": "RT-016",
+      "requirement_ref": "REQ-016",
+      "origin": "bounded_inference",
+      "source_refs": [
+        "SRC-001",
+        "SRC-004",
+        "SRC-008"
+      ],
+      "problem": "Scheduler must compute schedulable nodes from persisted DAG/runtime state using dependency completion, node state, permissions, valid leases, retry policy, concurrency policy, and block reasons.",
+      "user_value": "Nodes are dispatched only when the DAG semantics and operational controls allow it.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP as a necessary product capability inferred from the declared Scheduler boundary and runtime DAG execution model.",
+      "acceptance_summary": "Given a DAG with satisfied and unsatisfied dependencies, blocked nodes, active leases, and retry limits, Scheduler dispatches only the nodes that pass all readiness checks.",
+      "target_artifact_refs": [
+        "REQ-016",
+        "AC-016",
+        "VER-016"
+      ]
+    },
+    {
+      "row_id": "RT-017",
+      "requirement_ref": "REQ-017",
+      "origin": "bounded_inference",
+      "source_refs": [
+        "SRC-007",
+        "SRC-008"
+      ],
+      "problem": "For each runtime DAG, Scheduler must produce an intervention decision before next-job calculation, using reason categories such as pending_result, expired_lease, schedulable_nodes, blocked_recheck, recovery_reconcile, route_exhausted, or no_intervention.",
+      "user_value": "The main loop becomes auditable and avoids accidental work on DAGs that need no action.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP as a necessary product capability inferred from the declared Scheduler boundary and runtime DAG execution model.",
+      "acceptance_summary": "Given runtime DAGs in different states, Scheduler records the correct intervention reason and creates jobs only for schedulable_nodes decisions.",
+      "target_artifact_refs": [
+        "REQ-017",
+        "AC-017",
+        "VER-017"
+      ]
+    },
+    {
+      "row_id": "RT-018",
+      "requirement_ref": "REQ-018",
+      "origin": "bounded_inference",
+      "source_refs": [
+        "SRC-004",
+        "SRC-005",
+        "SRC-008"
+      ],
+      "problem": "Scheduler must transform each selected next JOB into a `kunora-workflow-executor` `job-instance.v1` payload and persist invocation identity, lease, fencing token, node version, and dispatch status.",
+      "user_value": "Executor integration is concrete and compatible with the existing Executor input contract.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP as a necessary product capability inferred from the declared Scheduler boundary and runtime DAG execution model.",
+      "acceptance_summary": "Given a schedulable node, Scheduler creates a valid `job-instance.v1` payload containing job identity, provider, objective, workspace, environment, instructions, delivery requirements, policies, and metadata.",
+      "target_artifact_refs": [
+        "REQ-018",
+        "AC-018",
+        "VER-018"
+      ]
+    },
+    {
+      "row_id": "RT-019",
+      "requirement_ref": "REQ-019",
+      "origin": "bounded_inference",
+      "source_refs": [
+        "SRC-001",
+        "SRC-004",
+        "SRC-008"
+      ],
+      "problem": "Scheduler must treat Executor completion as an input signal only; it may mark a job accepted and advance node state only when Executor identity, job id, lease/fencing token, node version, and evidence satisfy the acceptance contract.",
+      "user_value": "Scheduler remains a conservative state judge instead of trusting process self-report.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP as a necessary product capability inferred from the declared Scheduler boundary and runtime DAG execution model.",
+      "acceptance_summary": "Given Executor results with missing evidence, wrong identity, stale node version, or stale fencing token, Scheduler rejects the result and does not mark the node delivered.",
+      "target_artifact_refs": [
+        "REQ-019",
+        "AC-019",
+        "VER-019"
+      ]
+    },
+    {
+      "row_id": "RT-020",
+      "requirement_ref": "REQ-020",
+      "origin": "bounded_inference",
+      "source_refs": [
+        "SRC-001",
+        "SRC-007",
+        "SRC-008"
+      ],
+      "problem": "Scheduler must use stable scheduling keys, uniqueness constraints, lease state, fencing tokens, and result identity checks to prevent duplicate dispatch, duplicate acceptance, and stale result acceptance.",
+      "user_value": "Repeated daemon ticks and duplicate Executor reports cannot corrupt DAG state.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP as a necessary product capability inferred from the declared Scheduler boundary and runtime DAG execution model.",
+      "acceptance_summary": "Given repeated scheduling ticks and duplicate Executor reports for the same node, Scheduler creates at most one active job per scheduling key and records duplicate/stale reports without changing accepted state.",
+      "target_artifact_refs": [
+        "REQ-020",
+        "AC-020",
+        "VER-020"
+      ]
+    },
+    {
+      "row_id": "RT-021",
+      "requirement_ref": "REQ-021",
+      "origin": "bounded_inference",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-008"
+      ],
+      "problem": "On startup and each loop, Scheduler must reconcile persisted runtime DAGs, active jobs, leases, pending Executor results, expired execution rights, and incomplete audit records before new dispatch.",
+      "user_value": "The daemon can resume safely after crash or restart.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP as a necessary product capability inferred from the declared Scheduler boundary and runtime DAG execution model.",
+      "acceptance_summary": "Given a restart with active leases, expired leases, and pending results, Scheduler settles expired rights and pending results before computing new jobs.",
+      "target_artifact_refs": [
+        "REQ-021",
+        "AC-021",
+        "VER-021"
+      ]
+    },
+    {
+      "row_id": "RT-022",
+      "requirement_ref": "REQ-022",
+      "origin": "bounded_inference",
+      "source_refs": [
+        "SRC-007",
+        "SRC-008"
+      ],
+      "problem": "Scheduler must apply global and per-DAG concurrency limits and a deterministic iteration policy so multiple runtime DAGs progress without a single DAG monopolizing dispatch capacity.",
+      "user_value": "Multiple runtime DAGs can coexist predictably.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP as a necessary product capability inferred from the declared Scheduler boundary and runtime DAG execution model.",
+      "acceptance_summary": "Given multiple runtime DAGs with many schedulable nodes and configured limits, Scheduler respects global/per-DAG limits and records deferred-but-ready nodes.",
+      "target_artifact_refs": [
+        "REQ-022",
+        "AC-022",
+        "VER-022"
+      ]
+    },
+    {
+      "row_id": "RT-023",
+      "requirement_ref": "REQ-023",
+      "origin": "bounded_inference",
+      "source_refs": [
+        "SRC-001",
+        "SRC-007",
+        "SRC-008"
+      ],
+      "problem": "Scheduler must record durable events for dispatch, no-intervention, acceptance, rejection, expiration, block, retry, recovery, and route_exhausted outcomes.",
+      "user_value": "Operators can reconstruct why the daemon acted or did not act.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP as a necessary product capability inferred from the declared Scheduler boundary and runtime DAG execution model.",
+      "acceptance_summary": "Given any state transition or no-op decision, Scheduler persists an event with DAG id, node id where relevant, job id where relevant, reason, previous state, next state, and evidence refs.",
+      "target_artifact_refs": [
+        "REQ-023",
+        "AC-023",
+        "VER-023"
+      ]
+    },
+    {
+      "row_id": "RT-024",
+      "requirement_ref": "REQ-024",
+      "origin": "bounded_inference",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-008"
+      ],
+      "problem": "Scheduler must enforce API caller, DAG, node, Executor identity, lease, and evidence permissions before dispatch or result acceptance, and must reject unauthorized operations without state advancement.",
+      "user_value": "The scheduler cannot be used to dispatch or accept work outside the authorized runtime boundary.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP as a necessary product capability inferred from the declared Scheduler boundary and runtime DAG execution model.",
+      "acceptance_summary": "Given an unauthorized API caller or Executor identity, Scheduler rejects the dispatch/result operation, records the reason, and leaves DAG/node state unchanged.",
+      "target_artifact_refs": [
+        "REQ-024",
+        "AC-024",
+        "VER-024"
+      ]
+    }
+  ],
+  "core": "CORE-001",
+  "scope": {
+    "in_scope": [
+      "SCOPE-001"
+    ],
+    "out_of_scope": [
+      "OOS-001"
+    ],
+    "mvp_boundary": "Phase 1 implements Scheduler as a daemon API that distinguishes DAG definitions from runtime DAGs, queries non-runtime DAGs only, iterates multiple runtime DAGs, decides intervention before next-job calculation, persists runtime state, applies readiness/permission/concurrency rules, generates `kunora-workflow-executor` `job-instance.v1` input, invokes Executor, validates evidence, rejects stale or unauthorized results, recovers after restart, records audit events, and reports route exhaustion without declaring business success.",
+    "roadmap": [
+      "PHASE-001",
+      "PHASE-002",
+      "PHASE-003",
+      "PHASE-004"
+    ]
+  },
+  "requirements": [
+    "REQ-001",
+    "REQ-002",
+    "REQ-003",
+    "REQ-004",
+    "REQ-005",
+    "REQ-006",
+    "REQ-007",
+    "REQ-008",
+    "REQ-009",
+    "REQ-010",
+    "REQ-011",
+    "REQ-012",
+    "REQ-013",
+    "REQ-014",
+    "REQ-015",
+    "REQ-016",
+    "REQ-017",
+    "REQ-018",
+    "REQ-019",
+    "REQ-020",
+    "REQ-021",
+    "REQ-022",
+    "REQ-023",
+    "REQ-024"
+  ],
+  "acceptance_criteria": [
+    "AC-001",
+    "AC-002",
+    "AC-003",
+    "AC-004",
+    "AC-005",
+    "AC-006",
+    "AC-007",
+    "AC-008",
+    "AC-009",
+    "AC-010",
+    "AC-011",
+    "AC-012",
+    "AC-013",
+    "AC-014",
+    "AC-015",
+    "AC-016",
+    "AC-017",
+    "AC-018",
+    "AC-019",
+    "AC-020",
+    "AC-021",
+    "AC-022",
+    "AC-023",
+    "AC-024"
+  ],
+  "success_metrics": [
+    "MET-001",
+    "MET-002",
+    "MET-003",
+    "MET-004"
+  ],
+  "implementation_model": {
+    "control_flow": [
+      "FLOW-001",
+      "FLOW-002",
+      "FLOW-003",
+      "FLOW-004",
+      "FLOW-005",
+      "FLOW-006",
+      "FLOW-007"
+    ],
+    "data_flow": [
+      "DATA-001",
+      "DATA-002",
+      "DATA-003",
+      "DATA-004",
+      "DATA-005",
+      "DATA-006",
+      "DATA-007",
+      "DATA-008",
+      "DATA-009",
+      "DATA-010",
+      "DATA-011"
+    ],
+    "modules": [
+      "MOD-001",
+      "MOD-002",
+      "MOD-003",
+      "MOD-004"
+    ],
+    "technical_decisions": [
+      "TECH-001",
+      "TECH-002",
+      "TECH-003",
+      "TECH-004",
+      "TECH-005",
+      "TECH-006",
+      "TECH-007"
+    ],
+    "state_transitions": [
+      "STATE-001",
+      "STATE-002",
+      "STATE-003",
+      "STATE-004"
+    ],
+    "data_contracts": [
+      "DCT-001",
+      "DCT-002",
+      "DCT-003",
+      "DCT-004",
+      "DCT-005",
+      "DCT-006",
+      "DCT-007",
+      "DCT-008",
+      "DCT-009",
+      "DCT-010",
+      "DCT-011",
+      "DCT-012",
+      "DCT-013",
+      "DCT-014"
+    ]
+  },
+  "agent_execution": {
+    "input_contracts": [
+      "IN-001",
+      "IN-002",
+      "IN-003"
+    ],
+    "execution_rules": [
+      "EXE-001",
+      "EXE-002",
+      "EXE-003",
+      "EXE-004",
+      "EXE-005",
+      "EXE-006",
+      "EXE-007",
+      "EXE-008",
+      "EXE-009",
+      "EXE-010",
+      "EXE-011"
+    ],
+    "verification_cases": [
+      "VER-001",
+      "VER-002",
+      "VER-003",
+      "VER-004",
+      "VER-005",
+      "VER-006",
+      "VER-007",
+      "VER-008",
+      "VER-009",
+      "VER-010",
+      "VER-011",
+      "VER-012",
+      "VER-013",
+      "VER-014",
+      "VER-015",
+      "VER-016",
+      "VER-017",
+      "VER-018",
+      "VER-019",
+      "VER-020",
+      "VER-021",
+      "VER-022",
+      "VER-023",
+      "VER-024"
+    ],
+    "output_deliverables": [
+      "OUT-001",
+      "OUT-002",
+      "OUT-003",
+      "OUT-004",
+      "OUT-005",
+      "OUT-006",
+      "OUT-007",
+      "OUT-008"
+    ],
+    "stop_conditions": [
+      "STOP-001",
+      "STOP-002",
+      "STOP-003",
+      "STOP-004",
+      "STOP-005",
+      "STOP-006",
+      "STOP-007",
+      "STOP-008"
+    ],
+    "done_criteria": [
+      "DONE-001",
+      "DONE-002",
+      "DONE-003",
+      "DONE-004"
+    ]
+  },
+  "risks": [
+    "RISK-001",
+    "RISK-002"
+  ],
+  "quality_bars": [
+    "BAR-001",
+    "BAR-002",
+    "BAR-003"
+  ],
+  "assumptions": [],
+  "open_questions": [
+    "Q-001",
+    "Q-002",
+    "Q-003"
+  ],
+  "references": [
+    "REF-001"
+  ],
+  "sources": [
+    "SRC-001",
+    "SRC-002",
+    "SRC-003",
+    "SRC-004",
+    "SRC-005",
+    "SRC-006",
+    "SRC-007",
+    "SRC-008",
+    "SRC-009"
+  ],
+  "traceability": [
+    "TRACE-001",
+    "TRACE-002",
+    "TRACE-003",
+    "TRACE-004",
+    "TRACE-005",
+    "TRACE-006",
+    "TRACE-007",
+    "TRACE-008",
+    "TRACE-009",
+    "TRACE-010",
+    "TRACE-011",
+    "TRACE-012",
+    "TRACE-013",
+    "TRACE-014",
+    "TRACE-015",
+    "TRACE-016",
+    "TRACE-017",
+    "TRACE-018",
+    "TRACE-019",
+    "TRACE-020",
+    "TRACE-021",
+    "TRACE-022",
+    "TRACE-023",
+    "TRACE-024",
+    "TRACE-025",
+    "TRACE-026",
+    "TRACE-027",
+    "TRACE-028",
+    "TRACE-029",
+    "TRACE-030",
+    "TRACE-031",
+    "TRACE-032",
+    "TRACE-033",
+    "TRACE-034",
+    "TRACE-035",
+    "TRACE-036",
+    "TRACE-037",
+    "TRACE-038",
+    "TRACE-039",
+    "TRACE-040",
+    "TRACE-041",
+    "TRACE-042",
+    "TRACE-043",
+    "TRACE-044",
+    "TRACE-045",
+    "TRACE-046",
+    "TRACE-047",
+    "TRACE-048",
+    "TRACE-049",
+    "TRACE-050",
+    "TRACE-051",
+    "TRACE-052",
+    "TRACE-053"
+  ],
+  "render_blocks": [
+    "RB-001",
+    "RB-002",
+    "RB-003"
+  ],
+  "document_metadata": [
+    "META-001"
+  ],
+  "quality_gates": [
+    "GATE-001",
+    "GATE-002"
+  ],
+  "render_status": {
+    "human_prd": "review_ready",
+    "agent_prd": "execution_ready"
+  },
+  "objects": {
+    "SRC-001": {
+      "type": "SRC",
+      "payload": {
+        "source_type": "user_input",
+        "content": "Scheduler 是独立的调度控制器与状态裁判，负责把已经存在的工作流路线推进为可执行、可恢复、可审计的作业状态流。它不拥有路线设计权，也不执行具体任务；它的产品价值在于用确定性规则控制“何时可以派发、何时可以接受、何时必须阻断”。控制流上，Scheduler 应按固定循环工作：读取当前路线、节点状态、作业定义、权限与租约信息；先处理过期或失效的执行权；再判断哪些节点满足可调度条件；对满足条件的节点生成一次作业实例和执行租约；等待或读取 Executor 返回的运行结果与证据；根据证据将作业实例标记为 accepted、rejected、expired 等，并将节点推进为 scheduled、deliveried、failed 或 blocked；当没有运行中的作业且没有可调度节点时，输出明确的路线耗尽状态，而不是自行判断项目成功。\n\n数据流上，Scheduler 只消费调度所需的权威状态和 Executor 结果，只产出作业实例、租约、状态变更、接受或拒绝记录、阻断原因和路线耗尽记录。它必须完成 readiness 判断、幂等派发、租约与 fencing token 管理、重复执行防护、陈旧结果拒绝、结果证据校验、失败与不可判断结果收束、状态事件记录。它不能修改路线定义，不能生成新节点，不能直接运行命令，不能修改交付产物，不能跳过证据验收，不能把 Executor 的 completed 等同于节点 deliveried，不能基于执行过程自述认定成功，也不能在无下一节点时自行宣布业务完成。Scheduler 的核心特性应体现为机械、保守、可追溯：只调度已满足条件的节点，只接受证据充分且身份有效的 Executor 结果，只用状态机表达推进、失败、阻断和耗尽。",
+        "label": "Original Scheduler idea",
+        "id": "SRC-001"
+      }
+    },
+    "SRC-002": {
+      "type": "SRC",
+      "payload": {
+        "source_type": "user_confirmation",
+        "content": "1: Scheduler should be a daemon program; other programs call it through an API. 2: Use persistent storage as the authoritative state and lease boundary. 3: Use repository-local real route, node, permission, lease, and Executor result examples for real acceptance.",
+        "label": "Stage 1 clarification answers",
+        "id": "SRC-002"
+      }
+    },
+    "SRC-003": {
+      "type": "SRC",
+      "payload": {
+        "source_type": "runtime_input",
+        "content": "C:\\Users\\54256213\\Documents\\github\\spec-scheduler\\docs",
+        "label": "Requested output directory",
+        "id": "SRC-003"
+      }
+    },
+    "CORE-001": {
+      "type": "CORE",
+      "payload": {
+        "product_name": "Scheduler",
+        "one_line_summary": "A daemon scheduler that drives runtime DAG instances forward by intervention-first scheduling, Executor Job Instance generation, and evidence-backed DAG state updates.",
+        "target_users": [
+          "workflow platform integrators",
+          "Executor service owners",
+          "operations reviewers"
+        ],
+        "personas": [
+          "platform engineer integrating workflow routing with Executor",
+          "operator auditing scheduling and result decisions"
+        ],
+        "problem_statement": "Workflow DAGs need a scheduler that distinguishes static/query-only DAGs from runtime DAGs, iterates multiple runtime DAGs, determines where intervention is needed, and advances only those runtime DAGs that require Scheduler action.",
+        "value_proposition": "Scheduler turns a static DAG into a recoverable, auditable job-state flow while preserving the boundary between route design, scheduling, Executor task execution, and evidence-based acceptance.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-004",
+          "SRC-005",
+          "SRC-007"
+        ],
+        "assumption_refs": [],
+        "status": "confirmed",
+        "id": "CORE-001",
+        "description": "Scheduler is an independent daemon API and deterministic state judge for existing runtime DAGs. It drives only runtime DAGs, classifies intervention before scheduling, creates Executor job instances only when required, validates evidence before accepting results, and records recoverable/auditable state transitions."
+      }
+    },
+    "USER-001": {
+      "type": "USER",
+      "payload": {
+        "role": "Workflow platform integrator",
+        "need": "Call Scheduler through an API to advance an existing route safely and inspect state decisions.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "USER-001"
+      }
+    },
+    "SCOPE-001": {
+      "type": "SCOPE",
+      "payload": {
+        "statement": "Phase 1 implements Scheduler as a daemon API that queries non-runtime DAGs, drives runtime DAG instances, performs intervention-first scheduling, generates kunora-workflow-executor job-instance.v1 descriptions, invokes Executor, consumes Executor conclusions/evidence, updates DAG runtime state, and emits audit events.",
+        "phase": "PHASE-001",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-004",
+          "SRC-005",
+          "SRC-007"
+        ],
+        "id": "SCOPE-001",
+        "description": "Phase 1 covers Scheduler daemon/API product definition, runtime DAG state, query-only non-runtime DAG behavior, intervention-first main loop, readiness and next-job calculation, Executor job-instance.v1 integration, result evidence validation, idempotency, lease/fencing, recovery, multi-DAG fairness, permissions, audit, and route exhaustion semantics."
+      }
+    },
+    "OOS-001": {
+      "type": "OOS",
+      "payload": {
+        "statement": "Scheduler does not design DAG topology, create new route nodes outside the existing DAG, directly execute provider commands, or modify Executor deliverables; it may invoke kunora-workflow-executor with generated Job Instance input and then judge the returned result.",
+        "phase": "PHASE-001",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "OOS-001"
+      }
+    },
+    "PHASE-001": {
+      "type": "PHASE",
+      "payload": {
+        "name": "Phase 1 - PRD/HLD freeze",
+        "goal": "Freeze a review-approved PRD and HLD that fully define Scheduler daemon/API boundaries, runtime DAG model, Executor integration, real acceptance matrix, and implementation design without task-plan output.",
+        "entry_criteria": [
+          "Stage 2 PRD package validator passes",
+          "Human PRD review is pending or approved according to harness gate"
+        ],
+        "exit_criteria": [
+          "Human PRD approved",
+          "HLD defines API, data objects, state machines, control flow, data flow, transaction boundaries, and no-mock real acceptance"
+        ],
+        "source_refs": [
+          "SRC-009"
+        ],
+        "id": "PHASE-001"
+      }
+    },
+    "REQ-001": {
+      "type": "REQ",
+      "payload": {
+        "title": "Respect Scheduler ownership boundaries",
+        "description": "Scheduler must consume and persist existing DAG route state and Executor results, but it must not own DAG design, create new route nodes outside the existing DAG, directly execute provider commands, or mutate deliverables.",
+        "user_value": "Prevents the scheduler from becoming a hidden planner or executor.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-001"
+        ],
+        "verification_refs": [
+          "VER-001"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-004"
+        ],
+        "status": "confirmed",
+        "id": "REQ-001"
+      }
+    },
+    "REQ-002": {
+      "type": "REQ",
+      "payload": {
+        "title": "Run the fixed scheduling control loop",
+        "description": "Scheduler must repeatedly read the persisted DAG current state, node states, job definitions, permissions, and leases; expire invalid execution rights; derive one or more next schedulable JOBs; create job instances and leases; invoke Executor; ingest Executor conclusions/evidence; apply DAG state transitions; and emit route exhaustion when appropriate.",
+        "user_value": "Gives operators a predictable state-control loop.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-002"
+        ],
+        "verification_refs": [
+          "VER-002"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-004"
+        ],
+        "status": "confirmed",
+        "id": "REQ-002"
+      }
+    },
+    "REQ-003": {
+      "type": "REQ",
+      "payload": {
+        "title": "Perform DAG readiness and idempotent dispatch",
+        "description": "Scheduler must dispatch only DAG nodes whose dependency, permission, prior state, and lease constraints make them schedulable; repeated scheduling attempts must not create duplicate active executor jobs for the same DAG node generation.",
+        "user_value": "Avoids duplicate execution and unsafe dispatch.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-003"
+        ],
+        "verification_refs": [
+          "VER-003"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-004"
+        ],
+        "status": "confirmed",
+        "id": "REQ-003"
+      }
+    },
+    "REQ-004": {
+      "type": "REQ",
+      "payload": {
+        "title": "Manage leases and fencing tokens",
+        "description": "Scheduler must create, expire, and validate execution leases with fencing tokens so stale actors cannot overwrite newer scheduling decisions.",
+        "user_value": "Makes recovery and concurrent observation safe.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-004"
+        ],
+        "verification_refs": [
+          "VER-004"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "status": "confirmed",
+        "id": "REQ-004"
+      }
+    },
+    "REQ-005": {
+      "type": "REQ",
+      "payload": {
+        "title": "Validate Executor results and evidence",
+        "description": "Scheduler must reject stale, identity-invalid, insufficient, failed, or undecidable Executor results; Executor completed is never sufficient by itself to mark a node deliveried.",
+        "user_value": "Protects delivery state from unverified self-reporting.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-005"
+        ],
+        "verification_refs": [
+          "VER-005"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed",
+        "id": "REQ-005"
+      }
+    },
+    "REQ-006": {
+      "type": "REQ",
+      "payload": {
+        "title": "Express all outcomes through state machine transitions",
+        "description": "Scheduler must mark job instances as accepted, rejected, expired, or blocked and nodes as scheduled, deliveried, failed, or blocked only through valid state transitions backed by evidence.",
+        "user_value": "Makes progress, failure, and blocking reviewable.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-006"
+        ],
+        "verification_refs": [
+          "VER-006"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed",
+        "id": "REQ-006"
+      }
+    },
+    "REQ-007": {
+      "type": "REQ",
+      "payload": {
+        "title": "Record auditable scheduling evidence",
+        "description": "Scheduler must emit state events, acceptance/rejection records, blocking reasons, lease changes, and route exhaustion records with enough identity and evidence references to audit every decision.",
+        "user_value": "Allows post-run investigation and compliance review.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-007"
+        ],
+        "verification_refs": [
+          "VER-007"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed",
+        "id": "REQ-007"
+      }
+    },
+    "REQ-008": {
+      "type": "REQ",
+      "payload": {
+        "title": "Report route exhaustion without success inference",
+        "description": "When no job is running and no node is schedulable, Scheduler must emit route_exhausted with reasons and must not infer project success or business completion.",
+        "user_value": "Preserves product boundary and honest completion semantics.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-008"
+        ],
+        "verification_refs": [
+          "VER-008"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed",
+        "id": "REQ-008"
+      }
+    },
+    "AC-001": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-001",
+        "criterion": "Given an existing route, Scheduler reads route and node state but never mutates route definition, creates a new node, runs a command, or modifies a deliverable.",
+        "verification_method": "VER-001",
+        "blocking": true,
+        "id": "AC-001"
+      }
+    },
+    "AC-002": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-002",
+        "criterion": "Given route, node, job, permission, lease, and Executor-result inputs, one Scheduler loop processes expired leases before schedulability, emits at most one new active job per eligible node generation, and then applies result acceptance rules.",
+        "verification_method": "VER-002",
+        "blocking": true,
+        "id": "AC-002"
+      }
+    },
+    "AC-003": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-003",
+        "criterion": "Given repeated dispatch attempts for the same schedulable node and unchanged generation, Scheduler returns the existing active job/lease or a no-op state event rather than creating duplicate active jobs.",
+        "verification_method": "VER-003",
+        "blocking": true,
+        "id": "AC-003"
+      }
+    },
+    "AC-004": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-004",
+        "criterion": "Given an expired lease or lower fencing token, Scheduler marks the prior job expired or rejects the stale result and preserves the newer authority.",
+        "verification_method": "VER-004",
+        "blocking": true,
+        "id": "AC-004"
+      }
+    },
+    "AC-005": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-005",
+        "criterion": "Given Executor completed without required evidence, wrong lease identity, stale fencing token, failed status, or undecidable evidence, Scheduler rejects or blocks the result instead of marking the node deliveried.",
+        "verification_method": "VER-005",
+        "blocking": true,
+        "id": "AC-005"
+      }
+    },
+    "AC-006": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-006",
+        "criterion": "Given accepted evidence with valid identity and sufficient mechanical checks, Scheduler marks the job accepted and advances the node through valid state transitions only.",
+        "verification_method": "VER-006",
+        "blocking": true,
+        "id": "AC-006"
+      }
+    },
+    "AC-007": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-007",
+        "criterion": "Every dispatch, lease expiry, result acceptance, result rejection, block, node transition, and route exhaustion decision writes an auditable event with IDs, prior/new state, evidence refs, and reason.",
+        "verification_method": "VER-007",
+        "blocking": true,
+        "id": "AC-007"
+      }
+    },
+    "AC-008": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-008",
+        "criterion": "Given no active jobs and no schedulable nodes, Scheduler emits a route_exhausted record with blocked/completed/no-ready reasons and does not emit business_success or project_done.",
+        "verification_method": "VER-008",
+        "blocking": true,
+        "id": "AC-008"
+      }
+    },
+    "MET-001": {
+      "type": "MET",
+      "payload": {
+        "name": "Duplicate active dispatch prevention",
+        "target": "Repeated loop runs create zero duplicate active jobs for the same node generation.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "MET-001"
+      }
+    },
+    "MET-002": {
+      "type": "MET",
+      "payload": {
+        "name": "Stale result rejection",
+        "target": "Executor results with expired leases or stale fencing tokens are rejected mechanically.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "MET-002"
+      }
+    },
+    "MET-003": {
+      "type": "MET",
+      "payload": {
+        "name": "Decision audit coverage",
+        "target": "Every state-changing decision produces an event with reason and evidence references.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "MET-003"
+      }
+    },
+    "FLOW-001": {
+      "type": "FLOW",
+      "payload": {
+        "name": "Scheduler fixed loop",
+        "steps": [
+          "read authoritative route/node/job/permission/lease state",
+          "expire invalid execution rights",
+          "select schedulable nodes",
+          "create job instance and lease",
+          "read Executor result and evidence",
+          "accept/reject/expire/block job",
+          "advance node state",
+          "emit route exhaustion when no active or schedulable work remains"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "FLOW-001"
+      }
+    },
+    "DATA-001": {
+      "type": "DATA",
+      "payload": {
+        "name": "authoritative_scheduler_state",
+        "description": "Existing route definition, node state, job definitions, permission grants, active/expired leases, fencing tokens, job instances, and state events held in persistent storage.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DATA-001"
+      }
+    },
+    "DATA-002": {
+      "type": "DATA",
+      "payload": {
+        "name": "executor_result_with_evidence",
+        "description": "Executor result identity, lease token, fencing token, status, evidence references, failure details, and undecidable markers consumed by Scheduler.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DATA-002"
+      }
+    },
+    "DATA-003": {
+      "type": "DATA",
+      "payload": {
+        "name": "scheduler_decision_outputs",
+        "description": "Job instances, leases, state transitions, acceptance/rejection records, block reasons, and route exhaustion records produced by Scheduler.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DATA-003"
+      }
+    },
+    "MOD-001": {
+      "type": "MOD",
+      "payload": {
+        "name": "Scheduler daemon API",
+        "responsibility": "Expose API operations for advancing scheduling loops, querying state, and ingesting Executor results without route design or task execution ownership.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "MOD-001"
+      }
+    },
+    "MOD-002": {
+      "type": "MOD",
+      "payload": {
+        "name": "Persistent state and lease store",
+        "responsibility": "Provide transactional authority for node state, job instances, leases, fencing tokens, idempotency keys, and audit events.",
+        "source_refs": [
+          "SRC-002"
+        ],
+        "id": "MOD-002"
+      }
+    },
+    "MOD-003": {
+      "type": "MOD",
+      "payload": {
+        "name": "Executor result boundary",
+        "responsibility": "Represent the external Executor as a result-and-evidence producer; Scheduler validates identity and evidence but does not execute tasks.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "MOD-003"
+      }
+    },
+    "TECH-001": {
+      "type": "TECH",
+      "payload": {
+        "decision": "Implement Scheduler as a daemon service with API calls from other programs.",
+        "rationale": "The user confirmed daemon plus API as the public integration boundary.",
+        "implementation_notes": "HLD should define API contracts abstractly until implementation technology is chosen.",
+        "source_refs": [
+          "SRC-002"
+        ],
+        "id": "TECH-001"
+      }
+    },
+    "TECH-002": {
+      "type": "TECH",
+      "payload": {
+        "decision": "Use persistent transactional storage as the authoritative source for state and leases.",
+        "rationale": "Readiness, idempotency, recovery, fencing, stale-result rejection, and auditability need durable state authority.",
+        "implementation_notes": "HLD should model transaction boundaries and compare-and-swap/fencing semantics.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "TECH-002"
+      }
+    },
+    "TECH-003": {
+      "type": "TECH",
+      "payload": {
+        "decision": "Use deterministic state-machine transitions and evidence gates rather than Executor self-reporting.",
+        "rationale": "The user explicitly forbids treating Executor completed or execution narration as delivery success.",
+        "implementation_notes": "Acceptance logic must validate job identity, lease, fencing token, evidence completeness, and state transition legality.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "TECH-003"
+      }
+    },
+    "STATE-001": {
+      "type": "STATE",
+      "payload": {
+        "name": "node_state_model",
+        "states": [
+          "blocked",
+          "ready",
+          "scheduled",
+          "deliveried",
+          "failed"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "STATE-001"
+      }
+    },
+    "STATE-002": {
+      "type": "STATE",
+      "payload": {
+        "name": "job_instance_state_model",
+        "states": [
+          "created",
+          "leased",
+          "accepted",
+          "rejected",
+          "expired",
+          "blocked"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "STATE-002"
+      }
+    },
+    "DCT-001": {
+      "type": "DCT",
+      "payload": {
+        "name": "RouteSnapshot",
+        "fields": [
+          "route_id",
+          "route_version",
+          "node_states",
+          "job_definitions",
+          "permissions",
+          "leases"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DCT-001"
+      }
+    },
+    "DCT-002": {
+      "type": "DCT",
+      "payload": {
+        "name": "JobInstance",
+        "fields": [
+          "job_id",
+          "route_id",
+          "node_id",
+          "node_generation",
+          "status",
+          "lease_id",
+          "idempotency_key"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DCT-002"
+      }
+    },
+    "DCT-003": {
+      "type": "DCT",
+      "payload": {
+        "name": "ExecutionLease",
+        "fields": [
+          "lease_id",
+          "job_id",
+          "executor_id",
+          "expires_at",
+          "fencing_token",
+          "status"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DCT-003"
+      }
+    },
+    "DCT-004": {
+      "type": "DCT",
+      "payload": {
+        "name": "ExecutorResult",
+        "fields": [
+          "job_id",
+          "lease_id",
+          "fencing_token",
+          "executor_status",
+          "evidence_refs",
+          "failure_reason"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DCT-004"
+      }
+    },
+    "DCT-005": {
+      "type": "DCT",
+      "payload": {
+        "name": "StateEvent",
+        "fields": [
+          "event_id",
+          "subject_id",
+          "event_type",
+          "prior_state",
+          "new_state",
+          "reason",
+          "evidence_refs"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DCT-005"
+      }
+    },
+    "IN-001": {
+      "type": "IN",
+      "payload": {
+        "input_name": "authoritative_route_and_scheduler_state",
+        "required": true,
+        "description": "Current route, node status, job definitions, permissions, leases, and fencing token state from persistent storage.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "IN-001"
+      }
+    },
+    "IN-002": {
+      "type": "IN",
+      "payload": {
+        "input_name": "executor_result_and_evidence",
+        "required": true,
+        "description": "Executor result payload with job identity, lease identity, fencing token, status, and evidence references.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "IN-002"
+      }
+    },
+    "EXE-001": {
+      "type": "EXE",
+      "payload": {
+        "rule": "Run the scheduling loop in the fixed order: read state, expire invalid execution rights, evaluate schedulability, dispatch one job/lease per eligible node generation, ingest Executor evidence, then transition job and node states.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "EXE-001"
+      }
+    },
+    "EXE-002": {
+      "type": "EXE",
+      "payload": {
+        "rule": "Never design routes, create nodes, directly execute commands, modify deliverables, skip evidence checks, or infer business success.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "EXE-002"
+      }
+    },
+    "EXE-003": {
+      "type": "EXE",
+      "payload": {
+        "rule": "Use persistent-state transactions, idempotency keys, and fencing-token comparison to prevent duplicate active execution and stale result acceptance.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "EXE-003"
+      }
+    },
+    "VER-001": {
+      "type": "VER",
+      "payload": {
+        "case": "Run a real repository-local route fixture and prove Scheduler does not alter route definition or create new nodes.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-001"
+      }
+    },
+    "VER-002": {
+      "type": "VER",
+      "payload": {
+        "case": "Run one loop against real fixtures containing expired lease, ready node, and Executor result; verify event order and state outputs.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-002"
+      }
+    },
+    "VER-003": {
+      "type": "VER",
+      "payload": {
+        "case": "Repeat dispatch for the same ready node generation; verify only one active job and one active lease exist.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-003"
+      }
+    },
+    "VER-004": {
+      "type": "VER",
+      "payload": {
+        "case": "Submit an expired/stale fencing-token result; verify rejection and no node delivery.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-004"
+      }
+    },
+    "VER-005": {
+      "type": "VER",
+      "payload": {
+        "case": "Submit completed Executor result without required evidence; verify rejection or blocked outcome.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-005"
+      }
+    },
+    "VER-006": {
+      "type": "VER",
+      "payload": {
+        "case": "Submit accepted evidence with valid identity; verify legal job and node transitions only.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-006"
+      }
+    },
+    "VER-007": {
+      "type": "VER",
+      "payload": {
+        "case": "Inspect generated state events and acceptance/rejection records for IDs, state deltas, reason, and evidence refs.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-007"
+      }
+    },
+    "VER-008": {
+      "type": "VER",
+      "payload": {
+        "case": "Run a route with no running jobs and no schedulable nodes; verify route_exhausted and no business success marker.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-008"
+      }
+    },
+    "OUT-001": {
+      "type": "OUT",
+      "payload": {
+        "deliverable": "Job instance records for dispatched node executions.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "OUT-001"
+      }
+    },
+    "OUT-002": {
+      "type": "OUT",
+      "payload": {
+        "deliverable": "Execution lease records with fencing tokens and expiry state.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "OUT-002"
+      }
+    },
+    "OUT-003": {
+      "type": "OUT",
+      "payload": {
+        "deliverable": "State transition events for jobs, nodes, leases, blocks, and exhaustion.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "OUT-003"
+      }
+    },
+    "OUT-004": {
+      "type": "OUT",
+      "payload": {
+        "deliverable": "Accepted, rejected, expired, and blocked result decision records.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "OUT-004"
+      }
+    },
+    "OUT-005": {
+      "type": "OUT",
+      "payload": {
+        "deliverable": "Route exhaustion record when no work is running or schedulable.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "OUT-005"
+      }
+    },
+    "STOP-001": {
+      "type": "STOP",
+      "payload": {
+        "condition": "Stop dispatch and block the affected node when authoritative route, node, job definition, permission, or lease state is missing or contradictory.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "STOP-001"
+      }
+    },
+    "STOP-002": {
+      "type": "STOP",
+      "payload": {
+        "condition": "Reject result and preserve current state when lease identity, executor identity, or fencing token is invalid or stale.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "STOP-002"
+      }
+    },
+    "STOP-003": {
+      "type": "STOP",
+      "payload": {
+        "condition": "Reject or block result when evidence is missing, insufficient, failed, or undecidable.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "STOP-003"
+      }
+    },
+    "STOP-004": {
+      "type": "STOP",
+      "payload": {
+        "condition": "Emit route exhaustion instead of business success when no active jobs and no schedulable nodes remain.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "STOP-004"
+      }
+    },
+    "DONE-001": {
+      "type": "DONE",
+      "payload": {
+        "criterion": "Scheduler can deterministically dispatch ready nodes, create job/lease records, and prevent duplicate active dispatch for the same node generation.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DONE-001"
+      }
+    },
+    "DONE-002": {
+      "type": "DONE",
+      "payload": {
+        "criterion": "Scheduler can accept only identity-valid, evidence-sufficient Executor results and reject stale, failed, or unsupported results.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DONE-002"
+      }
+    },
+    "DONE-003": {
+      "type": "DONE",
+      "payload": {
+        "criterion": "Scheduler can emit auditable state transitions, block reasons, and route exhaustion without route mutation or success inference.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DONE-003"
+      }
+    },
+    "RISK-001": {
+      "type": "RISK",
+      "payload": {
+        "statement": "Race conditions around dispatch and result acceptance could create duplicate jobs or stale delivery unless storage transactions and fencing are explicit.",
+        "mitigation_refs": [
+          "TECH-002",
+          "TECH-003",
+          "VER-004",
+          "VER-005"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "RISK-001"
+      }
+    },
+    "RISK-002": {
+      "type": "RISK",
+      "payload": {
+        "statement": "Ambiguous evidence semantics could cause Scheduler to accept Executor self-reporting as delivery unless evidence gates are mechanical.",
+        "mitigation_refs": [
+          "TECH-003",
+          "VER-005"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "RISK-002"
+      }
+    },
+    "BAR-001": {
+      "type": "BAR",
+      "payload": {
+        "statement": "Mechanical, conservative, and traceable: every scheduling decision must be deterministic, evidence-backed, and auditable.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "BAR-001"
+      }
+    },
+    "BAR-002": {
+      "type": "BAR",
+      "payload": {
+        "statement": "No task planning output: PRD/HLD may describe design only and must not decompose implementation tasks.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "BAR-002"
+      }
+    },
+    "REF-001": {
+      "type": "REF",
+      "payload": {
+        "label": "Output directory",
+        "target": "C:\\Users\\54256213\\Documents\\github\\spec-scheduler\\docs",
+        "source_refs": [
+          "SRC-003"
+        ],
+        "id": "REF-001"
+      }
+    },
+    "META-001": {
+      "type": "META",
+      "payload": {
+        "document_set": "Scheduler spec-intake package",
+        "created_at": "2026-05-29T09:00:00+08:00",
+        "version": "0.6.0-stage2",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "id": "META-001"
+      }
+    },
+    "Q-001": {
+      "type": "Q",
+      "payload": {
+        "question": "Scheduler first-version public interface boundary?",
+        "question_type": "single_choice",
+        "options": [
+          "daemon API",
+          "CLI",
+          "keep blocked"
+        ],
+        "selected_option": "daemon API",
+        "status": "resolved",
+        "blocks_human_prd": true,
+        "blocks_agent_prd": true,
+        "resolution_refs": [
+          "SRC-002"
+        ],
+        "id": "Q-001"
+      }
+    },
+    "Q-002": {
+      "type": "Q",
+      "payload": {
+        "question": "Authoritative state and lease store boundary?",
+        "question_type": "single_choice",
+        "options": [
+          "persistent storage",
+          "file state",
+          "keep blocked"
+        ],
+        "selected_option": "persistent storage",
+        "status": "resolved",
+        "blocks_human_prd": true,
+        "blocks_agent_prd": true,
+        "resolution_refs": [
+          "SRC-002"
+        ],
+        "id": "Q-002"
+      }
+    },
+    "Q-003": {
+      "type": "Q",
+      "payload": {
+        "question": "Real acceptance environment and data?",
+        "question_type": "single_choice",
+        "options": [
+          "repository-local real fixtures",
+          "external integration environment",
+          "keep blocked"
+        ],
+        "selected_option": "repository-local real fixtures",
+        "status": "resolved",
+        "blocks_human_prd": true,
+        "blocks_agent_prd": true,
+        "resolution_refs": [
+          "SRC-002"
+        ],
+        "id": "Q-003"
+      }
+    },
+    "TRACE-001": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "CORE-001",
+        "relation": "stated_by",
+        "id": "TRACE-001"
+      }
+    },
+    "TRACE-002": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-001",
+        "relation": "stated_by",
+        "id": "TRACE-002"
+      }
+    },
+    "TRACE-003": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-002",
+        "relation": "stated_by",
+        "id": "TRACE-003"
+      }
+    },
+    "TRACE-004": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-003",
+        "relation": "stated_by",
+        "id": "TRACE-004"
+      }
+    },
+    "TRACE-005": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-004",
+        "relation": "stated_by",
+        "id": "TRACE-005"
+      }
+    },
+    "TRACE-006": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-005",
+        "relation": "stated_by",
+        "id": "TRACE-006"
+      }
+    },
+    "TRACE-007": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-006",
+        "relation": "stated_by",
+        "id": "TRACE-007"
+      }
+    },
+    "TRACE-008": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-007",
+        "relation": "stated_by",
+        "id": "TRACE-008"
+      }
+    },
+    "TRACE-009": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-008",
+        "relation": "stated_by",
+        "id": "TRACE-009"
+      }
+    },
+    "TRACE-010": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-002",
+        "to_ref": "TECH-001",
+        "relation": "confirmed_by",
+        "id": "TRACE-010"
+      }
+    },
+    "TRACE-011": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-002",
+        "to_ref": "TECH-002",
+        "relation": "confirmed_by",
+        "id": "TRACE-011"
+      }
+    },
+    "TRACE-012": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-002",
+        "to_ref": "VER-002",
+        "relation": "confirmed_by",
+        "id": "TRACE-012"
+      }
+    },
+    "TRACE-013": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-002",
+        "to_ref": "Q-001",
+        "relation": "resolves",
+        "id": "TRACE-013"
+      }
+    },
+    "TRACE-014": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-002",
+        "to_ref": "Q-002",
+        "relation": "resolves",
+        "id": "TRACE-014"
+      }
+    },
+    "TRACE-015": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-002",
+        "to_ref": "Q-003",
+        "relation": "resolves",
+        "id": "TRACE-015"
+      }
+    },
+    "RB-001": {
+      "type": "RB",
+      "payload": {
+        "target": "human_prd",
+        "section": "Human review brief",
+        "content_type": "summary",
+        "contract_refs": [
+          "CORE-001",
+          "REQ-001",
+          "REQ-002",
+          "REQ-005",
+          "REQ-008",
+          "AC-001",
+          "AC-005",
+          "VER-008",
+          "REQ-009",
+          "REQ-010",
+          "TECH-004",
+          "FLOW-002",
+          "REQ-011",
+          "AC-011",
+          "VER-011",
+          "FLOW-003",
+          "EXE-006",
+          "STOP-005",
+          "REQ-012",
+          "REQ-013",
+          "AC-012",
+          "AC-013",
+          "VER-012",
+          "VER-013",
+          "STATE-003",
+          "DATA-006",
+          "STOP-006",
+          "REQ-003",
+          "REQ-004",
+          "REQ-006",
+          "REQ-007",
+          "REQ-014",
+          "REQ-015",
+          "REQ-016",
+          "REQ-017",
+          "REQ-018",
+          "REQ-019",
+          "REQ-020",
+          "REQ-021",
+          "REQ-022",
+          "REQ-023",
+          "REQ-024",
+          "AC-002",
+          "AC-003",
+          "AC-004",
+          "AC-006",
+          "AC-007",
+          "AC-008",
+          "AC-009",
+          "AC-010",
+          "AC-014",
+          "AC-015",
+          "AC-016",
+          "AC-017",
+          "AC-018",
+          "AC-019",
+          "AC-020",
+          "AC-021",
+          "AC-022",
+          "AC-023",
+          "AC-024",
+          "VER-001",
+          "VER-002",
+          "VER-003",
+          "VER-004",
+          "VER-005",
+          "VER-006",
+          "VER-007",
+          "VER-009",
+          "VER-010",
+          "VER-014",
+          "VER-015",
+          "VER-016",
+          "VER-017",
+          "VER-018",
+          "VER-019",
+          "VER-020",
+          "VER-021",
+          "VER-022",
+          "VER-023",
+          "VER-024",
+          "FLOW-004",
+          "FLOW-005",
+          "FLOW-006",
+          "FLOW-007",
+          "DATA-007",
+          "DATA-008",
+          "DATA-009",
+          "DATA-010",
+          "DATA-011",
+          "STATE-004",
+          "DCT-008",
+          "DCT-009",
+          "DCT-010",
+          "DCT-011",
+          "DCT-012",
+          "DCT-013",
+          "EXE-007",
+          "EXE-008",
+          "EXE-009",
+          "EXE-010",
+          "EXE-011",
+          "STOP-007",
+          "STOP-008",
+          "DCT-014",
+          "BAR-003",
+          "MET-004",
+          "PHASE-001",
+          "PHASE-002",
+          "PHASE-003",
+          "PHASE-004"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-004",
+          "SRC-005",
+          "SRC-006",
+          "SRC-007",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "allowed_inference": "summarize only",
+        "unsupported_claims": [],
+        "status": "ready",
+        "id": "RB-001"
+      }
+    },
+    "RB-002": {
+      "type": "RB",
+      "payload": {
+        "target": "agent_prd",
+        "section": "Product PRD",
+        "content_type": "full_prd",
+        "contract_refs": [
+          "REQ-001",
+          "REQ-002",
+          "REQ-003",
+          "REQ-004",
+          "REQ-005",
+          "REQ-006",
+          "REQ-007",
+          "REQ-008",
+          "CORE-001",
+          "USER-001",
+          "SCOPE-001",
+          "OOS-001",
+          "REQ-009",
+          "REQ-010",
+          "TECH-004",
+          "FLOW-002",
+          "REQ-011",
+          "AC-011",
+          "VER-011",
+          "FLOW-003",
+          "EXE-006",
+          "STOP-005",
+          "REQ-012",
+          "REQ-013",
+          "AC-012",
+          "AC-013",
+          "VER-012",
+          "VER-013",
+          "STATE-003",
+          "DATA-006",
+          "STOP-006",
+          "REQ-014",
+          "REQ-015",
+          "REQ-016",
+          "REQ-017",
+          "REQ-018",
+          "REQ-019",
+          "REQ-020",
+          "REQ-021",
+          "REQ-022",
+          "REQ-023",
+          "REQ-024",
+          "AC-001",
+          "AC-002",
+          "AC-003",
+          "AC-004",
+          "AC-005",
+          "AC-006",
+          "AC-007",
+          "AC-008",
+          "AC-009",
+          "AC-010",
+          "AC-014",
+          "AC-015",
+          "AC-016",
+          "AC-017",
+          "AC-018",
+          "AC-019",
+          "AC-020",
+          "AC-021",
+          "AC-022",
+          "AC-023",
+          "AC-024",
+          "VER-001",
+          "VER-002",
+          "VER-003",
+          "VER-004",
+          "VER-005",
+          "VER-006",
+          "VER-007",
+          "VER-008",
+          "VER-009",
+          "VER-010",
+          "VER-014",
+          "VER-015",
+          "VER-016",
+          "VER-017",
+          "VER-018",
+          "VER-019",
+          "VER-020",
+          "VER-021",
+          "VER-022",
+          "VER-023",
+          "VER-024",
+          "FLOW-004",
+          "FLOW-005",
+          "FLOW-006",
+          "FLOW-007",
+          "DATA-007",
+          "DATA-008",
+          "DATA-009",
+          "DATA-010",
+          "DATA-011",
+          "STATE-004",
+          "DCT-008",
+          "DCT-009",
+          "DCT-010",
+          "DCT-011",
+          "DCT-012",
+          "DCT-013",
+          "EXE-007",
+          "EXE-008",
+          "EXE-009",
+          "EXE-010",
+          "EXE-011",
+          "STOP-007",
+          "STOP-008",
+          "DCT-014",
+          "BAR-003",
+          "MET-004",
+          "PHASE-001",
+          "PHASE-002",
+          "PHASE-003",
+          "PHASE-004"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-004",
+          "SRC-005",
+          "SRC-006",
+          "SRC-007",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "allowed_inference": "source-backed requirement organization",
+        "unsupported_claims": [],
+        "status": "ready",
+        "id": "RB-002"
+      }
+    },
+    "RB-003": {
+      "type": "RB",
+      "payload": {
+        "target": "agent_prd",
+        "section": "Agent execution appendix",
+        "content_type": "execution_contract",
+        "contract_refs": [
+          "IN-001",
+          "IN-002",
+          "EXE-001",
+          "EXE-002",
+          "EXE-003",
+          "OUT-001",
+          "OUT-002",
+          "OUT-003",
+          "OUT-004",
+          "OUT-005",
+          "STOP-001",
+          "STOP-002",
+          "STOP-003",
+          "STOP-004",
+          "DONE-001",
+          "DONE-002",
+          "DONE-003",
+          "REQ-009",
+          "REQ-010",
+          "TECH-004",
+          "FLOW-002",
+          "REQ-011",
+          "AC-011",
+          "VER-011",
+          "FLOW-003",
+          "EXE-006",
+          "STOP-005",
+          "REQ-012",
+          "REQ-013",
+          "AC-012",
+          "AC-013",
+          "VER-012",
+          "VER-013",
+          "STATE-003",
+          "DATA-006",
+          "STOP-006",
+          "REQ-001",
+          "REQ-002",
+          "REQ-003",
+          "REQ-004",
+          "REQ-005",
+          "REQ-006",
+          "REQ-007",
+          "REQ-008",
+          "REQ-014",
+          "REQ-015",
+          "REQ-016",
+          "REQ-017",
+          "REQ-018",
+          "REQ-019",
+          "REQ-020",
+          "REQ-021",
+          "REQ-022",
+          "REQ-023",
+          "REQ-024",
+          "AC-001",
+          "AC-002",
+          "AC-003",
+          "AC-004",
+          "AC-005",
+          "AC-006",
+          "AC-007",
+          "AC-008",
+          "AC-009",
+          "AC-010",
+          "AC-014",
+          "AC-015",
+          "AC-016",
+          "AC-017",
+          "AC-018",
+          "AC-019",
+          "AC-020",
+          "AC-021",
+          "AC-022",
+          "AC-023",
+          "AC-024",
+          "VER-001",
+          "VER-002",
+          "VER-003",
+          "VER-004",
+          "VER-005",
+          "VER-006",
+          "VER-007",
+          "VER-008",
+          "VER-009",
+          "VER-010",
+          "VER-014",
+          "VER-015",
+          "VER-016",
+          "VER-017",
+          "VER-018",
+          "VER-019",
+          "VER-020",
+          "VER-021",
+          "VER-022",
+          "VER-023",
+          "VER-024",
+          "FLOW-004",
+          "FLOW-005",
+          "FLOW-006",
+          "FLOW-007",
+          "DATA-007",
+          "DATA-008",
+          "DATA-009",
+          "DATA-010",
+          "DATA-011",
+          "STATE-004",
+          "DCT-008",
+          "DCT-009",
+          "DCT-010",
+          "DCT-011",
+          "DCT-012",
+          "DCT-013",
+          "EXE-007",
+          "EXE-008",
+          "EXE-009",
+          "EXE-010",
+          "EXE-011",
+          "STOP-007",
+          "STOP-008",
+          "DCT-014",
+          "BAR-003",
+          "MET-004",
+          "PHASE-001",
+          "PHASE-002",
+          "PHASE-003",
+          "PHASE-004"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-004",
+          "SRC-005",
+          "SRC-006",
+          "SRC-007",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "allowed_inference": "traceable execution appendix",
+        "unsupported_claims": [],
+        "status": "ready",
+        "id": "RB-003"
+      }
+    },
+    "GATE-001": {
+      "type": "GATE",
+      "payload": {
+        "name": "Stage 1 requirement table readiness",
+        "status": "pass",
+        "blocking": false,
+        "affected_targets": [
+          "human_prd",
+          "agent_prd"
+        ],
+        "evidence_refs": [
+          "SRC-001",
+          "SRC-002",
+          "REQ-001",
+          "REQ-008",
+          "SRC-004",
+          "SRC-005",
+          "REQ-009",
+          "REQ-010",
+          "SRC-006",
+          "REQ-011",
+          "FLOW-003",
+          "SRC-007",
+          "REQ-012",
+          "REQ-013",
+          "SRC-008",
+          "REQ-014",
+          "REQ-015",
+          "REQ-016",
+          "REQ-017",
+          "REQ-018",
+          "REQ-019",
+          "REQ-020",
+          "REQ-021",
+          "REQ-022",
+          "REQ-023",
+          "REQ-024",
+          "FLOW-004",
+          "FLOW-005",
+          "FLOW-006",
+          "FLOW-007",
+          "DCT-008",
+          "DCT-013",
+          "SRC-009",
+          "DCT-014",
+          "BAR-003",
+          "MET-004",
+          "PHASE-002",
+          "PHASE-003",
+          "PHASE-004"
+        ],
+        "message": "Requirement table and PRD renders include strengthened real acceptance matrix and product roadmap.",
+        "required_fix": "",
+        "id": "GATE-001",
+        "gate_id": "GATE-001"
+      }
+    },
+    "GATE-002": {
+      "type": "GATE",
+      "payload": {
+        "name": "Stage 2 PRD rendering readiness",
+        "status": "pass",
+        "blocking": false,
+        "affected_targets": [
+          "human_prd",
+          "agent_prd"
+        ],
+        "evidence_refs": [
+          "RB-001",
+          "RB-002",
+          "RB-003",
+          "SRC-004",
+          "SRC-005",
+          "REQ-009",
+          "REQ-010",
+          "SRC-006",
+          "REQ-011",
+          "FLOW-003",
+          "SRC-007",
+          "REQ-012",
+          "REQ-013",
+          "SRC-008",
+          "REQ-014",
+          "REQ-015",
+          "REQ-016",
+          "REQ-017",
+          "REQ-018",
+          "REQ-019",
+          "REQ-020",
+          "REQ-021",
+          "REQ-022",
+          "REQ-023",
+          "REQ-024",
+          "FLOW-004",
+          "FLOW-005",
+          "FLOW-006",
+          "FLOW-007",
+          "DCT-008",
+          "DCT-013",
+          "SRC-009",
+          "DCT-014",
+          "BAR-003",
+          "MET-004",
+          "PHASE-002",
+          "PHASE-003",
+          "PHASE-004"
+        ],
+        "message": "Requirement table and PRD renders include strengthened real acceptance matrix and product roadmap.",
+        "required_fix": "",
+        "id": "GATE-002",
+        "gate_id": "GATE-002"
+      }
+    },
+    "SRC-004": {
+      "type": "SRC",
+      "payload": {
+        "source_type": "user_confirmation",
+        "content": "Scheduler 是 DAG 的调度者，需要持久化一张 DAG 的当前状态，根据当前状态判断下一个 JOB 是什么，提供下一个 JOB 的描述（kunora-workflow-executor 的输入），调起 execturor。在 executor 结束后，需要根据executor 的结论更新 DAG。触发下一个或者多个 JOB",
+        "label": "Stage 2 Human PRD review feedback: DAG scheduler and executor invocation boundary",
+        "id": "SRC-004"
+      }
+    },
+    "SRC-005": {
+      "type": "SRC",
+      "payload": {
+        "source_type": "local_file",
+        "target": "C:\\Users\\54256213\\Documents\\github\\kunora-workflow-executor\\README.md",
+        "label": "kunora-workflow-executor README Job Instance contract",
+        "content": "README defines Job Instance as Executor's unique job input with schema_version job-instance.v1 and fields job_id, provider, objective, workspace, environment, instructions, delivery_requirements, admission_policy, retry_policy, timeout_policy, metadata; Executor lifecycle consumes Job Instance for admission, environment preparation, provider runtime, delivery checks, retry, and report generation.",
+        "id": "SRC-005"
+      }
+    },
+    "REQ-009": {
+      "type": "REQ",
+      "payload": {
+        "title": "Generate kunora-workflow-executor Job Instance input",
+        "description": "For each selected DAG node, Scheduler must derive a complete kunora-workflow-executor Job Instance description using schema_version job-instance.v1, including job_id, provider, objective, workspace, environment, instructions, delivery_requirements, admission_policy, retry_policy, timeout_policy, and trace metadata.",
+        "user_value": "Executor receives the exact job description it needs while Scheduler keeps DAG scheduling identity, dependencies, and lease authority auditable.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-009"
+        ],
+        "verification_refs": [
+          "VER-009"
+        ],
+        "source_refs": [
+          "SRC-004",
+          "SRC-005"
+        ],
+        "status": "confirmed",
+        "id": "REQ-009"
+      }
+    },
+    "REQ-010": {
+      "type": "REQ",
+      "payload": {
+        "title": "Invoke Executor and advance DAG successors",
+        "description": "Scheduler must invoke kunora-workflow-executor for generated JOBs, wait for or read Executor completion records, validate identity and evidence, update the persisted DAG node/job state from the Executor conclusion, and trigger the next one or more schedulable DAG jobs.",
+        "user_value": "The DAG advances automatically and safely from Executor conclusions instead of requiring manual state edits or unsupported success inference.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-010"
+        ],
+        "verification_refs": [
+          "VER-010"
+        ],
+        "source_refs": [
+          "SRC-004",
+          "SRC-005"
+        ],
+        "status": "confirmed",
+        "id": "REQ-010"
+      }
+    },
+    "AC-009": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-009",
+        "criterion": "Given a schedulable DAG node with job metadata, Scheduler produces a job-instance.v1 payload containing all required kunora-workflow-executor fields and preserving DAG/node/job/lease trace metadata.",
+        "verification_method": "VER-009",
+        "blocking": true,
+        "id": "AC-009"
+      }
+    },
+    "AC-010": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-010",
+        "criterion": "Given Executor returns a valid completed Delivery Report for one DAG node, Scheduler validates the result, updates that node state, records audit evidence, and schedules all newly unblocked successor nodes; invalid results are rejected or blocked.",
+        "verification_method": "VER-010",
+        "blocking": true,
+        "id": "AC-010"
+      }
+    },
+    "VER-009": {
+      "type": "VER",
+      "payload": {
+        "case": "Run Scheduler against a repository-local DAG fixture with one ready node and verify the generated Executor Job Instance contains schema_version=job-instance.v1, required fields, and DAG trace metadata.",
+        "source_refs": [
+          "SRC-004",
+          "SRC-005"
+        ],
+        "id": "VER-009"
+      }
+    },
+    "VER-010": {
+      "type": "VER",
+      "payload": {
+        "case": "Run Scheduler against a repository-local DAG fixture where one node completion unlocks two successor nodes; verify persisted DAG state, audit events, and two generated successor Job Instances.",
+        "source_refs": [
+          "SRC-004"
+        ],
+        "id": "VER-010"
+      }
+    },
+    "DATA-004": {
+      "type": "DATA",
+      "payload": {
+        "name": "persisted_dag_current_state",
+        "description": "Authoritative persisted DAG topology reference plus current node/job states, dependency satisfaction, leases, and executor result linkage.",
+        "source_refs": [
+          "SRC-004"
+        ],
+        "id": "DATA-004"
+      }
+    },
+    "DATA-005": {
+      "type": "DATA",
+      "payload": {
+        "name": "executor_job_instance_payload",
+        "description": "kunora-workflow-executor job-instance.v1 payload generated from a schedulable DAG node and Scheduler lease/job identity.",
+        "source_refs": [
+          "SRC-004",
+          "SRC-005"
+        ],
+        "id": "DATA-005"
+      }
+    },
+    "MOD-004": {
+      "type": "MOD",
+      "payload": {
+        "name": "Executor invocation boundary",
+        "responsibility": "Invoke kunora-workflow-executor with generated Job Instance input and receive Delivery Report or completion record for Scheduler validation.",
+        "source_refs": [
+          "SRC-004",
+          "SRC-005"
+        ],
+        "id": "MOD-004"
+      }
+    },
+    "TECH-004": {
+      "type": "TECH",
+      "payload": {
+        "decision": "Use kunora-workflow-executor Job Instance schema_version job-instance.v1 as the Scheduler-to-Executor job description contract.",
+        "rationale": "The local executor README defines Job Instance as Executor's unique job input and lists required fields consumed across admission, environment preparation, runtime, delivery checks, retry, and reporting.",
+        "implementation_notes": "Scheduler HLD must map DAG node data into required Job Instance fields and preserve DAG/node/job/lease IDs in metadata without leaking Scheduler control fields into agent-facing instructions.",
+        "source_refs": [
+          "SRC-004",
+          "SRC-005"
+        ],
+        "id": "TECH-004"
+      }
+    },
+    "FLOW-002": {
+      "type": "FLOW",
+      "payload": {
+        "name": "DAG successor scheduling flow",
+        "steps": [
+          "persist DAG current state",
+          "select next schedulable node or nodes",
+          "materialize Executor Job Instance input",
+          "invoke kunora-workflow-executor",
+          "validate Executor result and evidence",
+          "update DAG node/job state",
+          "trigger all newly schedulable successor jobs"
+        ],
+        "source_refs": [
+          "SRC-004",
+          "SRC-005"
+        ],
+        "id": "FLOW-002"
+      }
+    },
+    "DCT-006": {
+      "type": "DCT",
+      "payload": {
+        "name": "DagCurrentState",
+        "fields": [
+          "dag_id",
+          "dag_version",
+          "nodes",
+          "edges",
+          "node_states",
+          "active_jobs",
+          "leases",
+          "last_events"
+        ],
+        "source_refs": [
+          "SRC-004"
+        ],
+        "id": "DCT-006"
+      }
+    },
+    "DCT-007": {
+      "type": "DCT",
+      "payload": {
+        "name": "ExecutorJobInstancePayload",
+        "fields": [
+          "schema_version",
+          "job_id",
+          "provider",
+          "objective",
+          "workspace",
+          "environment",
+          "instructions",
+          "delivery_requirements",
+          "admission_policy",
+          "retry_policy",
+          "timeout_policy",
+          "metadata"
+        ],
+        "source_refs": [
+          "SRC-005"
+        ],
+        "id": "DCT-007"
+      }
+    },
+    "EXE-004": {
+      "type": "EXE",
+      "payload": {
+        "rule": "For each next schedulable DAG node, generate exactly one active Executor Job Instance per node generation and invoke kunora-workflow-executor through the approved boundary.",
+        "source_refs": [
+          "SRC-004",
+          "SRC-005"
+        ],
+        "id": "EXE-004"
+      }
+    },
+    "EXE-005": {
+      "type": "EXE",
+      "payload": {
+        "rule": "After Executor returns, update persisted DAG state only from validated Executor identity, lease/fencing token, Delivery Report/conclusion, and evidence; then evaluate and trigger all newly schedulable successor nodes.",
+        "source_refs": [
+          "SRC-004"
+        ],
+        "id": "EXE-005"
+      }
+    },
+    "OUT-006": {
+      "type": "OUT",
+      "payload": {
+        "deliverable": "Executor Job Instance payloads and invocation records linked to DAG node/job/lease identity.",
+        "source_refs": [
+          "SRC-004",
+          "SRC-005"
+        ],
+        "id": "OUT-006"
+      }
+    },
+    "TRACE-016": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-004",
+        "to_ref": "REQ-009",
+        "relation": "stated_by",
+        "id": "TRACE-016"
+      }
+    },
+    "TRACE-017": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-004",
+        "to_ref": "REQ-010",
+        "relation": "stated_by",
+        "id": "TRACE-017"
+      }
+    },
+    "TRACE-018": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-005",
+        "to_ref": "TECH-004",
+        "relation": "stated_by",
+        "id": "TRACE-018"
+      }
+    },
+    "TRACE-019": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-005",
+        "to_ref": "DCT-007",
+        "relation": "stated_by",
+        "id": "TRACE-019"
+      }
+    },
+    "TRACE-020": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-004",
+        "to_ref": "FLOW-002",
+        "relation": "stated_by",
+        "id": "TRACE-020"
+      }
+    },
+    "SRC-006": {
+      "type": "SRC",
+      "payload": {
+        "source_type": "user_confirmation",
+        "content": "Human PRD implementation approach is not clear enough. As a daemon program, Scheduler's main loop is critical and must be explicitly described.",
+        "label": "Stage 2 Human PRD review feedback: daemon main loop clarity",
+        "id": "SRC-006"
+      }
+    },
+    "REQ-011": {
+      "type": "REQ",
+      "payload": {
+        "title": "Define daemon main loop as the core control mechanism",
+        "description": "Scheduler must expose a daemon main loop centered on runtime DAG advancement: classify DAGs by runtime state, skip non-runtime DAGs for scheduling, iterate runtime DAGs, decide whether intervention is required, and only then compute next jobs, invoke Executor, update DAG state, or record no-op/exhaustion.",
+        "user_value": "Reviewers and implementers can understand how Scheduler continuously and safely advances DAG state without relying on vague background processing.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-011"
+        ],
+        "verification_refs": [
+          "VER-011"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-004",
+          "SRC-006",
+          "SRC-007"
+        ],
+        "status": "confirmed",
+        "id": "REQ-011"
+      }
+    },
+    "AC-011": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-011",
+        "criterion": "The PRD/HLD-ready design describes the daemon loop as an ordered repeatable cycle with wake triggers, transaction scope, result handling, scheduling branch, idle/exhaustion branch, audit records, and shutdown behavior.",
+        "verification_method": "VER-011",
+        "blocking": true,
+        "id": "AC-011"
+      }
+    },
+    "VER-011": {
+      "type": "VER",
+      "payload": {
+        "case": "Review the daemon-loop design against a real repository-local DAG fixture and verify each loop branch has input state, output state/event, and stop or continue condition.",
+        "source_refs": [
+          "SRC-006"
+        ],
+        "id": "VER-011"
+      }
+    },
+    "FLOW-003": {
+      "type": "FLOW",
+      "payload": {
+        "name": "Runtime DAG daemon main loop",
+        "steps": [
+          "load all visible DAG runtime instances and their runtime state",
+          "classify non-runtime DAGs as query-only and skip scheduling writes",
+          "iterate runtime DAGs one by one",
+          "for each runtime DAG, decide whether Scheduler intervention is required",
+          "if intervention is not required, record no-op/observation if needed and move to the next runtime DAG",
+          "if intervention is required because Executor results are pending, validate results and update DAG state",
+          "if intervention is required because schedulable nodes exist, compute next JOB or JOBs",
+          "create job instances, leases, fencing records, and job-instance.v1 payloads for selected next JOBs",
+          "invoke kunora-workflow-executor and persist invocation/audit records",
+          "after all runtime DAGs are checked, wait for the next loop trigger or report per-DAG route exhaustion where applicable"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-004",
+          "SRC-006",
+          "SRC-007"
+        ],
+        "id": "FLOW-003"
+      }
+    },
+    "EXE-006": {
+      "type": "EXE",
+      "payload": {
+        "rule": "The daemon loop must be runtime-DAG driven: skip non-runtime DAGs for scheduling, iterate runtime DAGs one by one, perform an intervention-required decision before next-job calculation, and create Executor jobs only for runtime DAGs requiring Scheduler intervention.",
+        "source_refs": [
+          "SRC-007"
+        ],
+        "id": "EXE-006"
+      }
+    },
+    "STOP-005": {
+      "type": "STOP",
+      "payload": {
+        "condition": "Pause dispatch and emit a blocked loop event when Scheduler cannot acquire the scheduling leadership lease, cannot open the state transaction, or detects contradictory DAG state.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-006"
+        ],
+        "id": "STOP-005"
+      }
+    },
+    "TRACE-021": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-006",
+        "to_ref": "REQ-011",
+        "relation": "stated_by",
+        "id": "TRACE-021"
+      }
+    },
+    "TRACE-022": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-006",
+        "to_ref": "FLOW-003",
+        "relation": "stated_by",
+        "id": "TRACE-022"
+      }
+    },
+    "TRACE-023": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-006",
+        "to_ref": "EXE-006",
+        "relation": "stated_by",
+        "id": "TRACE-023"
+      }
+    },
+    "SRC-007": {
+      "type": "SRC",
+      "payload": {
+        "source_type": "user_confirmation",
+        "content": "Main loop model correction: Scheduler drives runtime DAGs forward. A DAG must have runtime-state semantics; Scheduler drives only runtime DAGs, while non-runtime DAGs support query only. Multiple runtime DAGs may exist; Scheduler should push them one by one. For each runtime DAG, first decide whether Scheduler intervention is needed. Only DAGs requiring intervention proceed to next-job judgment, job creation, and Executor invocation; DAGs not requiring intervention are ignored/no-op for that loop.",
+        "label": "Stage 2 Human PRD review feedback: runtime DAG main loop model",
+        "id": "SRC-007"
+      }
+    },
+    "REQ-012": {
+      "type": "REQ",
+      "payload": {
+        "title": "Drive only runtime DAGs and keep non-runtime DAGs query-only",
+        "description": "Scheduler must distinguish DAG definitions from runtime DAG instances. It drives only DAGs in a running/runtime state; non-runtime DAGs are not scheduled or advanced and only support query behavior.",
+        "user_value": "The Scheduler cannot accidentally mutate static or inactive DAGs and keeps execution semantics tied to explicit runtime state.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-012"
+        ],
+        "verification_refs": [
+          "VER-012"
+        ],
+        "source_refs": [
+          "SRC-007"
+        ],
+        "status": "confirmed",
+        "id": "REQ-012"
+      }
+    },
+    "REQ-013": {
+      "type": "REQ",
+      "payload": {
+        "title": "Iterate runtime DAGs with intervention-first scheduling",
+        "description": "Scheduler must process multiple runtime DAGs by checking each runtime DAG in turn, deciding whether it requires Scheduler intervention, and only for DAGs requiring intervention computing next JOBs, creating job instances, and invoking Executor.",
+        "user_value": "The main loop remains simple and conservative: do nothing for runtime DAGs that do not need intervention, and act only where state actually requires Scheduler progress.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-013"
+        ],
+        "verification_refs": [
+          "VER-013"
+        ],
+        "source_refs": [
+          "SRC-007"
+        ],
+        "status": "confirmed",
+        "id": "REQ-013"
+      }
+    },
+    "AC-012": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-012",
+        "criterion": "Given one non-runtime DAG and one runtime DAG, Scheduler exposes query data for both but only evaluates scheduling and writes state for the runtime DAG.",
+        "verification_method": "VER-012",
+        "blocking": true,
+        "id": "AC-012"
+      }
+    },
+    "AC-013": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-013",
+        "criterion": "Given multiple runtime DAGs, Scheduler checks each runtime DAG, records no-op for DAGs not requiring intervention, and only creates Executor jobs for DAGs whose runtime state requires intervention.",
+        "verification_method": "VER-013",
+        "blocking": true,
+        "id": "AC-013"
+      }
+    },
+    "VER-012": {
+      "type": "VER",
+      "payload": {
+        "case": "Run Scheduler against real fixtures containing inactive/query-only DAG and running DAG; verify only the running DAG receives scheduling state changes.",
+        "source_refs": [
+          "SRC-007"
+        ],
+        "id": "VER-012"
+      }
+    },
+    "VER-013": {
+      "type": "VER",
+      "payload": {
+        "case": "Run Scheduler against real fixtures containing multiple runtime DAGs: one waiting for Executor result, one ready for next jobs, and one requiring no intervention; verify intervention-first branching and job creation only where needed.",
+        "source_refs": [
+          "SRC-007"
+        ],
+        "id": "VER-013"
+      }
+    },
+    "STATE-003": {
+      "type": "STATE",
+      "payload": {
+        "name": "runtime_dag_state_model",
+        "states": [
+          "defined",
+          "running",
+          "paused",
+          "blocked",
+          "exhausted",
+          "closed"
+        ],
+        "runtime_states": [
+          "running",
+          "blocked"
+        ],
+        "query_only_states": [
+          "defined",
+          "paused",
+          "exhausted",
+          "closed"
+        ],
+        "source_refs": [
+          "SRC-007"
+        ],
+        "id": "STATE-003"
+      }
+    },
+    "DATA-006": {
+      "type": "DATA",
+      "payload": {
+        "name": "runtime_dag_collection",
+        "description": "The set of DAG runtime instances visible to Scheduler in one daemon-loop pass, including DAG runtime state, intervention indicators, active jobs, pending Executor results, and schedulability facts.",
+        "source_refs": [
+          "SRC-007"
+        ],
+        "id": "DATA-006"
+      }
+    },
+    "STOP-006": {
+      "type": "STOP",
+      "payload": {
+        "condition": "Do not schedule or update execution state for a DAG that is not in runtime state; return query-only data or a no-op observation instead.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-007"
+        ],
+        "id": "STOP-006"
+      }
+    },
+    "TRACE-024": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-007",
+        "to_ref": "REQ-012",
+        "relation": "stated_by",
+        "id": "TRACE-024"
+      }
+    },
+    "TRACE-025": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-007",
+        "to_ref": "REQ-013",
+        "relation": "stated_by",
+        "id": "TRACE-025"
+      }
+    },
+    "TRACE-026": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-007",
+        "to_ref": "FLOW-003",
+        "relation": "stated_by",
+        "id": "TRACE-026"
+      }
+    },
+    "TRACE-027": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-007",
+        "to_ref": "EXE-006",
+        "relation": "stated_by",
+        "id": "TRACE-027"
+      }
+    },
+    "SRC-008": {
+      "type": "SRC",
+      "payload": {
+        "source_type": "user_input",
+        "content": "The user clarified that the previous correction described only the main loop and intentionally hid many necessary product features. The workflow must discover those required product features one by one and include them in the PRD, without hard-coding a narrow current-use-case solution.",
+        "label": "Stage 2 Human PRD review feedback: discover hidden necessary product features",
+        "id": "SRC-008"
+      }
+    },
+    "REQ-014": {
+      "type": "REQ",
+      "payload": {
+        "title": "Define the daemon API control plane",
+        "description": "Scheduler must expose a daemon API for DAG definition/runtime query, runtime lifecycle control, scheduling state inspection, Executor result intake, and audit retrieval while forbidding route-definition mutation through that API.",
+        "user_value": "API callers can operate and inspect Scheduler without giving it route-design authority.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-014"
+        ],
+        "verification_refs": [
+          "VER-014"
+        ],
+        "source_refs": [
+          "SRC-002",
+          "SRC-007",
+          "SRC-008"
+        ],
+        "status": "confirmed",
+        "id": "REQ-014"
+      }
+    },
+    "AC-014": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-014",
+        "criterion": "Given the real daemon/API against real DAG records to Scheduler must demonstrate that query endpoints, runtime lifecycle endpoints, scheduling status endpoints, Executor result intake, and audit retrieval; route-definition mutation attempts must fail with unchanged persisted route definitions.",
+        "verification_method": "VER-014",
+        "blocking": true,
+        "id": "AC-014"
+      }
+    },
+    "VER-014": {
+      "type": "VER",
+      "payload": {
+        "case": "Run the real daemon/API against real DAG records to verify query endpoints, runtime lifecycle endpoints, scheduling status endpoints, Executor result intake, and audit retrieval; route-definition mutation attempts must fail with unchanged persisted route definitions.",
+        "source_refs": [
+          "SRC-002",
+          "SRC-007",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "id": "VER-014"
+      }
+    },
+    "REQ-015": {
+      "type": "REQ",
+      "payload": {
+        "title": "Persist the authoritative runtime state model",
+        "description": "Scheduler must persist DAG runtime snapshots, node runtime states, job instances, leases, fencing tokens, Executor results, evidence records, and audit events as the authoritative state; in-memory daemon state must never be authoritative.",
+        "user_value": "The daemon can recover and explain decisions after restart.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-015"
+        ],
+        "verification_refs": [
+          "VER-015"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-008"
+        ],
+        "status": "confirmed",
+        "id": "REQ-015"
+      }
+    },
+    "AC-015": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-015",
+        "criterion": "Given a real daemon restart scenario with persisted DAG runtime snapshots, active jobs, leases, pending Executor results, and audit cursor; Scheduler must demonstrate that rebuilt runtime state matches persisted authority before new dispatch.",
+        "verification_method": "VER-015",
+        "blocking": true,
+        "id": "AC-015"
+      }
+    },
+    "VER-015": {
+      "type": "VER",
+      "payload": {
+        "case": "Run a real daemon restart scenario with persisted DAG runtime snapshots, active jobs, leases, pending Executor results, and audit cursor; verify rebuilt runtime state matches persisted authority before new dispatch.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "id": "VER-015"
+      }
+    },
+    "REQ-016": {
+      "type": "REQ",
+      "payload": {
+        "title": "Evaluate scheduling readiness with DAG semantics",
+        "description": "Scheduler must compute schedulable nodes from persisted DAG/runtime state using dependency completion, node state, permissions, valid leases, retry policy, concurrency policy, and block reasons.",
+        "user_value": "Nodes are dispatched only when the DAG semantics and operational controls allow it.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-016"
+        ],
+        "verification_refs": [
+          "VER-016"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-004",
+          "SRC-008"
+        ],
+        "status": "confirmed",
+        "id": "REQ-016"
+      }
+    },
+    "AC-016": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-016",
+        "criterion": "Given real DAG fixtures covering satisfied dependencies, unsatisfied dependencies, blocked nodes, active leases, retry limits, permissions, and concurrency limits; Scheduler must demonstrate that only fully ready nodes become schedulable.",
+        "verification_method": "VER-016",
+        "blocking": true,
+        "id": "AC-016"
+      }
+    },
+    "VER-016": {
+      "type": "VER",
+      "payload": {
+        "case": "Run real DAG fixtures covering satisfied dependencies, unsatisfied dependencies, blocked nodes, active leases, retry limits, permissions, and concurrency limits; verify only fully ready nodes become schedulable.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-004",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "id": "VER-016"
+      }
+    },
+    "REQ-017": {
+      "type": "REQ",
+      "payload": {
+        "title": "Classify intervention reason before scheduling",
+        "description": "For each runtime DAG, Scheduler must produce an intervention decision before next-job calculation, using reason categories such as pending_result, expired_lease, schedulable_nodes, blocked_recheck, recovery_reconcile, route_exhausted, or no_intervention.",
+        "user_value": "The main loop becomes auditable and avoids accidental work on DAGs that need no action.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-017"
+        ],
+        "verification_refs": [
+          "VER-017"
+        ],
+        "source_refs": [
+          "SRC-007",
+          "SRC-008"
+        ],
+        "status": "confirmed",
+        "id": "REQ-017"
+      }
+    },
+    "AC-017": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-017",
+        "criterion": "Given real runtime DAG fixtures for pending_result, expired_lease, schedulable_nodes, blocked_recheck, recovery_reconcile, route_exhausted, and no_intervention; Scheduler must demonstrate that exactly one primary intervention decision is recorded before scheduling.",
+        "verification_method": "VER-017",
+        "blocking": true,
+        "id": "AC-017"
+      }
+    },
+    "VER-017": {
+      "type": "VER",
+      "payload": {
+        "case": "Run real runtime DAG fixtures for pending_result, expired_lease, schedulable_nodes, blocked_recheck, recovery_reconcile, route_exhausted, and no_intervention; verify exactly one primary intervention decision is recorded before scheduling.",
+        "source_refs": [
+          "SRC-007",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "id": "VER-017"
+      }
+    },
+    "REQ-018": {
+      "type": "REQ",
+      "payload": {
+        "title": "Invoke Executor through the job-instance.v1 contract",
+        "description": "Scheduler must transform each selected next JOB into a `kunora-workflow-executor` `job-instance.v1` payload and persist invocation identity, lease, fencing token, node version, and dispatch status.",
+        "user_value": "Executor integration is concrete and compatible with the existing Executor input contract.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-018"
+        ],
+        "verification_refs": [
+          "VER-018"
+        ],
+        "source_refs": [
+          "SRC-004",
+          "SRC-005",
+          "SRC-008"
+        ],
+        "status": "confirmed",
+        "id": "REQ-018"
+      }
+    },
+    "AC-018": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-018",
+        "criterion": "Given a schedulable real DAG node through daemon dispatch and Scheduler must demonstrate that the persisted job record and Executor payload satisfy job-instance.v1 fields from SRC-005, including job_id, provider, objective, workspace, environment, instructions, delivery_requirements, admission_policy, retry_policy, timeout_policy, metadata, lease id, fencing token, and node version.",
+        "verification_method": "VER-018",
+        "blocking": true,
+        "id": "AC-018"
+      }
+    },
+    "VER-018": {
+      "type": "VER",
+      "payload": {
+        "case": "Run a schedulable real DAG node through daemon dispatch and verify the persisted job record and Executor payload satisfy job-instance.v1 fields from SRC-005, including job_id, provider, objective, workspace, environment, instructions, delivery_requirements, admission_policy, retry_policy, timeout_policy, metadata, lease id, fencing token, and node version.",
+        "source_refs": [
+          "SRC-004",
+          "SRC-005",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "id": "VER-018"
+      }
+    },
+    "REQ-019": {
+      "type": "REQ",
+      "payload": {
+        "title": "Accept Executor results only through evidence validation",
+        "description": "Scheduler must treat Executor completion as an input signal only; it may mark a job accepted and advance node state only when Executor identity, job id, lease/fencing token, node version, and evidence satisfy the acceptance contract.",
+        "user_value": "Scheduler remains a conservative state judge instead of trusting process self-report.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-019"
+        ],
+        "verification_refs": [
+          "VER-019"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-004",
+          "SRC-008"
+        ],
+        "status": "confirmed",
+        "id": "REQ-019"
+      }
+    },
+    "AC-019": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-019",
+        "criterion": "Submit real Executor result records for success, missing evidence, wrong Executor identity, stale node version, stale fencing token, failed mechanical checks, and insufficient delivery evidence; Scheduler must demonstrate that only evidence-valid results are accepted and all invalid results are rejected without node delivery.",
+        "verification_method": "VER-019",
+        "blocking": true,
+        "id": "AC-019"
+      }
+    },
+    "VER-019": {
+      "type": "VER",
+      "payload": {
+        "case": "Submit real Executor result records for success, missing evidence, wrong Executor identity, stale node version, stale fencing token, failed mechanical checks, and insufficient delivery evidence; verify only evidence-valid results are accepted and all invalid results are rejected without node delivery.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-004",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "id": "VER-019"
+      }
+    },
+    "REQ-020": {
+      "type": "REQ",
+      "payload": {
+        "title": "Guarantee idempotent dispatch and stale-result defense",
+        "description": "Scheduler must use stable scheduling keys, uniqueness constraints, lease state, fencing tokens, and result identity checks to prevent duplicate dispatch, duplicate acceptance, and stale result acceptance.",
+        "user_value": "Repeated daemon ticks and duplicate Executor reports cannot corrupt DAG state.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-020"
+        ],
+        "verification_refs": [
+          "VER-020"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-007",
+          "SRC-008"
+        ],
+        "status": "confirmed",
+        "id": "REQ-020"
+      }
+    },
+    "AC-020": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-020",
+        "criterion": "Given repeated daemon ticks and duplicate Executor result submissions against the same runtime DAG; Scheduler must demonstrate that stable scheduling keys, uniqueness constraints, lease state, and fencing tokens prevent duplicate active jobs and duplicate accepted transitions.",
+        "verification_method": "VER-020",
+        "blocking": true,
+        "id": "AC-020"
+      }
+    },
+    "VER-020": {
+      "type": "VER",
+      "payload": {
+        "case": "Run repeated daemon ticks and duplicate Executor result submissions against the same runtime DAG; verify stable scheduling keys, uniqueness constraints, lease state, and fencing tokens prevent duplicate active jobs and duplicate accepted transitions.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-007",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "id": "VER-020"
+      }
+    },
+    "REQ-021": {
+      "type": "REQ",
+      "payload": {
+        "title": "Recover and reconcile after daemon restart",
+        "description": "On startup and each loop, Scheduler must reconcile persisted runtime DAGs, active jobs, leases, pending Executor results, expired execution rights, and incomplete audit records before new dispatch.",
+        "user_value": "The daemon can resume safely after crash or restart.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-021"
+        ],
+        "verification_refs": [
+          "VER-021"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-008"
+        ],
+        "status": "confirmed",
+        "id": "REQ-021"
+      }
+    },
+    "AC-021": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-021",
+        "criterion": "Restart the daemon with active leases, expired leases, pending results, and incomplete audit records; Scheduler must demonstrate that expired rights and pending results are reconciled before any new dispatch.",
+        "verification_method": "VER-021",
+        "blocking": true,
+        "id": "AC-021"
+      }
+    },
+    "VER-021": {
+      "type": "VER",
+      "payload": {
+        "case": "Restart the daemon with active leases, expired leases, pending results, and incomplete audit records; verify expired rights and pending results are reconciled before any new dispatch.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "id": "VER-021"
+      }
+    },
+    "REQ-022": {
+      "type": "REQ",
+      "payload": {
+        "title": "Control multi-DAG fairness, concurrency, and backpressure",
+        "description": "Scheduler must apply global and per-DAG concurrency limits and a deterministic iteration policy so multiple runtime DAGs progress without a single DAG monopolizing dispatch capacity.",
+        "user_value": "Multiple runtime DAGs can coexist predictably.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-022"
+        ],
+        "verification_refs": [
+          "VER-022"
+        ],
+        "source_refs": [
+          "SRC-007",
+          "SRC-008"
+        ],
+        "status": "confirmed",
+        "id": "REQ-022"
+      }
+    },
+    "AC-022": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-022",
+        "criterion": "Given multiple real runtime DAGs with more schedulable nodes than global/per-DAG capacity; Scheduler must demonstrate that deterministic iteration, capacity enforcement, deferred-ready records, and no starvation across loop passes.",
+        "verification_method": "VER-022",
+        "blocking": true,
+        "id": "AC-022"
+      }
+    },
+    "VER-022": {
+      "type": "VER",
+      "payload": {
+        "case": "Run multiple real runtime DAGs with more schedulable nodes than global/per-DAG capacity; verify deterministic iteration, capacity enforcement, deferred-ready records, and no starvation across loop passes.",
+        "source_refs": [
+          "SRC-007",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "id": "VER-022"
+      }
+    },
+    "REQ-023": {
+      "type": "REQ",
+      "payload": {
+        "title": "Record auditable state events and route outcomes",
+        "description": "Scheduler must record durable events for dispatch, no-intervention, acceptance, rejection, expiration, block, retry, recovery, and route_exhausted outcomes.",
+        "user_value": "Operators can reconstruct why the daemon acted or did not act.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-023"
+        ],
+        "verification_refs": [
+          "VER-023"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-007",
+          "SRC-008"
+        ],
+        "status": "confirmed",
+        "id": "REQ-023"
+      }
+    },
+    "AC-023": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-023",
+        "criterion": "Inspect the persisted audit stream after dispatch, no-intervention, accept, reject, expire, block, retry, recover, defer, and route_exhausted decisions; Scheduler must demonstrate that each event records actor, DAG runtime id, node/job refs where relevant, previous state, next state, reason, evidence refs, and timestamp.",
+        "verification_method": "VER-023",
+        "blocking": true,
+        "id": "AC-023"
+      }
+    },
+    "VER-023": {
+      "type": "VER",
+      "payload": {
+        "case": "Inspect the persisted audit stream after dispatch, no-intervention, accept, reject, expire, block, retry, recover, defer, and route_exhausted decisions; verify each event records actor, DAG runtime id, node/job refs where relevant, previous state, next state, reason, evidence refs, and timestamp.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-007",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "id": "VER-023"
+      }
+    },
+    "REQ-024": {
+      "type": "REQ",
+      "payload": {
+        "title": "Enforce permission and safety boundaries",
+        "description": "Scheduler must enforce API caller, DAG, node, Executor identity, lease, and evidence permissions before dispatch or result acceptance, and must reject unauthorized operations without state advancement.",
+        "user_value": "The scheduler cannot be used to dispatch or accept work outside the authorized runtime boundary.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-024"
+        ],
+        "verification_refs": [
+          "VER-024"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-008"
+        ],
+        "status": "confirmed",
+        "id": "REQ-024"
+      }
+    },
+    "AC-024": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-024",
+        "criterion": "Given unauthorized API caller, unauthorized DAG/node access, invalid Executor identity, invalid lease, invalid fencing token, and unauthorized evidence scenarios; Scheduler must demonstrate that each operation is rejected, audited, and leaves DAG/node state unchanged.",
+        "verification_method": "VER-024",
+        "blocking": true,
+        "id": "AC-024"
+      }
+    },
+    "VER-024": {
+      "type": "VER",
+      "payload": {
+        "case": "Run unauthorized API caller, unauthorized DAG/node access, invalid Executor identity, invalid lease, invalid fencing token, and unauthorized evidence scenarios; verify each operation is rejected, audited, and leaves DAG/node state unchanged.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-008",
+          "SRC-009"
+        ],
+        "id": "VER-024"
+      }
+    },
+    "FLOW-004": {
+      "type": "FLOW",
+      "payload": {
+        "name": "Intervention decision flow",
+        "steps": [
+          "load runtime DAG snapshot",
+          "check pending Executor results",
+          "check expired or invalid leases",
+          "check recovery reconciliation needs",
+          "evaluate schedulable nodes",
+          "check blocked state re-evaluation",
+          "return exactly one primary intervention reason or no_intervention"
+        ],
+        "source_refs": [
+          "SRC-007",
+          "SRC-008"
+        ],
+        "id": "FLOW-004"
+      }
+    },
+    "FLOW-005": {
+      "type": "FLOW",
+      "payload": {
+        "name": "Executor result acceptance flow",
+        "steps": [
+          "receive or read Executor result",
+          "match DAG runtime, node, job, lease, fencing token, and node version",
+          "validate evidence and mechanical acceptance criteria",
+          "accept, reject, expire, fail, or block job result",
+          "advance node/runtime DAG state only through accepted evidence",
+          "record audit event"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-004",
+          "SRC-008"
+        ],
+        "id": "FLOW-005"
+      }
+    },
+    "FLOW-006": {
+      "type": "FLOW",
+      "payload": {
+        "name": "Recovery and reconciliation flow",
+        "steps": [
+          "on daemon startup or loop start read persisted runtime state",
+          "settle expired leases",
+          "replay incomplete invocation/audit records",
+          "ingest pending Executor results",
+          "rebuild intervention queue",
+          "only then compute new dispatch"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-008"
+        ],
+        "id": "FLOW-006"
+      }
+    },
+    "FLOW-007": {
+      "type": "FLOW",
+      "payload": {
+        "name": "Multi-DAG fairness and backpressure flow",
+        "steps": [
+          "iterate runtime DAGs deterministically",
+          "apply global dispatch capacity",
+          "apply per-DAG concurrency limit",
+          "defer ready nodes that exceed limits",
+          "record deferred reason",
+          "continue to next runtime DAG"
+        ],
+        "source_refs": [
+          "SRC-007",
+          "SRC-008"
+        ],
+        "id": "FLOW-007"
+      }
+    },
+    "DATA-007": {
+      "type": "DATA",
+      "payload": {
+        "name": "dag_runtime_snapshot",
+        "description": "Persisted runtime view containing DAG id/version, runtime state, node states, active jobs, leases, pending results, intervention indicators, and audit cursor.",
+        "source_refs": [
+          "SRC-002",
+          "SRC-007",
+          "SRC-008"
+        ],
+        "id": "DATA-007"
+      }
+    },
+    "DATA-008": {
+      "type": "DATA",
+      "payload": {
+        "name": "scheduler_job_instance",
+        "description": "Scheduler-owned job record that maps a DAG node to a `job-instance.v1` Executor payload, lease, fencing token, invocation status, attempt, and scheduling key.",
+        "source_refs": [
+          "SRC-004",
+          "SRC-005",
+          "SRC-008"
+        ],
+        "id": "DATA-008"
+      }
+    },
+    "DATA-009": {
+      "type": "DATA",
+      "payload": {
+        "name": "executor_result_evidence",
+        "description": "Result record containing Executor identity, job id, node id/version, lease/fencing token, result status, evidence refs, mechanical check results, and acceptance decision.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-004",
+          "SRC-008"
+        ],
+        "id": "DATA-009"
+      }
+    },
+    "DATA-010": {
+      "type": "DATA",
+      "payload": {
+        "name": "scheduler_event_log",
+        "description": "Append-only audit view for dispatch, no-intervention, accept, reject, expire, block, recover, retry, and route_exhausted events.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-008"
+        ],
+        "id": "DATA-010"
+      }
+    },
+    "DATA-011": {
+      "type": "DATA",
+      "payload": {
+        "name": "intervention_decision_record",
+        "description": "Per-loop decision record for a runtime DAG with reason, evidence inputs, selected action, and no-op/deferred explanation.",
+        "source_refs": [
+          "SRC-007",
+          "SRC-008"
+        ],
+        "id": "DATA-011"
+      }
+    },
+    "STATE-004": {
+      "type": "STATE",
+      "payload": {
+        "name": "runtime_node_job_lease_result_state_machine",
+        "states": [
+          "node_pending",
+          "node_schedulable",
+          "node_scheduled",
+          "job_running",
+          "lease_valid",
+          "lease_expired",
+          "result_pending",
+          "result_accepted",
+          "result_rejected",
+          "node_delivered",
+          "node_failed",
+          "node_blocked"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-008"
+        ],
+        "id": "STATE-004"
+      }
+    },
+    "DCT-008": {
+      "type": "DCT",
+      "payload": {
+        "name": "scheduler_api_contract",
+        "description": "API contract must separate query endpoints, runtime lifecycle endpoints, scheduling status endpoints, Executor result intake, and audit retrieval; route-definition mutation is forbidden.",
+        "source_refs": [
+          "SRC-002",
+          "SRC-008"
+        ],
+        "id": "DCT-008"
+      }
+    },
+    "DCT-009": {
+      "type": "DCT",
+      "payload": {
+        "name": "dag_runtime_state_schema",
+        "description": "Schema must define DAG runtime id, definition id/version, runtime state, node state map, active jobs, leases, pending results, blocked reasons, exhaustion record, and update version.",
+        "source_refs": [
+          "SRC-004",
+          "SRC-007",
+          "SRC-008"
+        ],
+        "id": "DCT-009"
+      }
+    },
+    "DCT-010": {
+      "type": "DCT",
+      "payload": {
+        "name": "executor_job_instance_mapping_contract",
+        "description": "Mapping from schedulable DAG node to `job-instance.v1` fields: job_id, provider, objective, workspace, environment, instructions, delivery_requirements, admission_policy, retry_policy, timeout_policy, and metadata.",
+        "source_refs": [
+          "SRC-005",
+          "SRC-008"
+        ],
+        "id": "DCT-010"
+      }
+    },
+    "DCT-011": {
+      "type": "DCT",
+      "payload": {
+        "name": "executor_result_contract",
+        "description": "Executor result must include job id, Executor identity, completion/conclusion, evidence refs, produced artifacts where applicable, lease/fencing token, node version, and result timestamp.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-004",
+          "SRC-008"
+        ],
+        "id": "DCT-011"
+      }
+    },
+    "DCT-012": {
+      "type": "DCT",
+      "payload": {
+        "name": "evidence_acceptance_contract",
+        "description": "Evidence acceptance requires identity match, active lease or valid terminal lease, fencing-token match, node-version match, mechanical checks, and sufficient evidence for the node delivery criteria.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-008"
+        ],
+        "id": "DCT-012"
+      }
+    },
+    "DCT-013": {
+      "type": "DCT",
+      "payload": {
+        "name": "scheduler_audit_event_contract",
+        "description": "Audit event must include event id, DAG runtime id, node id when relevant, job id when relevant, event type, previous state, next state, reason, evidence refs, actor, and timestamp.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-008"
+        ],
+        "id": "DCT-013"
+      }
+    },
+    "TECH-005": {
+      "type": "TECH",
+      "payload": {
+        "decision": "Persist every scheduling decision and external invocation boundary before relying on daemon memory, so restart recovery can reconcile active work from durable state.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-008"
+        ],
+        "id": "TECH-005"
+      }
+    },
+    "TECH-006": {
+      "type": "TECH",
+      "payload": {
+        "decision": "Use deterministic scheduling keys plus lease and fencing-token checks as the product-level idempotency mechanism for dispatch and result acceptance.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-008"
+        ],
+        "id": "TECH-006"
+      }
+    },
+    "TECH-007": {
+      "type": "TECH",
+      "payload": {
+        "decision": "Apply explicit global and per-DAG dispatch limits with deterministic iteration to provide fairness and backpressure across runtime DAGs.",
+        "source_refs": [
+          "SRC-007",
+          "SRC-008"
+        ],
+        "id": "TECH-007"
+      }
+    },
+    "IN-003": {
+      "type": "IN",
+      "payload": {
+        "description": "Scheduler API input includes query/runtime lifecycle requests, scheduler tick/status requests, Executor result intake requests, and audit queries, all scoped to existing DAG definitions or runtime DAG instances.",
+        "source_refs": [
+          "SRC-002",
+          "SRC-008"
+        ],
+        "id": "IN-003"
+      }
+    },
+    "EXE-007": {
+      "type": "EXE",
+      "payload": {
+        "rule": "Every runtime DAG loop pass must record an intervention decision before any next-job calculation or Executor invocation.",
+        "source_refs": [
+          "SRC-007",
+          "SRC-008"
+        ],
+        "id": "EXE-007"
+      }
+    },
+    "EXE-008": {
+      "type": "EXE",
+      "payload": {
+        "rule": "Job dispatch must be idempotent by scheduling key and must create or reuse a durable job/lease/fencing record before invoking Executor.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-008"
+        ],
+        "id": "EXE-008"
+      }
+    },
+    "EXE-009": {
+      "type": "EXE",
+      "payload": {
+        "rule": "Executor result intake must validate identity, job, lease, fencing token, node version, and evidence before state advancement.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-008"
+        ],
+        "id": "EXE-009"
+      }
+    },
+    "EXE-010": {
+      "type": "EXE",
+      "payload": {
+        "rule": "Daemon startup and each loop must reconcile expired leases and pending results before creating new jobs.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-008"
+        ],
+        "id": "EXE-010"
+      }
+    },
+    "EXE-011": {
+      "type": "EXE",
+      "payload": {
+        "rule": "Multi-DAG scheduling must enforce global and per-DAG capacity limits and record deferred-ready reasons.",
+        "source_refs": [
+          "SRC-007",
+          "SRC-008"
+        ],
+        "id": "EXE-011"
+      }
+    },
+    "OUT-007": {
+      "type": "OUT",
+      "payload": {
+        "description": "Scheduler must output queryable intervention decisions, including no_intervention and deferred-ready reasons.",
+        "source_refs": [
+          "SRC-007",
+          "SRC-008"
+        ],
+        "id": "OUT-007"
+      }
+    },
+    "OUT-008": {
+      "type": "OUT",
+      "payload": {
+        "description": "Scheduler must output a durable audit event stream for all dispatch, result, lease, recovery, block, no-op, and exhaustion decisions.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-008"
+        ],
+        "id": "OUT-008"
+      }
+    },
+    "STOP-007": {
+      "type": "STOP",
+      "payload": {
+        "condition": "Do not create a new job when an equivalent active or terminal accepted scheduling key already exists.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001",
+          "SRC-008"
+        ],
+        "id": "STOP-007"
+      }
+    },
+    "STOP-008": {
+      "type": "STOP",
+      "payload": {
+        "condition": "Reject dispatch or result acceptance when API caller, Executor identity, DAG/node permission, lease, fencing token, or evidence authorization is invalid.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-008"
+        ],
+        "id": "STOP-008"
+      }
+    },
+    "DONE-004": {
+      "type": "DONE",
+      "payload": {
+        "criterion": "HLD can derive API contracts, runtime data objects, state transitions, daemon loop, Executor protocol, recovery, fairness, permissions, audit, and real acceptance checks from the Stage 2 contract without inventing product facts.",
+        "source_refs": [
+          "SRC-008"
+        ],
+        "id": "DONE-004"
+      }
+    },
+    "TRACE-028": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "REQ-014",
+        "relation": "inferred_from",
+        "id": "TRACE-028"
+      }
+    },
+    "TRACE-029": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "REQ-015",
+        "relation": "inferred_from",
+        "id": "TRACE-029"
+      }
+    },
+    "TRACE-030": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "REQ-016",
+        "relation": "inferred_from",
+        "id": "TRACE-030"
+      }
+    },
+    "TRACE-031": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "REQ-017",
+        "relation": "inferred_from",
+        "id": "TRACE-031"
+      }
+    },
+    "TRACE-032": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "REQ-018",
+        "relation": "inferred_from",
+        "id": "TRACE-032"
+      }
+    },
+    "TRACE-033": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "REQ-019",
+        "relation": "inferred_from",
+        "id": "TRACE-033"
+      }
+    },
+    "TRACE-034": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "REQ-020",
+        "relation": "inferred_from",
+        "id": "TRACE-034"
+      }
+    },
+    "TRACE-035": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "REQ-021",
+        "relation": "inferred_from",
+        "id": "TRACE-035"
+      }
+    },
+    "TRACE-036": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "REQ-022",
+        "relation": "inferred_from",
+        "id": "TRACE-036"
+      }
+    },
+    "TRACE-037": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "REQ-023",
+        "relation": "inferred_from",
+        "id": "TRACE-037"
+      }
+    },
+    "TRACE-038": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "REQ-024",
+        "relation": "inferred_from",
+        "id": "TRACE-038"
+      }
+    },
+    "TRACE-039": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "FLOW-004",
+        "relation": "stated_by",
+        "id": "TRACE-039"
+      }
+    },
+    "TRACE-040": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "FLOW-005",
+        "relation": "stated_by",
+        "id": "TRACE-040"
+      }
+    },
+    "TRACE-041": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "FLOW-006",
+        "relation": "stated_by",
+        "id": "TRACE-041"
+      }
+    },
+    "TRACE-042": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "FLOW-007",
+        "relation": "stated_by",
+        "id": "TRACE-042"
+      }
+    },
+    "TRACE-043": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "DCT-008",
+        "relation": "stated_by",
+        "id": "TRACE-043"
+      }
+    },
+    "TRACE-044": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "DCT-009",
+        "relation": "stated_by",
+        "id": "TRACE-044"
+      }
+    },
+    "TRACE-045": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "DCT-010",
+        "relation": "stated_by",
+        "id": "TRACE-045"
+      }
+    },
+    "TRACE-046": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "DCT-011",
+        "relation": "stated_by",
+        "id": "TRACE-046"
+      }
+    },
+    "TRACE-047": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "DCT-012",
+        "relation": "stated_by",
+        "id": "TRACE-047"
+      }
+    },
+    "TRACE-048": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "DCT-013",
+        "relation": "stated_by",
+        "id": "TRACE-048"
+      }
+    },
+    "TRACE-049": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "EXE-007",
+        "relation": "stated_by",
+        "id": "TRACE-049"
+      }
+    },
+    "TRACE-050": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "EXE-008",
+        "relation": "stated_by",
+        "id": "TRACE-050"
+      }
+    },
+    "TRACE-051": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "EXE-009",
+        "relation": "stated_by",
+        "id": "TRACE-051"
+      }
+    },
+    "TRACE-052": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "EXE-010",
+        "relation": "stated_by",
+        "id": "TRACE-052"
+      }
+    },
+    "TRACE-053": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-008",
+        "to_ref": "EXE-011",
+        "relation": "stated_by",
+        "id": "TRACE-053"
+      }
+    },
+    "SRC-009": {
+      "type": "SRC",
+      "payload": {
+        "source_type": "user_input",
+        "content": "The user requested stronger acceptance and roadmap sections for the Scheduler PRD.",
+        "label": "Stage 2 Human PRD review feedback: strengthen acceptance and roadmap",
+        "id": "SRC-009"
+      }
+    },
+    "DCT-014": {
+      "type": "DCT",
+      "payload": {
+        "name": "real_acceptance_matrix_contract",
+        "description": "Acceptance plan must be expressed as a matrix containing scenario, real input fixture or runtime state, API/daemon action, expected persisted state, expected Executor boundary, expected audit evidence, and hard failure condition.",
+        "source_refs": [
+          "SRC-009",
+          "BAR-002"
+        ],
+        "id": "DCT-014"
+      }
+    },
+    "BAR-003": {
+      "type": "BAR",
+      "payload": {
+        "statement": "Acceptance is not review-ready unless each critical scheduler behavior has a real-data scenario, explicit expected state transition, audit evidence expectation, and failure condition; mock, stub, fake, simulated, synthetic, and placeholder acceptance remain forbidden.",
+        "source_refs": [
+          "SRC-009",
+          "BAR-002"
+        ],
+        "id": "BAR-003"
+      }
+    },
+    "MET-004": {
+      "type": "MET",
+      "payload": {
+        "name": "Acceptance scenario coverage",
+        "target": "Acceptance matrix covers lifecycle/API, runtime-DAG loop, readiness, Executor dispatch, result acceptance/rejection, idempotency, recovery, fairness, permissions, audit, and route exhaustion.",
+        "source_refs": [
+          "SRC-009"
+        ],
+        "id": "MET-004"
+      }
+    },
+    "PHASE-002": {
+      "type": "PHASE",
+      "payload": {
+        "name": "Phase 2 - Scheduler MVP control plane",
+        "goal": "Deliver the first runnable daemon capability: API surface, authoritative runtime persistence, runtime-DAG loop, readiness/intervention decisions, next JOB calculation, Executor dispatch, and result intake.",
+        "entry_criteria": [
+          "Approved HLD",
+          "Executor job-instance.v1 boundary confirmed from SRC-005",
+          "Real DAG/runtime fixtures available"
+        ],
+        "exit_criteria": [
+          "Non-runtime DAGs are query-only",
+          "Runtime DAGs advance through intervention-first loop",
+          "Schedulable nodes produce valid job-instance.v1",
+          "Executor results update DAG only after evidence validation"
+        ],
+        "source_refs": [
+          "SRC-005",
+          "SRC-009"
+        ],
+        "id": "PHASE-002"
+      }
+    },
+    "PHASE-003": {
+      "type": "PHASE",
+      "payload": {
+        "name": "Phase 3 - Reliability and audit hardening",
+        "goal": "Harden idempotency, lease/fencing, daemon restart recovery, stale-result rejection, multi-DAG fairness, permission enforcement, and durable audit/event retrieval.",
+        "entry_criteria": [
+          "Phase 2 acceptance passes on real fixtures"
+        ],
+        "exit_criteria": [
+          "Duplicate dispatch is prevented",
+          "Stale results are rejected",
+          "Restart reconciliation passes",
+          "Global/per-DAG capacity limits are respected",
+          "Audit explains every state transition and no-op decision"
+        ],
+        "source_refs": [
+          "SRC-009"
+        ],
+        "id": "PHASE-003"
+      }
+    },
+    "PHASE-004": {
+      "type": "PHASE",
+      "payload": {
+        "name": "Phase 4 - Operational readiness",
+        "goal": "Validate Scheduler as an operational control service with end-to-end route exhaustion semantics, observability, operator review evidence, and regression coverage for all hard stop conditions.",
+        "entry_criteria": [
+          "Phase 3 reliability acceptance passes"
+        ],
+        "exit_criteria": [
+          "Route exhaustion is reported without business-success declaration",
+          "Operator can query DAG/job/lease/result/audit history",
+          "All STOP conditions have negative acceptance coverage"
+        ],
+        "source_refs": [
+          "SRC-009"
+        ],
+        "id": "PHASE-004"
+      }
+    }
+  },
+  "object_index": {
+    "CORE": [
+      "CORE-001"
+    ],
+    "USER": [
+      "USER-001"
+    ],
+    "SCOPE": [
+      "SCOPE-001"
+    ],
+    "OOS": [
+      "OOS-001"
+    ],
+    "PHASE": [
+      "PHASE-001",
+      "PHASE-002",
+      "PHASE-003",
+      "PHASE-004"
+    ],
+    "REQ": [
+      "REQ-001",
+      "REQ-002",
+      "REQ-003",
+      "REQ-004",
+      "REQ-005",
+      "REQ-006",
+      "REQ-007",
+      "REQ-008",
+      "REQ-009",
+      "REQ-010",
+      "REQ-011",
+      "REQ-012",
+      "REQ-013",
+      "REQ-014",
+      "REQ-015",
+      "REQ-016",
+      "REQ-017",
+      "REQ-018",
+      "REQ-019",
+      "REQ-020",
+      "REQ-021",
+      "REQ-022",
+      "REQ-023",
+      "REQ-024"
+    ],
+    "AC": [
+      "AC-001",
+      "AC-002",
+      "AC-003",
+      "AC-004",
+      "AC-005",
+      "AC-006",
+      "AC-007",
+      "AC-008",
+      "AC-009",
+      "AC-010",
+      "AC-011",
+      "AC-012",
+      "AC-013",
+      "AC-014",
+      "AC-015",
+      "AC-016",
+      "AC-017",
+      "AC-018",
+      "AC-019",
+      "AC-020",
+      "AC-021",
+      "AC-022",
+      "AC-023",
+      "AC-024"
+    ],
+    "MET": [
+      "MET-001",
+      "MET-002",
+      "MET-003",
+      "MET-004"
+    ],
+    "FLOW": [
+      "FLOW-001",
+      "FLOW-002",
+      "FLOW-003",
+      "FLOW-004",
+      "FLOW-005",
+      "FLOW-006",
+      "FLOW-007"
+    ],
+    "DATA": [
+      "DATA-001",
+      "DATA-002",
+      "DATA-003",
+      "DATA-004",
+      "DATA-005",
+      "DATA-006",
+      "DATA-007",
+      "DATA-008",
+      "DATA-009",
+      "DATA-010",
+      "DATA-011"
+    ],
+    "MOD": [
+      "MOD-001",
+      "MOD-002",
+      "MOD-003",
+      "MOD-004"
+    ],
+    "TECH": [
+      "TECH-001",
+      "TECH-002",
+      "TECH-003",
+      "TECH-004",
+      "TECH-005",
+      "TECH-006",
+      "TECH-007"
+    ],
+    "STATE": [
+      "STATE-001",
+      "STATE-002",
+      "STATE-003",
+      "STATE-004"
+    ],
+    "DCT": [
+      "DCT-001",
+      "DCT-002",
+      "DCT-003",
+      "DCT-004",
+      "DCT-005",
+      "DCT-006",
+      "DCT-007",
+      "DCT-008",
+      "DCT-009",
+      "DCT-010",
+      "DCT-011",
+      "DCT-012",
+      "DCT-013",
+      "DCT-014"
+    ],
+    "IN": [
+      "IN-001",
+      "IN-002",
+      "IN-003"
+    ],
+    "EXE": [
+      "EXE-001",
+      "EXE-002",
+      "EXE-003",
+      "EXE-004",
+      "EXE-005",
+      "EXE-006",
+      "EXE-007",
+      "EXE-008",
+      "EXE-009",
+      "EXE-010",
+      "EXE-011"
+    ],
+    "VER": [
+      "VER-001",
+      "VER-002",
+      "VER-003",
+      "VER-004",
+      "VER-005",
+      "VER-006",
+      "VER-007",
+      "VER-008",
+      "VER-009",
+      "VER-010",
+      "VER-011",
+      "VER-012",
+      "VER-013",
+      "VER-014",
+      "VER-015",
+      "VER-016",
+      "VER-017",
+      "VER-018",
+      "VER-019",
+      "VER-020",
+      "VER-021",
+      "VER-022",
+      "VER-023",
+      "VER-024"
+    ],
+    "OUT": [
+      "OUT-001",
+      "OUT-002",
+      "OUT-003",
+      "OUT-004",
+      "OUT-005",
+      "OUT-006",
+      "OUT-007",
+      "OUT-008"
+    ],
+    "STOP": [
+      "STOP-001",
+      "STOP-002",
+      "STOP-003",
+      "STOP-004",
+      "STOP-005",
+      "STOP-006",
+      "STOP-007",
+      "STOP-008"
+    ],
+    "DONE": [
+      "DONE-001",
+      "DONE-002",
+      "DONE-003",
+      "DONE-004"
+    ],
+    "RISK": [
+      "RISK-001",
+      "RISK-002"
+    ],
+    "BAR": [
+      "BAR-001",
+      "BAR-002",
+      "BAR-003"
+    ],
+    "ASM": [],
+    "Q": [
+      "Q-001",
+      "Q-002",
+      "Q-003"
+    ],
+    "REF": [
+      "REF-001"
+    ],
+    "SRC": [
+      "SRC-001",
+      "SRC-002",
+      "SRC-003",
+      "SRC-004",
+      "SRC-005",
+      "SRC-006",
+      "SRC-007",
+      "SRC-008",
+      "SRC-009"
+    ],
+    "TRACE": [
+      "TRACE-001",
+      "TRACE-002",
+      "TRACE-003",
+      "TRACE-004",
+      "TRACE-005",
+      "TRACE-006",
+      "TRACE-007",
+      "TRACE-008",
+      "TRACE-009",
+      "TRACE-010",
+      "TRACE-011",
+      "TRACE-012",
+      "TRACE-013",
+      "TRACE-014",
+      "TRACE-015",
+      "TRACE-016",
+      "TRACE-017",
+      "TRACE-018",
+      "TRACE-019",
+      "TRACE-020",
+      "TRACE-021",
+      "TRACE-022",
+      "TRACE-023",
+      "TRACE-024",
+      "TRACE-025",
+      "TRACE-026",
+      "TRACE-027",
+      "TRACE-028",
+      "TRACE-029",
+      "TRACE-030",
+      "TRACE-031",
+      "TRACE-032",
+      "TRACE-033",
+      "TRACE-034",
+      "TRACE-035",
+      "TRACE-036",
+      "TRACE-037",
+      "TRACE-038",
+      "TRACE-039",
+      "TRACE-040",
+      "TRACE-041",
+      "TRACE-042",
+      "TRACE-043",
+      "TRACE-044",
+      "TRACE-045",
+      "TRACE-046",
+      "TRACE-047",
+      "TRACE-048",
+      "TRACE-049",
+      "TRACE-050",
+      "TRACE-051",
+      "TRACE-052",
+      "TRACE-053"
+    ],
+    "RB": [
+      "RB-001",
+      "RB-002",
+      "RB-003"
+    ],
+    "META": [
+      "META-001"
+    ],
+    "GATE": [
+      "GATE-001",
+      "GATE-002"
+    ]
+  },
+  "contract_summary": {
+    "ready_targets": [
+      "agent_prd",
+      "human_prd"
+    ],
+    "blocked_targets": [],
+    "stage_ready": [
+      "stage_1_requirements_table",
+      "stage_2_prd_review"
+    ],
+    "stage_blocked": [
+      "stage_3_hld"
+    ],
+    "summary": "Stage 2 PRDs now include strengthened real acceptance criteria and a phased product roadmap while preserving the Human PRD review gate before HLD."
+  },
+  "traceability_summary": {
+    "requirement_traceability": [
+      "TRACE-001",
+      "TRACE-002",
+      "TRACE-003",
+      "TRACE-004",
+      "TRACE-005",
+      "TRACE-006",
+      "TRACE-007",
+      "TRACE-008",
+      "TRACE-009",
+      "TRACE-010",
+      "TRACE-011",
+      "TRACE-012",
+      "TRACE-013",
+      "TRACE-014",
+      "TRACE-015",
+      "TRACE-016",
+      "TRACE-017",
+      "TRACE-018",
+      "TRACE-019",
+      "TRACE-020",
+      "TRACE-021",
+      "TRACE-022",
+      "TRACE-023",
+      "TRACE-024",
+      "TRACE-025",
+      "TRACE-026",
+      "TRACE-027",
+      "TRACE-028",
+      "TRACE-029",
+      "TRACE-030",
+      "TRACE-031",
+      "TRACE-032",
+      "TRACE-033",
+      "TRACE-034",
+      "TRACE-035",
+      "TRACE-036",
+      "TRACE-037",
+      "TRACE-038",
+      "TRACE-039",
+      "TRACE-040",
+      "TRACE-041",
+      "TRACE-042",
+      "TRACE-043",
+      "TRACE-044",
+      "TRACE-045",
+      "TRACE-046",
+      "TRACE-047",
+      "TRACE-048",
+      "TRACE-049",
+      "TRACE-050",
+      "TRACE-051",
+      "TRACE-052",
+      "TRACE-053"
+    ],
+    "render_traceability": [
+      "RB-001",
+      "RB-002",
+      "RB-003"
+    ],
+    "decision_traceability": [
+      {
+        "decision_type": "open_question",
+        "decision_ref": "Q-001",
+        "status": "resolved",
+        "affected_refs": [
+          "TECH-001",
+          "MOD-001"
+        ]
+      },
+      {
+        "decision_type": "open_question",
+        "decision_ref": "Q-002",
+        "status": "resolved",
+        "affected_refs": [
+          "TECH-002",
+          "DATA-001"
+        ]
+      },
+      {
+        "decision_type": "open_question",
+        "decision_ref": "Q-003",
+        "status": "resolved",
+        "affected_refs": [
+          "VER-002",
+          "VER-008"
+        ]
+      },
+      {
+        "decision_type": "user_confirmation",
+        "decision_ref": "SRC-002",
+        "status": "confirmed",
+        "affected_refs": [
+          "Q-001",
+          "Q-002",
+          "Q-003",
+          "TECH-001",
+          "TECH-002"
+        ]
+      },
+      {
+        "decision_type": "user_confirmation",
+        "decision_ref": "SRC-004",
+        "status": "confirmed",
+        "affected_refs": [
+          "REQ-009",
+          "REQ-010",
+          "TECH-004",
+          "FLOW-002"
+        ]
+      },
+      {
+        "decision_type": "user_confirmation",
+        "decision_ref": "SRC-006",
+        "status": "confirmed",
+        "affected_refs": [
+          "REQ-011",
+          "FLOW-003",
+          "EXE-006"
+        ]
+      },
+      {
+        "decision_type": "user_confirmation",
+        "decision_ref": "SRC-007",
+        "status": "confirmed",
+        "affected_refs": [
+          "REQ-011",
+          "REQ-012",
+          "REQ-013",
+          "FLOW-003"
+        ]
+      },
+      {
+        "decision_type": "user_confirmation",
+        "decision_ref": "SRC-007",
+        "status": "confirmed",
+        "affected_refs": [
+          "REQ-011",
+          "REQ-012",
+          "REQ-013",
+          "FLOW-003"
+        ]
+      }
+    ]
+  },
+  "gate_report": [
+    {
+      "name": "Stage 1 requirement table readiness",
+      "status": "pass",
+      "blocking": false,
+      "affected_targets": [
+        "human_prd",
+        "agent_prd"
+      ],
+      "evidence_refs": [
+        "SRC-001",
+        "SRC-002",
+        "REQ-001",
+        "REQ-008",
+        "SRC-004",
+        "SRC-005",
+        "REQ-009",
+        "REQ-010",
+        "SRC-006",
+        "REQ-011",
+        "FLOW-003",
+        "SRC-007",
+        "REQ-012",
+        "REQ-013",
+        "SRC-008",
+        "REQ-014",
+        "REQ-015",
+        "REQ-016",
+        "REQ-017",
+        "REQ-018",
+        "REQ-019",
+        "REQ-020",
+        "REQ-021",
+        "REQ-022",
+        "REQ-023",
+        "REQ-024",
+        "FLOW-004",
+        "FLOW-005",
+        "FLOW-006",
+        "FLOW-007",
+        "DCT-008",
+        "DCT-013",
+        "SRC-009",
+        "DCT-014",
+        "BAR-003",
+        "MET-004",
+        "PHASE-002",
+        "PHASE-003",
+        "PHASE-004"
+      ],
+      "message": "Requirement table and PRD renders include strengthened real acceptance matrix and product roadmap.",
+      "required_fix": "",
+      "id": "GATE-001",
+      "gate_id": "GATE-001"
+    },
+    {
+      "name": "Stage 2 PRD rendering readiness",
+      "status": "pass",
+      "blocking": false,
+      "affected_targets": [
+        "human_prd",
+        "agent_prd"
+      ],
+      "evidence_refs": [
+        "RB-001",
+        "RB-002",
+        "RB-003",
+        "SRC-004",
+        "SRC-005",
+        "REQ-009",
+        "REQ-010",
+        "SRC-006",
+        "REQ-011",
+        "FLOW-003",
+        "SRC-007",
+        "REQ-012",
+        "REQ-013",
+        "SRC-008",
+        "REQ-014",
+        "REQ-015",
+        "REQ-016",
+        "REQ-017",
+        "REQ-018",
+        "REQ-019",
+        "REQ-020",
+        "REQ-021",
+        "REQ-022",
+        "REQ-023",
+        "REQ-024",
+        "FLOW-004",
+        "FLOW-005",
+        "FLOW-006",
+        "FLOW-007",
+        "DCT-008",
+        "DCT-013",
+        "SRC-009",
+        "DCT-014",
+        "BAR-003",
+        "MET-004",
+        "PHASE-002",
+        "PHASE-003",
+        "PHASE-004"
+      ],
+      "message": "Requirement table and PRD renders include strengthened real acceptance matrix and product roadmap.",
+      "required_fix": "",
+      "id": "GATE-002",
+      "gate_id": "GATE-002"
+    }
+  ],
+  "next_actions": [
+    "Give strengthened human-prd.md to the user for review.",
+    "If approved, record Human PRD approval with sha256 and proceed to Stage 3 HLD.",
+    "If revised again, update contract-envelope.json requirement_table first and rerender both PRDs."
+  ]
+}

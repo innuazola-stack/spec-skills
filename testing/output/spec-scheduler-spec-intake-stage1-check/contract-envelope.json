@@ -1,0 +1,1999 @@
+{
+  "contract_version": "spec-intake.v1",
+  "intake_id": "INTAKE-SCHEDULER-STAGE2-20260529-001",
+  "harness_workflow": {
+    "workflow_type": "review_gated_self_improving_generation",
+    "stage_order": [
+      "stage_1_requirements_table",
+      "stage_2_prd_review",
+      "stage_3_hld"
+    ],
+    "current_stage": "stage_2_prd_review",
+    "completed_stages": [
+      "stage_1_requirements_table"
+    ],
+    "approval_gates": {
+      "human_prd_review": {
+        "status": "pending",
+        "approved_artifacts": [],
+        "next_allowed_stage": "stage_3_hld"
+      }
+    },
+    "revision_policy": {
+      "max_review_rounds": 3,
+      "on_revise": "update_requirement_table_then_rerender_prds"
+    },
+    "execution_mode": "live_interactive",
+    "execution_mode_reason": "The user requested a real spec-intake run and answered Stage 1 closed-form clarification questions in this conversation."
+  },
+  "source_idea": {
+    "raw_idea": "Scheduler 是独立的调度控制器与状态裁判，负责把已经存在的工作流路线推进为可执行、可恢复、可审计的作业状态流。它不拥有路线设计权，也不执行具体任务；它的产品价值在于用确定性规则控制“何时可以派发、何时可以接受、何时必须阻断”。控制流上，Scheduler 应按固定循环工作：读取当前路线、节点状态、作业定义、权限与租约信息；先处理过期或失效的执行权；再判断哪些节点满足可调度条件；对满足条件的节点生成一次作业实例和执行租约；等待或读取 Executor 返回的运行结果与证据；根据证据将作业实例标记为 accepted、rejected、expired 等，并将节点推进为 scheduled、deliveried、failed 或 blocked；当没有运行中的作业且没有可调度节点时，输出明确的路线耗尽状态，而不是自行判断项目成功。\n\n数据流上，Scheduler 只消费调度所需的权威状态和 Executor 结果，只产出作业实例、租约、状态变更、接受或拒绝记录、阻断原因和路线耗尽记录。它必须完成 readiness 判断、幂等派发、租约与 fencing token 管理、重复执行防护、陈旧结果拒绝、结果证据校验、失败与不可判断结果收束、状态事件记录。它不能修改路线定义，不能生成新节点，不能直接运行命令，不能修改交付产物，不能跳过证据验收，不能把 Executor 的 completed 等同于节点 deliveried，不能基于执行过程自述认定成功，也不能在无下一节点时自行宣布业务完成。Scheduler 的核心特性应体现为机械、保守、可追溯：只调度已满足条件的节点，只接受证据充分且身份有效的 Executor 结果，只用状态机表达推进、失败、阻断和耗尽。",
+    "source_context_refs": [
+      "SRC-001",
+      "SRC-002",
+      "SRC-003"
+    ],
+    "created_at": "2026-05-29T09:00:00+08:00",
+    "source_refs": [
+      "SRC-001",
+      "SRC-002",
+      "SRC-003"
+    ]
+  },
+  "interaction_decision": {
+    "stage": "stage_1_requirements_table",
+    "decision": "proceed_without_questions",
+    "can_ask_user": true,
+    "reason": "The user supplied a detailed Scheduler idea and resolved the remaining Stage 1 blockers for daemon API boundary, persistent state authority, and repository-local real acceptance data.",
+    "question_refs": [],
+    "blocking_refs": [],
+    "source_refs": [
+      "SRC-001",
+      "SRC-002"
+    ]
+  },
+  "requirement_table": [
+    {
+      "row_id": "RT-001",
+      "requirement_ref": "REQ-001",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "Scheduler must consume existing route state and Executor results only, and must not own route design, node creation, task execution, command execution, or deliverable mutation.",
+      "user_value": "Prevents the scheduler from becoming a hidden planner or executor.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Given an existing route, Scheduler reads route and node state but never mutates route definition, creates a new node, runs a command, or modifies a deliverable.",
+      "target_artifact_refs": [
+        "REQ-001",
+        "AC-001",
+        "VER-001",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-002",
+      "requirement_ref": "REQ-002",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "problem": "Scheduler must repeatedly read route, node, job definition, permission, and lease state; expire invalid execution rights; find schedulable nodes; issue job instances and leases; ingest Executor results; apply state transitions; and emit route exhaustion when appropriate.",
+      "user_value": "Gives operators a predictable state-control loop.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Given route, node, job, permission, lease, and Executor-result inputs, one Scheduler loop processes expired leases before schedulability, emits at most one new active job per eligible node generation, and then applies result acceptance rules.",
+      "target_artifact_refs": [
+        "REQ-002",
+        "AC-002",
+        "VER-002",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-003",
+      "requirement_ref": "REQ-003",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "problem": "Scheduler must dispatch only nodes whose dependencies, permissions, prior state, and lease constraints make them schedulable, and repeated scheduling attempts must not create duplicate active job instances for the same node generation.",
+      "user_value": "Avoids duplicate execution and unsafe dispatch.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Given repeated dispatch attempts for the same schedulable node and unchanged generation, Scheduler returns the existing active job/lease or a no-op state event rather than creating duplicate active jobs.",
+      "target_artifact_refs": [
+        "REQ-003",
+        "AC-003",
+        "VER-003",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-004",
+      "requirement_ref": "REQ-004",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "problem": "Scheduler must create, expire, and validate execution leases with fencing tokens so stale actors cannot overwrite newer scheduling decisions.",
+      "user_value": "Makes recovery and concurrent observation safe.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Given an expired lease or lower fencing token, Scheduler marks the prior job expired or rejects the stale result and preserves the newer authority.",
+      "target_artifact_refs": [
+        "REQ-004",
+        "AC-004",
+        "VER-004",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-005",
+      "requirement_ref": "REQ-005",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "Scheduler must reject stale, identity-invalid, insufficient, failed, or undecidable Executor results; Executor completed is never sufficient by itself to mark a node deliveried.",
+      "user_value": "Protects delivery state from unverified self-reporting.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Given Executor completed without required evidence, wrong lease identity, stale fencing token, failed status, or undecidable evidence, Scheduler rejects or blocks the result instead of marking the node deliveried.",
+      "target_artifact_refs": [
+        "REQ-005",
+        "AC-005",
+        "VER-005",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-006",
+      "requirement_ref": "REQ-006",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "Scheduler must mark job instances as accepted, rejected, expired, or blocked and nodes as scheduled, deliveried, failed, or blocked only through valid state transitions backed by evidence.",
+      "user_value": "Makes progress, failure, and blocking reviewable.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Given accepted evidence with valid identity and sufficient mechanical checks, Scheduler marks the job accepted and advances the node through valid state transitions only.",
+      "target_artifact_refs": [
+        "REQ-006",
+        "AC-006",
+        "VER-006",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-007",
+      "requirement_ref": "REQ-007",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "Scheduler must emit state events, acceptance/rejection records, blocking reasons, lease changes, and route exhaustion records with enough identity and evidence references to audit every decision.",
+      "user_value": "Allows post-run investigation and compliance review.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Every dispatch, lease expiry, result acceptance, result rejection, block, node transition, and route exhaustion decision writes an auditable event with IDs, prior/new state, evidence refs, and reason.",
+      "target_artifact_refs": [
+        "REQ-007",
+        "AC-007",
+        "VER-007",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-008",
+      "requirement_ref": "REQ-008",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "When no job is running and no node is schedulable, Scheduler must emit route_exhausted with reasons and must not infer project success or business completion.",
+      "user_value": "Preserves product boundary and honest completion semantics.",
+      "mvp_scope": "Included in Phase 1 Scheduler daemon/API state-control MVP.",
+      "acceptance_summary": "Given no active jobs and no schedulable nodes, Scheduler emits a route_exhausted record with blocked/completed/no-ready reasons and does not emit business_success or project_done.",
+      "target_artifact_refs": [
+        "REQ-008",
+        "AC-008",
+        "VER-008",
+        "IN-001",
+        "EXE-001",
+        "OUT-003",
+        "STOP-001",
+        "DONE-001"
+      ]
+    }
+  ],
+  "core": "CORE-001",
+  "scope": {
+    "in_scope": [
+      "SCOPE-001"
+    ],
+    "out_of_scope": [
+      "OOS-001"
+    ],
+    "mvp_boundary": "Phase 1 implements Scheduler as a daemon API service that controls existing route state, persistent leases/fencing, Executor-result acceptance, auditable state events, and route exhaustion without route design or task execution.",
+    "roadmap": [
+      "PHASE-001"
+    ]
+  },
+  "requirements": [
+    "REQ-001",
+    "REQ-002",
+    "REQ-003",
+    "REQ-004",
+    "REQ-005",
+    "REQ-006",
+    "REQ-007",
+    "REQ-008"
+  ],
+  "acceptance_criteria": [
+    "AC-001",
+    "AC-002",
+    "AC-003",
+    "AC-004",
+    "AC-005",
+    "AC-006",
+    "AC-007",
+    "AC-008"
+  ],
+  "success_metrics": [
+    "MET-001",
+    "MET-002",
+    "MET-003"
+  ],
+  "implementation_model": {
+    "control_flow": [
+      "FLOW-001"
+    ],
+    "data_flow": [
+      "DATA-001",
+      "DATA-002",
+      "DATA-003"
+    ],
+    "modules": [
+      "MOD-001",
+      "MOD-002",
+      "MOD-003"
+    ],
+    "technical_decisions": [
+      "TECH-001",
+      "TECH-002",
+      "TECH-003"
+    ],
+    "state_transitions": [
+      "STATE-001",
+      "STATE-002"
+    ],
+    "data_contracts": [
+      "DCT-001",
+      "DCT-002",
+      "DCT-003",
+      "DCT-004",
+      "DCT-005"
+    ]
+  },
+  "agent_execution": {
+    "input_contracts": [
+      "IN-001",
+      "IN-002"
+    ],
+    "execution_rules": [
+      "EXE-001",
+      "EXE-002",
+      "EXE-003"
+    ],
+    "verification_cases": [
+      "VER-001",
+      "VER-002",
+      "VER-003",
+      "VER-004",
+      "VER-005",
+      "VER-006",
+      "VER-007",
+      "VER-008"
+    ],
+    "output_deliverables": [
+      "OUT-001",
+      "OUT-002",
+      "OUT-003",
+      "OUT-004",
+      "OUT-005"
+    ],
+    "stop_conditions": [
+      "STOP-001",
+      "STOP-002",
+      "STOP-003",
+      "STOP-004"
+    ],
+    "done_criteria": [
+      "DONE-001",
+      "DONE-002",
+      "DONE-003"
+    ]
+  },
+  "risks": [
+    "RISK-001",
+    "RISK-002"
+  ],
+  "quality_bars": [
+    "BAR-001",
+    "BAR-002"
+  ],
+  "assumptions": [],
+  "open_questions": [
+    "Q-001",
+    "Q-002",
+    "Q-003"
+  ],
+  "references": [
+    "REF-001"
+  ],
+  "sources": [
+    "SRC-001",
+    "SRC-002",
+    "SRC-003"
+  ],
+  "traceability": [
+    "TRACE-001",
+    "TRACE-002",
+    "TRACE-003",
+    "TRACE-004",
+    "TRACE-005",
+    "TRACE-006",
+    "TRACE-007",
+    "TRACE-008",
+    "TRACE-009",
+    "TRACE-010",
+    "TRACE-011",
+    "TRACE-012",
+    "TRACE-013",
+    "TRACE-014",
+    "TRACE-015"
+  ],
+  "render_blocks": [
+    "RB-001",
+    "RB-002",
+    "RB-003"
+  ],
+  "document_metadata": [
+    "META-001"
+  ],
+  "quality_gates": [
+    "GATE-001",
+    "GATE-002"
+  ],
+  "render_status": {
+    "human_prd": "review_ready",
+    "agent_prd": "execution_ready"
+  },
+  "objects": {
+    "SRC-001": {
+      "type": "SRC",
+      "payload": {
+        "source_type": "user_input",
+        "content": "Scheduler 是独立的调度控制器与状态裁判，负责把已经存在的工作流路线推进为可执行、可恢复、可审计的作业状态流。它不拥有路线设计权，也不执行具体任务；它的产品价值在于用确定性规则控制“何时可以派发、何时可以接受、何时必须阻断”。控制流上，Scheduler 应按固定循环工作：读取当前路线、节点状态、作业定义、权限与租约信息；先处理过期或失效的执行权；再判断哪些节点满足可调度条件；对满足条件的节点生成一次作业实例和执行租约；等待或读取 Executor 返回的运行结果与证据；根据证据将作业实例标记为 accepted、rejected、expired 等，并将节点推进为 scheduled、deliveried、failed 或 blocked；当没有运行中的作业且没有可调度节点时，输出明确的路线耗尽状态，而不是自行判断项目成功。\n\n数据流上，Scheduler 只消费调度所需的权威状态和 Executor 结果，只产出作业实例、租约、状态变更、接受或拒绝记录、阻断原因和路线耗尽记录。它必须完成 readiness 判断、幂等派发、租约与 fencing token 管理、重复执行防护、陈旧结果拒绝、结果证据校验、失败与不可判断结果收束、状态事件记录。它不能修改路线定义，不能生成新节点，不能直接运行命令，不能修改交付产物，不能跳过证据验收，不能把 Executor 的 completed 等同于节点 deliveried，不能基于执行过程自述认定成功，也不能在无下一节点时自行宣布业务完成。Scheduler 的核心特性应体现为机械、保守、可追溯：只调度已满足条件的节点，只接受证据充分且身份有效的 Executor 结果，只用状态机表达推进、失败、阻断和耗尽。",
+        "label": "Original Scheduler idea",
+        "id": "SRC-001"
+      }
+    },
+    "SRC-002": {
+      "type": "SRC",
+      "payload": {
+        "source_type": "user_confirmation",
+        "content": "1: Scheduler should be a daemon program; other programs call it through an API. 2: Use persistent storage as the authoritative state and lease boundary. 3: Use repository-local real route, node, permission, lease, and Executor result examples for real acceptance.",
+        "label": "Stage 1 clarification answers",
+        "id": "SRC-002"
+      }
+    },
+    "SRC-003": {
+      "type": "SRC",
+      "payload": {
+        "source_type": "runtime_input",
+        "content": "C:\\Users\\54256213\\Documents\\github\\spec-scheduler\\docs",
+        "label": "Requested output directory",
+        "id": "SRC-003"
+      }
+    },
+    "CORE-001": {
+      "type": "CORE",
+      "payload": {
+        "product_name": "Scheduler",
+        "one_line_summary": "A daemon scheduler and state judge that advances existing workflow routes through deterministic, recoverable, auditable job-state transitions.",
+        "target_users": [
+          "workflow platform integrators",
+          "Executor service owners",
+          "operations reviewers"
+        ],
+        "personas": [
+          "platform engineer integrating workflow routing with Executor",
+          "operator auditing scheduling and result decisions"
+        ],
+        "problem_statement": "Existing workflow routes need a conservative controller that decides when nodes can be dispatched, when Executor results can be accepted, when execution rights expire, and when the route is exhausted without inventing success or mutating the route.",
+        "value_proposition": "Scheduler makes route execution mechanically controllable and auditable by separating route design, task execution, result acceptance, lease authority, and route exhaustion decisions.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "assumption_refs": [],
+        "status": "confirmed",
+        "id": "CORE-001"
+      }
+    },
+    "USER-001": {
+      "type": "USER",
+      "payload": {
+        "role": "Workflow platform integrator",
+        "need": "Call Scheduler through an API to advance an existing route safely and inspect state decisions.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "USER-001"
+      }
+    },
+    "SCOPE-001": {
+      "type": "SCOPE",
+      "payload": {
+        "statement": "Phase 1 implements Scheduler as a daemon with API boundaries, persistent authoritative state, deterministic scheduling loop, lease/fencing control, Executor-result acceptance, and audit events.",
+        "phase": "PHASE-001",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "SCOPE-001"
+      }
+    },
+    "OOS-001": {
+      "type": "OOS",
+      "payload": {
+        "statement": "Scheduler does not design routes, create nodes, execute commands, modify deliverables, or declare business/project success when the route has no next node.",
+        "phase": "PHASE-001",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "OOS-001"
+      }
+    },
+    "PHASE-001": {
+      "type": "PHASE",
+      "payload": {
+        "name": "Phase 1 MVP",
+        "goal": "Deliver the deterministic scheduler daemon and state-flow contract needed for PRD/HLD design and later implementation.",
+        "id": "PHASE-001"
+      }
+    },
+    "REQ-001": {
+      "type": "REQ",
+      "payload": {
+        "title": "Respect Scheduler ownership boundaries",
+        "description": "Scheduler must consume existing route state and Executor results only, and must not own route design, node creation, task execution, command execution, or deliverable mutation.",
+        "user_value": "Prevents the scheduler from becoming a hidden planner or executor.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-001"
+        ],
+        "verification_refs": [
+          "VER-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed",
+        "id": "REQ-001"
+      }
+    },
+    "REQ-002": {
+      "type": "REQ",
+      "payload": {
+        "title": "Run the fixed scheduling control loop",
+        "description": "Scheduler must repeatedly read route, node, job definition, permission, and lease state; expire invalid execution rights; find schedulable nodes; issue job instances and leases; ingest Executor results; apply state transitions; and emit route exhaustion when appropriate.",
+        "user_value": "Gives operators a predictable state-control loop.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-002"
+        ],
+        "verification_refs": [
+          "VER-002"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "status": "confirmed",
+        "id": "REQ-002"
+      }
+    },
+    "REQ-003": {
+      "type": "REQ",
+      "payload": {
+        "title": "Perform readiness and idempotent dispatch",
+        "description": "Scheduler must dispatch only nodes whose dependencies, permissions, prior state, and lease constraints make them schedulable, and repeated scheduling attempts must not create duplicate active job instances for the same node generation.",
+        "user_value": "Avoids duplicate execution and unsafe dispatch.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-003"
+        ],
+        "verification_refs": [
+          "VER-003"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed",
+        "id": "REQ-003"
+      }
+    },
+    "REQ-004": {
+      "type": "REQ",
+      "payload": {
+        "title": "Manage leases and fencing tokens",
+        "description": "Scheduler must create, expire, and validate execution leases with fencing tokens so stale actors cannot overwrite newer scheduling decisions.",
+        "user_value": "Makes recovery and concurrent observation safe.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-004"
+        ],
+        "verification_refs": [
+          "VER-004"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "status": "confirmed",
+        "id": "REQ-004"
+      }
+    },
+    "REQ-005": {
+      "type": "REQ",
+      "payload": {
+        "title": "Validate Executor results and evidence",
+        "description": "Scheduler must reject stale, identity-invalid, insufficient, failed, or undecidable Executor results; Executor completed is never sufficient by itself to mark a node deliveried.",
+        "user_value": "Protects delivery state from unverified self-reporting.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-005"
+        ],
+        "verification_refs": [
+          "VER-005"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed",
+        "id": "REQ-005"
+      }
+    },
+    "REQ-006": {
+      "type": "REQ",
+      "payload": {
+        "title": "Express all outcomes through state machine transitions",
+        "description": "Scheduler must mark job instances as accepted, rejected, expired, or blocked and nodes as scheduled, deliveried, failed, or blocked only through valid state transitions backed by evidence.",
+        "user_value": "Makes progress, failure, and blocking reviewable.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-006"
+        ],
+        "verification_refs": [
+          "VER-006"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed",
+        "id": "REQ-006"
+      }
+    },
+    "REQ-007": {
+      "type": "REQ",
+      "payload": {
+        "title": "Record auditable scheduling evidence",
+        "description": "Scheduler must emit state events, acceptance/rejection records, blocking reasons, lease changes, and route exhaustion records with enough identity and evidence references to audit every decision.",
+        "user_value": "Allows post-run investigation and compliance review.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-007"
+        ],
+        "verification_refs": [
+          "VER-007"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed",
+        "id": "REQ-007"
+      }
+    },
+    "REQ-008": {
+      "type": "REQ",
+      "payload": {
+        "title": "Report route exhaustion without success inference",
+        "description": "When no job is running and no node is schedulable, Scheduler must emit route_exhausted with reasons and must not infer project success or business completion.",
+        "user_value": "Preserves product boundary and honest completion semantics.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-008"
+        ],
+        "verification_refs": [
+          "VER-008"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed",
+        "id": "REQ-008"
+      }
+    },
+    "AC-001": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-001",
+        "criterion": "Given an existing route, Scheduler reads route and node state but never mutates route definition, creates a new node, runs a command, or modifies a deliverable.",
+        "verification_method": "VER-001",
+        "blocking": true,
+        "id": "AC-001"
+      }
+    },
+    "AC-002": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-002",
+        "criterion": "Given route, node, job, permission, lease, and Executor-result inputs, one Scheduler loop processes expired leases before schedulability, emits at most one new active job per eligible node generation, and then applies result acceptance rules.",
+        "verification_method": "VER-002",
+        "blocking": true,
+        "id": "AC-002"
+      }
+    },
+    "AC-003": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-003",
+        "criterion": "Given repeated dispatch attempts for the same schedulable node and unchanged generation, Scheduler returns the existing active job/lease or a no-op state event rather than creating duplicate active jobs.",
+        "verification_method": "VER-003",
+        "blocking": true,
+        "id": "AC-003"
+      }
+    },
+    "AC-004": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-004",
+        "criterion": "Given an expired lease or lower fencing token, Scheduler marks the prior job expired or rejects the stale result and preserves the newer authority.",
+        "verification_method": "VER-004",
+        "blocking": true,
+        "id": "AC-004"
+      }
+    },
+    "AC-005": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-005",
+        "criterion": "Given Executor completed without required evidence, wrong lease identity, stale fencing token, failed status, or undecidable evidence, Scheduler rejects or blocks the result instead of marking the node deliveried.",
+        "verification_method": "VER-005",
+        "blocking": true,
+        "id": "AC-005"
+      }
+    },
+    "AC-006": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-006",
+        "criterion": "Given accepted evidence with valid identity and sufficient mechanical checks, Scheduler marks the job accepted and advances the node through valid state transitions only.",
+        "verification_method": "VER-006",
+        "blocking": true,
+        "id": "AC-006"
+      }
+    },
+    "AC-007": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-007",
+        "criterion": "Every dispatch, lease expiry, result acceptance, result rejection, block, node transition, and route exhaustion decision writes an auditable event with IDs, prior/new state, evidence refs, and reason.",
+        "verification_method": "VER-007",
+        "blocking": true,
+        "id": "AC-007"
+      }
+    },
+    "AC-008": {
+      "type": "AC",
+      "payload": {
+        "requirement_id": "REQ-008",
+        "criterion": "Given no active jobs and no schedulable nodes, Scheduler emits a route_exhausted record with blocked/completed/no-ready reasons and does not emit business_success or project_done.",
+        "verification_method": "VER-008",
+        "blocking": true,
+        "id": "AC-008"
+      }
+    },
+    "MET-001": {
+      "type": "MET",
+      "payload": {
+        "name": "Duplicate active dispatch prevention",
+        "target": "Repeated loop runs create zero duplicate active jobs for the same node generation.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "MET-001"
+      }
+    },
+    "MET-002": {
+      "type": "MET",
+      "payload": {
+        "name": "Stale result rejection",
+        "target": "Executor results with expired leases or stale fencing tokens are rejected mechanically.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "MET-002"
+      }
+    },
+    "MET-003": {
+      "type": "MET",
+      "payload": {
+        "name": "Decision audit coverage",
+        "target": "Every state-changing decision produces an event with reason and evidence references.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "MET-003"
+      }
+    },
+    "FLOW-001": {
+      "type": "FLOW",
+      "payload": {
+        "name": "Scheduler fixed loop",
+        "steps": [
+          "read authoritative route/node/job/permission/lease state",
+          "expire invalid execution rights",
+          "select schedulable nodes",
+          "create job instance and lease",
+          "read Executor result and evidence",
+          "accept/reject/expire/block job",
+          "advance node state",
+          "emit route exhaustion when no active or schedulable work remains"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "FLOW-001"
+      }
+    },
+    "DATA-001": {
+      "type": "DATA",
+      "payload": {
+        "name": "authoritative_scheduler_state",
+        "description": "Existing route definition, node state, job definitions, permission grants, active/expired leases, fencing tokens, job instances, and state events held in persistent storage.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DATA-001"
+      }
+    },
+    "DATA-002": {
+      "type": "DATA",
+      "payload": {
+        "name": "executor_result_with_evidence",
+        "description": "Executor result identity, lease token, fencing token, status, evidence references, failure details, and undecidable markers consumed by Scheduler.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DATA-002"
+      }
+    },
+    "DATA-003": {
+      "type": "DATA",
+      "payload": {
+        "name": "scheduler_decision_outputs",
+        "description": "Job instances, leases, state transitions, acceptance/rejection records, block reasons, and route exhaustion records produced by Scheduler.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DATA-003"
+      }
+    },
+    "MOD-001": {
+      "type": "MOD",
+      "payload": {
+        "name": "Scheduler daemon API",
+        "responsibility": "Expose API operations for advancing scheduling loops, querying state, and ingesting Executor results without route design or task execution ownership.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "MOD-001"
+      }
+    },
+    "MOD-002": {
+      "type": "MOD",
+      "payload": {
+        "name": "Persistent state and lease store",
+        "responsibility": "Provide transactional authority for node state, job instances, leases, fencing tokens, idempotency keys, and audit events.",
+        "source_refs": [
+          "SRC-002"
+        ],
+        "id": "MOD-002"
+      }
+    },
+    "MOD-003": {
+      "type": "MOD",
+      "payload": {
+        "name": "Executor result boundary",
+        "responsibility": "Represent the external Executor as a result-and-evidence producer; Scheduler validates identity and evidence but does not execute tasks.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "MOD-003"
+      }
+    },
+    "TECH-001": {
+      "type": "TECH",
+      "payload": {
+        "decision": "Implement Scheduler as a daemon service with API calls from other programs.",
+        "rationale": "The user confirmed daemon plus API as the public integration boundary.",
+        "implementation_notes": "HLD should define API contracts abstractly until implementation technology is chosen.",
+        "source_refs": [
+          "SRC-002"
+        ],
+        "id": "TECH-001"
+      }
+    },
+    "TECH-002": {
+      "type": "TECH",
+      "payload": {
+        "decision": "Use persistent transactional storage as the authoritative source for state and leases.",
+        "rationale": "Readiness, idempotency, recovery, fencing, stale-result rejection, and auditability need durable state authority.",
+        "implementation_notes": "HLD should model transaction boundaries and compare-and-swap/fencing semantics.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "TECH-002"
+      }
+    },
+    "TECH-003": {
+      "type": "TECH",
+      "payload": {
+        "decision": "Use deterministic state-machine transitions and evidence gates rather than Executor self-reporting.",
+        "rationale": "The user explicitly forbids treating Executor completed or execution narration as delivery success.",
+        "implementation_notes": "Acceptance logic must validate job identity, lease, fencing token, evidence completeness, and state transition legality.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "TECH-003"
+      }
+    },
+    "STATE-001": {
+      "type": "STATE",
+      "payload": {
+        "name": "node_state_model",
+        "states": [
+          "blocked",
+          "ready",
+          "scheduled",
+          "deliveried",
+          "failed"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "STATE-001"
+      }
+    },
+    "STATE-002": {
+      "type": "STATE",
+      "payload": {
+        "name": "job_instance_state_model",
+        "states": [
+          "created",
+          "leased",
+          "accepted",
+          "rejected",
+          "expired",
+          "blocked"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "STATE-002"
+      }
+    },
+    "DCT-001": {
+      "type": "DCT",
+      "payload": {
+        "name": "RouteSnapshot",
+        "fields": [
+          "route_id",
+          "route_version",
+          "node_states",
+          "job_definitions",
+          "permissions",
+          "leases"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DCT-001"
+      }
+    },
+    "DCT-002": {
+      "type": "DCT",
+      "payload": {
+        "name": "JobInstance",
+        "fields": [
+          "job_id",
+          "route_id",
+          "node_id",
+          "node_generation",
+          "status",
+          "lease_id",
+          "idempotency_key"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DCT-002"
+      }
+    },
+    "DCT-003": {
+      "type": "DCT",
+      "payload": {
+        "name": "ExecutionLease",
+        "fields": [
+          "lease_id",
+          "job_id",
+          "executor_id",
+          "expires_at",
+          "fencing_token",
+          "status"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DCT-003"
+      }
+    },
+    "DCT-004": {
+      "type": "DCT",
+      "payload": {
+        "name": "ExecutorResult",
+        "fields": [
+          "job_id",
+          "lease_id",
+          "fencing_token",
+          "executor_status",
+          "evidence_refs",
+          "failure_reason"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DCT-004"
+      }
+    },
+    "DCT-005": {
+      "type": "DCT",
+      "payload": {
+        "name": "StateEvent",
+        "fields": [
+          "event_id",
+          "subject_id",
+          "event_type",
+          "prior_state",
+          "new_state",
+          "reason",
+          "evidence_refs"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DCT-005"
+      }
+    },
+    "IN-001": {
+      "type": "IN",
+      "payload": {
+        "input_name": "authoritative_route_and_scheduler_state",
+        "required": true,
+        "description": "Current route, node status, job definitions, permissions, leases, and fencing token state from persistent storage.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "IN-001"
+      }
+    },
+    "IN-002": {
+      "type": "IN",
+      "payload": {
+        "input_name": "executor_result_and_evidence",
+        "required": true,
+        "description": "Executor result payload with job identity, lease identity, fencing token, status, and evidence references.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "IN-002"
+      }
+    },
+    "EXE-001": {
+      "type": "EXE",
+      "payload": {
+        "rule": "Run the scheduling loop in the fixed order: read state, expire invalid execution rights, evaluate schedulability, dispatch one job/lease per eligible node generation, ingest Executor evidence, then transition job and node states.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "EXE-001"
+      }
+    },
+    "EXE-002": {
+      "type": "EXE",
+      "payload": {
+        "rule": "Never design routes, create nodes, directly execute commands, modify deliverables, skip evidence checks, or infer business success.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "EXE-002"
+      }
+    },
+    "EXE-003": {
+      "type": "EXE",
+      "payload": {
+        "rule": "Use persistent-state transactions, idempotency keys, and fencing-token comparison to prevent duplicate active execution and stale result acceptance.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "EXE-003"
+      }
+    },
+    "VER-001": {
+      "type": "VER",
+      "payload": {
+        "case": "Run a real repository-local route fixture and prove Scheduler does not alter route definition or create new nodes.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-001"
+      }
+    },
+    "VER-002": {
+      "type": "VER",
+      "payload": {
+        "case": "Run one loop against real fixtures containing expired lease, ready node, and Executor result; verify event order and state outputs.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-002"
+      }
+    },
+    "VER-003": {
+      "type": "VER",
+      "payload": {
+        "case": "Repeat dispatch for the same ready node generation; verify only one active job and one active lease exist.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-003"
+      }
+    },
+    "VER-004": {
+      "type": "VER",
+      "payload": {
+        "case": "Submit an expired/stale fencing-token result; verify rejection and no node delivery.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-004"
+      }
+    },
+    "VER-005": {
+      "type": "VER",
+      "payload": {
+        "case": "Submit completed Executor result without required evidence; verify rejection or blocked outcome.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-005"
+      }
+    },
+    "VER-006": {
+      "type": "VER",
+      "payload": {
+        "case": "Submit accepted evidence with valid identity; verify legal job and node transitions only.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-006"
+      }
+    },
+    "VER-007": {
+      "type": "VER",
+      "payload": {
+        "case": "Inspect generated state events and acceptance/rejection records for IDs, state deltas, reason, and evidence refs.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-007"
+      }
+    },
+    "VER-008": {
+      "type": "VER",
+      "payload": {
+        "case": "Run a route with no running jobs and no schedulable nodes; verify route_exhausted and no business success marker.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "VER-008"
+      }
+    },
+    "OUT-001": {
+      "type": "OUT",
+      "payload": {
+        "deliverable": "Job instance records for dispatched node executions.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "OUT-001"
+      }
+    },
+    "OUT-002": {
+      "type": "OUT",
+      "payload": {
+        "deliverable": "Execution lease records with fencing tokens and expiry state.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "OUT-002"
+      }
+    },
+    "OUT-003": {
+      "type": "OUT",
+      "payload": {
+        "deliverable": "State transition events for jobs, nodes, leases, blocks, and exhaustion.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "OUT-003"
+      }
+    },
+    "OUT-004": {
+      "type": "OUT",
+      "payload": {
+        "deliverable": "Accepted, rejected, expired, and blocked result decision records.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "OUT-004"
+      }
+    },
+    "OUT-005": {
+      "type": "OUT",
+      "payload": {
+        "deliverable": "Route exhaustion record when no work is running or schedulable.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "OUT-005"
+      }
+    },
+    "STOP-001": {
+      "type": "STOP",
+      "payload": {
+        "condition": "Stop dispatch and block the affected node when authoritative route, node, job definition, permission, or lease state is missing or contradictory.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "STOP-001"
+      }
+    },
+    "STOP-002": {
+      "type": "STOP",
+      "payload": {
+        "condition": "Reject result and preserve current state when lease identity, executor identity, or fencing token is invalid or stale.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "STOP-002"
+      }
+    },
+    "STOP-003": {
+      "type": "STOP",
+      "payload": {
+        "condition": "Reject or block result when evidence is missing, insufficient, failed, or undecidable.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "STOP-003"
+      }
+    },
+    "STOP-004": {
+      "type": "STOP",
+      "payload": {
+        "condition": "Emit route exhaustion instead of business success when no active jobs and no schedulable nodes remain.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "STOP-004"
+      }
+    },
+    "DONE-001": {
+      "type": "DONE",
+      "payload": {
+        "criterion": "Scheduler can deterministically dispatch ready nodes, create job/lease records, and prevent duplicate active dispatch for the same node generation.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DONE-001"
+      }
+    },
+    "DONE-002": {
+      "type": "DONE",
+      "payload": {
+        "criterion": "Scheduler can accept only identity-valid, evidence-sufficient Executor results and reject stale, failed, or unsupported results.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DONE-002"
+      }
+    },
+    "DONE-003": {
+      "type": "DONE",
+      "payload": {
+        "criterion": "Scheduler can emit auditable state transitions, block reasons, and route exhaustion without route mutation or success inference.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "DONE-003"
+      }
+    },
+    "RISK-001": {
+      "type": "RISK",
+      "payload": {
+        "statement": "Race conditions around dispatch and result acceptance could create duplicate jobs or stale delivery unless storage transactions and fencing are explicit.",
+        "mitigation_refs": [
+          "TECH-002",
+          "TECH-003",
+          "VER-004",
+          "VER-005"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "RISK-001"
+      }
+    },
+    "RISK-002": {
+      "type": "RISK",
+      "payload": {
+        "statement": "Ambiguous evidence semantics could cause Scheduler to accept Executor self-reporting as delivery unless evidence gates are mechanical.",
+        "mitigation_refs": [
+          "TECH-003",
+          "VER-005"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "RISK-002"
+      }
+    },
+    "BAR-001": {
+      "type": "BAR",
+      "payload": {
+        "statement": "Mechanical, conservative, and traceable: every scheduling decision must be deterministic, evidence-backed, and auditable.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "BAR-001"
+      }
+    },
+    "BAR-002": {
+      "type": "BAR",
+      "payload": {
+        "statement": "No task planning output: PRD/HLD may describe design only and must not decompose implementation tasks.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "id": "BAR-002"
+      }
+    },
+    "REF-001": {
+      "type": "REF",
+      "payload": {
+        "label": "Output directory",
+        "target": "C:\\Users\\54256213\\Documents\\github\\spec-scheduler\\docs",
+        "source_refs": [
+          "SRC-003"
+        ],
+        "id": "REF-001"
+      }
+    },
+    "META-001": {
+      "type": "META",
+      "payload": {
+        "document_set": "Scheduler spec-intake package",
+        "created_at": "2026-05-29T09:00:00+08:00",
+        "version": "0.1.0-stage2",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "id": "META-001"
+      }
+    },
+    "Q-001": {
+      "type": "Q",
+      "payload": {
+        "question": "Scheduler first-version public interface boundary?",
+        "question_type": "single_choice",
+        "options": [
+          "daemon API",
+          "CLI",
+          "keep blocked"
+        ],
+        "selected_option": "daemon API",
+        "status": "resolved",
+        "blocks_human_prd": true,
+        "blocks_agent_prd": true,
+        "resolution_refs": [
+          "SRC-002"
+        ],
+        "id": "Q-001"
+      }
+    },
+    "Q-002": {
+      "type": "Q",
+      "payload": {
+        "question": "Authoritative state and lease store boundary?",
+        "question_type": "single_choice",
+        "options": [
+          "persistent storage",
+          "file state",
+          "keep blocked"
+        ],
+        "selected_option": "persistent storage",
+        "status": "resolved",
+        "blocks_human_prd": true,
+        "blocks_agent_prd": true,
+        "resolution_refs": [
+          "SRC-002"
+        ],
+        "id": "Q-002"
+      }
+    },
+    "Q-003": {
+      "type": "Q",
+      "payload": {
+        "question": "Real acceptance environment and data?",
+        "question_type": "single_choice",
+        "options": [
+          "repository-local real fixtures",
+          "external integration environment",
+          "keep blocked"
+        ],
+        "selected_option": "repository-local real fixtures",
+        "status": "resolved",
+        "blocks_human_prd": true,
+        "blocks_agent_prd": true,
+        "resolution_refs": [
+          "SRC-002"
+        ],
+        "id": "Q-003"
+      }
+    },
+    "TRACE-001": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "CORE-001",
+        "relation": "stated_by",
+        "id": "TRACE-001"
+      }
+    },
+    "TRACE-002": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-001",
+        "relation": "stated_by",
+        "id": "TRACE-002"
+      }
+    },
+    "TRACE-003": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-002",
+        "relation": "stated_by",
+        "id": "TRACE-003"
+      }
+    },
+    "TRACE-004": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-003",
+        "relation": "stated_by",
+        "id": "TRACE-004"
+      }
+    },
+    "TRACE-005": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-004",
+        "relation": "stated_by",
+        "id": "TRACE-005"
+      }
+    },
+    "TRACE-006": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-005",
+        "relation": "stated_by",
+        "id": "TRACE-006"
+      }
+    },
+    "TRACE-007": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-006",
+        "relation": "stated_by",
+        "id": "TRACE-007"
+      }
+    },
+    "TRACE-008": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-007",
+        "relation": "stated_by",
+        "id": "TRACE-008"
+      }
+    },
+    "TRACE-009": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-008",
+        "relation": "stated_by",
+        "id": "TRACE-009"
+      }
+    },
+    "TRACE-010": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-002",
+        "to_ref": "TECH-001",
+        "relation": "confirmed_by",
+        "id": "TRACE-010"
+      }
+    },
+    "TRACE-011": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-002",
+        "to_ref": "TECH-002",
+        "relation": "confirmed_by",
+        "id": "TRACE-011"
+      }
+    },
+    "TRACE-012": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-002",
+        "to_ref": "VER-002",
+        "relation": "confirmed_by",
+        "id": "TRACE-012"
+      }
+    },
+    "TRACE-013": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-002",
+        "to_ref": "Q-001",
+        "relation": "resolves",
+        "id": "TRACE-013"
+      }
+    },
+    "TRACE-014": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-002",
+        "to_ref": "Q-002",
+        "relation": "resolves",
+        "id": "TRACE-014"
+      }
+    },
+    "TRACE-015": {
+      "type": "TRACE",
+      "payload": {
+        "from_ref": "SRC-002",
+        "to_ref": "Q-003",
+        "relation": "resolves",
+        "id": "TRACE-015"
+      }
+    },
+    "RB-001": {
+      "type": "RB",
+      "payload": {
+        "target": "human_prd",
+        "section": "Human review brief",
+        "content_type": "summary",
+        "contract_refs": [
+          "CORE-001",
+          "REQ-001",
+          "REQ-002",
+          "REQ-005",
+          "REQ-008",
+          "AC-001",
+          "AC-005",
+          "VER-008"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "allowed_inference": "summarize only",
+        "unsupported_claims": [],
+        "status": "ready",
+        "id": "RB-001"
+      }
+    },
+    "RB-002": {
+      "type": "RB",
+      "payload": {
+        "target": "agent_prd",
+        "section": "Product PRD",
+        "content_type": "full_prd",
+        "contract_refs": [
+          "REQ-001",
+          "REQ-002",
+          "REQ-003",
+          "REQ-004",
+          "REQ-005",
+          "REQ-006",
+          "REQ-007",
+          "REQ-008",
+          "CORE-001",
+          "USER-001",
+          "SCOPE-001",
+          "OOS-001"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "allowed_inference": "source-backed requirement organization",
+        "unsupported_claims": [],
+        "status": "ready",
+        "id": "RB-002"
+      }
+    },
+    "RB-003": {
+      "type": "RB",
+      "payload": {
+        "target": "agent_prd",
+        "section": "Agent execution appendix",
+        "content_type": "execution_contract",
+        "contract_refs": [
+          "IN-001",
+          "IN-002",
+          "EXE-001",
+          "EXE-002",
+          "EXE-003",
+          "OUT-001",
+          "OUT-002",
+          "OUT-003",
+          "OUT-004",
+          "OUT-005",
+          "STOP-001",
+          "STOP-002",
+          "STOP-003",
+          "STOP-004",
+          "DONE-001",
+          "DONE-002",
+          "DONE-003"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "allowed_inference": "traceable execution appendix",
+        "unsupported_claims": [],
+        "status": "ready",
+        "id": "RB-003"
+      }
+    },
+    "GATE-001": {
+      "type": "GATE",
+      "payload": {
+        "name": "Stage 1 requirement table readiness",
+        "status": "pass",
+        "blocking": false,
+        "affected_targets": [
+          "human_prd",
+          "agent_prd"
+        ],
+        "evidence_refs": [
+          "SRC-001",
+          "SRC-002",
+          "REQ-001",
+          "REQ-008"
+        ],
+        "message": "Requirement table ready.",
+        "required_fix": "",
+        "id": "GATE-001"
+      }
+    },
+    "GATE-002": {
+      "type": "GATE",
+      "payload": {
+        "name": "Stage 2 PRD rendering readiness",
+        "status": "pass",
+        "blocking": false,
+        "affected_targets": [
+          "human_prd",
+          "agent_prd"
+        ],
+        "evidence_refs": [
+          "RB-001",
+          "RB-002",
+          "RB-003"
+        ],
+        "message": "PRD renders ready.",
+        "required_fix": "",
+        "id": "GATE-002"
+      }
+    }
+  },
+  "object_index": {
+    "CORE": [
+      "CORE-001"
+    ],
+    "USER": [
+      "USER-001"
+    ],
+    "SCOPE": [
+      "SCOPE-001"
+    ],
+    "OOS": [
+      "OOS-001"
+    ],
+    "PHASE": [
+      "PHASE-001"
+    ],
+    "REQ": [
+      "REQ-001",
+      "REQ-002",
+      "REQ-003",
+      "REQ-004",
+      "REQ-005",
+      "REQ-006",
+      "REQ-007",
+      "REQ-008"
+    ],
+    "AC": [
+      "AC-001",
+      "AC-002",
+      "AC-003",
+      "AC-004",
+      "AC-005",
+      "AC-006",
+      "AC-007",
+      "AC-008"
+    ],
+    "MET": [
+      "MET-001",
+      "MET-002",
+      "MET-003"
+    ],
+    "FLOW": [
+      "FLOW-001"
+    ],
+    "DATA": [
+      "DATA-001",
+      "DATA-002",
+      "DATA-003"
+    ],
+    "MOD": [
+      "MOD-001",
+      "MOD-002",
+      "MOD-003"
+    ],
+    "TECH": [
+      "TECH-001",
+      "TECH-002",
+      "TECH-003"
+    ],
+    "STATE": [
+      "STATE-001",
+      "STATE-002"
+    ],
+    "DCT": [
+      "DCT-001",
+      "DCT-002",
+      "DCT-003",
+      "DCT-004",
+      "DCT-005"
+    ],
+    "IN": [
+      "IN-001",
+      "IN-002"
+    ],
+    "EXE": [
+      "EXE-001",
+      "EXE-002",
+      "EXE-003"
+    ],
+    "VER": [
+      "VER-001",
+      "VER-002",
+      "VER-003",
+      "VER-004",
+      "VER-005",
+      "VER-006",
+      "VER-007",
+      "VER-008"
+    ],
+    "OUT": [
+      "OUT-001",
+      "OUT-002",
+      "OUT-003",
+      "OUT-004",
+      "OUT-005"
+    ],
+    "STOP": [
+      "STOP-001",
+      "STOP-002",
+      "STOP-003",
+      "STOP-004"
+    ],
+    "DONE": [
+      "DONE-001",
+      "DONE-002",
+      "DONE-003"
+    ],
+    "RISK": [
+      "RISK-001",
+      "RISK-002"
+    ],
+    "BAR": [
+      "BAR-001",
+      "BAR-002"
+    ],
+    "ASM": [],
+    "Q": [
+      "Q-001",
+      "Q-002",
+      "Q-003"
+    ],
+    "REF": [
+      "REF-001"
+    ],
+    "SRC": [
+      "SRC-001",
+      "SRC-002",
+      "SRC-003"
+    ],
+    "TRACE": [
+      "TRACE-001",
+      "TRACE-002",
+      "TRACE-003",
+      "TRACE-004",
+      "TRACE-005",
+      "TRACE-006",
+      "TRACE-007",
+      "TRACE-008",
+      "TRACE-009",
+      "TRACE-010",
+      "TRACE-011",
+      "TRACE-012",
+      "TRACE-013",
+      "TRACE-014",
+      "TRACE-015"
+    ],
+    "RB": [
+      "RB-001",
+      "RB-002",
+      "RB-003"
+    ],
+    "META": [
+      "META-001"
+    ],
+    "GATE": [
+      "GATE-001",
+      "GATE-002"
+    ]
+  },
+  "contract_summary": {
+    "ready_targets": [
+      "agent_prd",
+      "human_prd"
+    ],
+    "blocked_targets": [],
+    "stage_ready": [
+      "stage_1_requirements_table",
+      "stage_2_prd_review"
+    ],
+    "stage_blocked": [
+      "stage_3_hld"
+    ],
+    "summary": "Stage 2 PRDs are ready for Human PRD review; Stage 3 HLD is blocked until explicit approval."
+  },
+  "traceability_summary": {
+    "requirement_traceability": [
+      "TRACE-001",
+      "TRACE-002",
+      "TRACE-003",
+      "TRACE-004",
+      "TRACE-005",
+      "TRACE-006",
+      "TRACE-007",
+      "TRACE-008",
+      "TRACE-009",
+      "TRACE-010",
+      "TRACE-011",
+      "TRACE-012",
+      "TRACE-013",
+      "TRACE-014",
+      "TRACE-015"
+    ],
+    "render_traceability": [
+      "RB-001",
+      "RB-002",
+      "RB-003"
+    ],
+    "decision_traceability": [
+      {
+        "decision_type": "open_question",
+        "decision_ref": "Q-001",
+        "status": "resolved",
+        "affected_refs": [
+          "TECH-001",
+          "MOD-001"
+        ]
+      },
+      {
+        "decision_type": "open_question",
+        "decision_ref": "Q-002",
+        "status": "resolved",
+        "affected_refs": [
+          "TECH-002",
+          "DATA-001"
+        ]
+      },
+      {
+        "decision_type": "open_question",
+        "decision_ref": "Q-003",
+        "status": "resolved",
+        "affected_refs": [
+          "VER-002",
+          "VER-008"
+        ]
+      },
+      {
+        "decision_type": "user_confirmation",
+        "decision_ref": "SRC-002",
+        "status": "confirmed",
+        "affected_refs": [
+          "Q-001",
+          "Q-002",
+          "Q-003",
+          "TECH-001",
+          "TECH-002"
+        ]
+      }
+    ]
+  },
+  "gate_report": [
+    {
+      "gate_id": "GATE-001",
+      "status": "pass",
+      "blocking": false,
+      "affected_targets": [
+        "human_prd",
+        "agent_prd"
+      ],
+      "evidence_refs": [
+        "SRC-001",
+        "SRC-002",
+        "REQ-001",
+        "REQ-008"
+      ],
+      "message": "Requirement table ready.",
+      "required_fix": ""
+    },
+    {
+      "gate_id": "GATE-002",
+      "status": "pass",
+      "blocking": false,
+      "affected_targets": [
+        "human_prd",
+        "agent_prd"
+      ],
+      "evidence_refs": [
+        "RB-001",
+        "RB-002",
+        "RB-003"
+      ],
+      "message": "PRD renders ready.",
+      "required_fix": ""
+    }
+  ],
+  "next_actions": [
+    "Give human-prd.md to the user for review.",
+    "If approved, record Human PRD approval with sha256 and proceed to Stage 3 HLD.",
+    "If revised, update contract-envelope.json requirement_table first and rerender both PRDs."
+  ]
+}

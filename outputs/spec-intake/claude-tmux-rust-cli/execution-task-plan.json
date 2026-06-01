@@ -1,0 +1,1104 @@
+{
+  "plan_id": "ETP-CLAUDE-TMUX-RUST-001",
+  "planning_source_mode": "contract_backed",
+  "source_artifacts": {
+    "contract_ref": "contract-envelope.json",
+    "contract_version": "1.9",
+    "agent_prd_ref": "agent-prd.md",
+    "agent_prd_status": "execution_ready",
+    "phase_ref": "PHASE-001",
+    "phase_label": "Phase 1 mechanical tmux adapter MVP",
+    "phase_ref_kind": "canonical_id",
+    "phase_ref_fallback_reason": "",
+    "contract_ref_id": "REF-001",
+    "human_prd_ref_id": "REF-002",
+    "agent_prd_ref_id": "REF-003",
+    "task_plan_ref_id": "REF-004"
+  },
+  "planning_status": "ready",
+  "blocking_reasons": [],
+  "missing_required_refs": [],
+  "required_fixes": [],
+  "task_graph": [
+    {
+      "task_id": "TASK-001",
+      "title": "Define CLI command surface, config model, and structured result envelope",
+      "task_type": "foundation",
+      "contract_refs": [
+        "REQ-001",
+        "TECH-001",
+        "TECH-002",
+        "BAR-003",
+        "MOD-001",
+        "MOD-002",
+        "DCT-001",
+        "DCT-004"
+      ],
+      "verification_refs": [
+        "AC-001",
+        "VER-001"
+      ],
+      "done_refs": [
+        "DONE-001"
+      ],
+      "stop_refs": [
+        "STOP-001"
+      ],
+      "inputs": [
+        "IN-001"
+      ],
+      "outputs": [
+        "OUT-001"
+      ],
+      "dependencies": [],
+      "parallel_group": "PG-001",
+      "allowed_files_or_modules": [
+        "Cargo.toml",
+        "src/cli",
+        "src/config",
+        "src/result",
+        "src/errors",
+        "tests/config"
+      ],
+      "forbidden_scope_refs": [
+        "OOS-001"
+      ],
+      "acceptance": [
+        "The CLI exposes launch, capture, status, input, and exit command definitions without implementing non-tmux backends.",
+        "The launch config model can represent workspace/config values, permission settings, CLAUDE.md content or path, and task prompt from IN-001.",
+        "All command handlers share a structured success/failure envelope compatible with DCT-001 and DCT-004."
+      ],
+      "verification": [
+        "Run config parsing tests for IN-001.",
+        "Run command-shape tests proving all five commands return structured JSON envelopes."
+      ],
+      "stop_conditions": [
+        "STOP-001"
+      ],
+      "status": "ready"
+    },
+    {
+      "task_id": "TASK-002",
+      "title": "Implement tmux controller preflight and session primitives",
+      "task_type": "foundation",
+      "contract_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "REQ-005",
+        "TECH-002",
+        "MOD-003",
+        "STATE-001"
+      ],
+      "verification_refs": [
+        "AC-001",
+        "AC-002",
+        "AC-004",
+        "AC-005",
+        "VER-001",
+        "VER-002",
+        "VER-004",
+        "VER-005"
+      ],
+      "done_refs": [
+        "DONE-001",
+        "DONE-002",
+        "DONE-004",
+        "DONE-005"
+      ],
+      "stop_refs": [
+        "STOP-001",
+        "STOP-002",
+        "STOP-004",
+        "STOP-005"
+      ],
+      "inputs": [
+        "IN-001",
+        "IN-002",
+        "IN-004",
+        "IN-005"
+      ],
+      "outputs": [
+        "OUT-001",
+        "OUT-002",
+        "OUT-004",
+        "OUT-005"
+      ],
+      "dependencies": [
+        "TASK-001"
+      ],
+      "parallel_group": "PG-002",
+      "allowed_files_or_modules": [
+        "src/tmux",
+        "tests/tmux"
+      ],
+      "forbidden_scope_refs": [
+        "OOS-001"
+      ],
+      "acceptance": [
+        "Preflight detects missing tmux executable and returns a STOP-001 structured failure.",
+        "Session addressing detects missing session ids and returns STOP-002 or STOP-004 structured failures as appropriate.",
+        "Primitive operations exist for new-session, capture-pane, send-keys, has-session, and kill-session."
+      ],
+      "verification": [
+        "Run tmux controller unit tests with mocked subprocess results.",
+        "Run missing executable and missing session negative tests."
+      ],
+      "stop_conditions": [
+        "STOP-001",
+        "STOP-002",
+        "STOP-004",
+        "STOP-005"
+      ],
+      "status": "ready"
+    },
+    {
+      "task_id": "TASK-003",
+      "title": "Implement configured Claude CLI launch in tmux",
+      "task_type": "implementation",
+      "contract_refs": [
+        "REQ-001",
+        "AC-001",
+        "EXE-001",
+        "FLOW-001",
+        "STATE-001",
+        "ASM-001",
+        "ASM-002",
+        "MOD-002",
+        "MOD-003",
+        "DCT-001"
+      ],
+      "verification_refs": [
+        "AC-001",
+        "VER-001"
+      ],
+      "done_refs": [
+        "DONE-001"
+      ],
+      "stop_refs": [
+        "STOP-001"
+      ],
+      "inputs": [
+        "IN-001"
+      ],
+      "outputs": [
+        "OUT-001"
+      ],
+      "dependencies": [
+        "TASK-002"
+      ],
+      "parallel_group": "PG-003",
+      "allowed_files_or_modules": [
+        "src/launch",
+        "src/config",
+        "src/tmux",
+        "tests/launch",
+        "tests/fixtures/claude-md"
+      ],
+      "forbidden_scope_refs": [
+        "OOS-001"
+      ],
+      "acceptance": [
+        "Given IN-001, launch materializes the runtime environment, CLAUDE.md, task prompt, and permission representation selected under ASM-002.",
+        "Launch starts Claude CLI inside tmux and returns OUT-001 with session_id, workspace, claude_md_path, permission_profile, started_at, and status.",
+        "Launch does not claim success when tmux, Claude CLI, or workspace setup fails."
+      ],
+      "verification": [
+        "Run VER-001 launch smoke test.",
+        "Run launch negative tests for missing tmux, missing Claude CLI, and workspace creation failure."
+      ],
+      "stop_conditions": [
+        "STOP-001"
+      ],
+      "status": "ready"
+    },
+    {
+      "task_id": "TASK-004",
+      "title": "Implement screen capture and StructuredScreen parser fixtures",
+      "task_type": "implementation",
+      "contract_refs": [
+        "REQ-002",
+        "AC-002",
+        "EXE-002",
+        "BAR-001",
+        "BAR-003",
+        "DATA-001",
+        "DCT-002",
+        "MOD-004",
+        "RISK-001"
+      ],
+      "verification_refs": [
+        "AC-002",
+        "VER-002"
+      ],
+      "done_refs": [
+        "DONE-002"
+      ],
+      "stop_refs": [
+        "STOP-002"
+      ],
+      "inputs": [
+        "IN-002"
+      ],
+      "outputs": [
+        "OUT-002"
+      ],
+      "dependencies": [
+        "TASK-002"
+      ],
+      "parallel_group": "PG-004",
+      "allowed_files_or_modules": [
+        "src/capture",
+        "src/parser",
+        "src/tmux",
+        "tests/capture",
+        "tests/fixtures/screens"
+      ],
+      "forbidden_scope_refs": [
+        "OOS-001"
+      ],
+      "acceptance": [
+        "Given IN-002, capture returns OUT-002 with session_id, captured_at, raw_screen, messages, input, and parser status.",
+        "The parser uses mechanical rules only and records parser status when raw screen shape is unsupported.",
+        "Fixture tests cover idle-looking, busy-looking, prompt/input, and malformed screen captures."
+      ],
+      "verification": [
+        "Run VER-002 parser fixture tests.",
+        "Run malformed screen tests proving parser status is returned instead of semantic inference."
+      ],
+      "stop_conditions": [
+        "STOP-002"
+      ],
+      "status": "ready"
+    },
+    {
+      "task_id": "TASK-005",
+      "title": "Implement structured screen history and diff model",
+      "task_type": "foundation",
+      "contract_refs": [
+        "REQ-003",
+        "EXE-003",
+        "DATA-001",
+        "DCT-003",
+        "STATE-001",
+        "MOD-005"
+      ],
+      "verification_refs": [
+        "AC-003",
+        "VER-003"
+      ],
+      "done_refs": [
+        "DONE-003"
+      ],
+      "stop_refs": [
+        "STOP-002",
+        "STOP-003"
+      ],
+      "inputs": [
+        "IN-002",
+        "IN-003"
+      ],
+      "outputs": [
+        "OUT-003"
+      ],
+      "dependencies": [
+        "TASK-004"
+      ],
+      "parallel_group": "PG-005",
+      "allowed_files_or_modules": [
+        "src/history",
+        "src/diff",
+        "src/status",
+        "tests/diff"
+      ],
+      "forbidden_scope_refs": [
+        "OOS-001"
+      ],
+      "acceptance": [
+        "The status path accepts current and historical StructuredScreen values for one session and rejects mismatched or missing history as structured failure.",
+        "The diff output identifies changed message, input, status, and raw-screen regions without relying on semantic message interpretation.",
+        "DCT-003 fields are populated: session_id, state, current_capture, previous_capture_ref, diff, rule_hits, and confidence_source."
+      ],
+      "verification": [
+        "Run VER-003 diff model tests for changed, unchanged, and incompatible history cases."
+      ],
+      "stop_conditions": [
+        "STOP-002",
+        "STOP-003"
+      ],
+      "status": "ready"
+    },
+    {
+      "task_id": "TASK-006",
+      "title": "Implement idle/busy mechanical classifier",
+      "task_type": "implementation",
+      "contract_refs": [
+        "REQ-003",
+        "AC-003",
+        "EXE-003",
+        "BAR-001",
+        "DATA-001",
+        "DCT-003",
+        "MOD-005",
+        "STOP-003"
+      ],
+      "verification_refs": [
+        "AC-003",
+        "VER-003"
+      ],
+      "done_refs": [
+        "DONE-003"
+      ],
+      "stop_refs": [
+        "STOP-002",
+        "STOP-003"
+      ],
+      "inputs": [
+        "IN-002",
+        "IN-003"
+      ],
+      "outputs": [
+        "OUT-003"
+      ],
+      "dependencies": [
+        "TASK-005"
+      ],
+      "parallel_group": "PG-006",
+      "allowed_files_or_modules": [
+        "src/status",
+        "tests/status"
+      ],
+      "forbidden_scope_refs": [
+        "OOS-001"
+      ],
+      "acceptance": [
+        "Classifier returns idle, busy, or structured unknown/failure only from explicit diff rule hits.",
+        "When rule hits are insufficient, STOP-003 prevents guessing.",
+        "The classifier populates DCT-003 state, diff, rule_hits, and confidence_source without using semantic message interpretation."
+      ],
+      "verification": [
+        "Run VER-003 classifier behavior tests for idle, busy, unchanged, changed, and insufficient-rule cases.",
+        "Run negative tests proving no LLM or semantic inference path is used for status classification."
+      ],
+      "stop_conditions": [
+        "STOP-002",
+        "STOP-003"
+      ],
+      "status": "ready"
+    },
+    {
+      "task_id": "TASK-010",
+      "title": "Build labeled status corpus and 99 percent accuracy gate",
+      "task_type": "verification",
+      "contract_refs": [
+        "REQ-003",
+        "AC-003",
+        "MET-001",
+        "MET-002",
+        "VER-006",
+        "BAR-002",
+        "ASM-003",
+        "RISK-002",
+        "MOD-005"
+      ],
+      "verification_refs": [
+        "AC-003",
+        "VER-006"
+      ],
+      "done_refs": [
+        "DONE-003"
+      ],
+      "stop_refs": [
+        "STOP-003"
+      ],
+      "inputs": [
+        "IN-003"
+      ],
+      "outputs": [
+        "OUT-003"
+      ],
+      "dependencies": [
+        "TASK-006"
+      ],
+      "parallel_group": "PG-010",
+      "allowed_files_or_modules": [
+        "tests/fixtures/status-corpus",
+        "tests/metrics",
+        "docs/status-corpus.md"
+      ],
+      "forbidden_scope_refs": [
+        "OOS-001",
+        "BAR-001",
+        "RISK-002"
+      ],
+      "acceptance": [
+        "A labeled corpus exists for known idle and busy Claude CLI screen states and is versioned with the test fixtures.",
+        "The corpus runner reports idle accuracy >= 99% and busy accuracy >= 99% for VER-006.",
+        "Release verification fails when MET-001 or MET-002 falls below 99%."
+      ],
+      "verification": [
+        "Run VER-006 corpus metrics against the labeled status corpus.",
+        "Run failure-path metrics tests proving below-threshold accuracy blocks release readiness."
+      ],
+      "stop_conditions": [
+        "STOP-003"
+      ],
+      "status": "ready"
+    },
+    {
+      "task_id": "TASK-007",
+      "title": "Implement instruction input and one-second confirmation capture",
+      "task_type": "implementation",
+      "contract_refs": [
+        "REQ-004",
+        "AC-004",
+        "EXE-004",
+        "DCT-004",
+        "MOD-006",
+        "RISK-003"
+      ],
+      "verification_refs": [
+        "AC-004",
+        "VER-004"
+      ],
+      "done_refs": [
+        "DONE-004"
+      ],
+      "stop_refs": [
+        "STOP-004"
+      ],
+      "inputs": [
+        "IN-002",
+        "IN-004"
+      ],
+      "outputs": [
+        "OUT-004"
+      ],
+      "dependencies": [
+        "TASK-003",
+        "TASK-004"
+      ],
+      "parallel_group": "PG-007",
+      "allowed_files_or_modules": [
+        "src/input",
+        "src/tmux",
+        "src/capture",
+        "tests/input"
+      ],
+      "forbidden_scope_refs": [
+        "OOS-001"
+      ],
+      "acceptance": [
+        "Given IN-002 and IN-004, input sends instruction text, presses Enter, waits one second, captures the screen, and returns OUT-004.",
+        "OUT-004 includes operation, success, evidence, and error fields.",
+        "Special characters and multiline instructions have fixture coverage."
+      ],
+      "verification": [
+        "Run VER-004 input integration test.",
+        "Run escaping and multiline input tests with one-second confirmation capture."
+      ],
+      "stop_conditions": [
+        "STOP-004"
+      ],
+      "status": "ready"
+    },
+    {
+      "task_id": "TASK-008",
+      "title": "Implement graceful exit and force kill termination",
+      "task_type": "implementation",
+      "contract_refs": [
+        "REQ-005",
+        "AC-005",
+        "EXE-005",
+        "DCT-004",
+        "MOD-007"
+      ],
+      "verification_refs": [
+        "AC-005",
+        "VER-005"
+      ],
+      "done_refs": [
+        "DONE-005"
+      ],
+      "stop_refs": [
+        "STOP-005"
+      ],
+      "inputs": [
+        "IN-002",
+        "IN-005"
+      ],
+      "outputs": [
+        "OUT-005"
+      ],
+      "dependencies": [
+        "TASK-003"
+      ],
+      "parallel_group": "PG-008",
+      "allowed_files_or_modules": [
+        "src/termination",
+        "src/tmux",
+        "tests/termination"
+      ],
+      "forbidden_scope_refs": [
+        "OOS-001"
+      ],
+      "acceptance": [
+        "Given graceful mode, termination sends /exit and checks whether the tmux session still exists.",
+        "Given force mode, termination kills the tmux session and checks whether the tmux session still exists.",
+        "Graceful failure does not force kill unless IN-005 explicitly requests force mode."
+      ],
+      "verification": [
+        "Run VER-005 graceful termination tests.",
+        "Run VER-005 force kill tests.",
+        "Run STOP-005 graceful failure test."
+      ],
+      "stop_conditions": [
+        "STOP-005"
+      ],
+      "status": "ready"
+    },
+    {
+      "task_id": "TASK-009",
+      "title": "Produce end-to-end release verification and command documentation",
+      "task_type": "release",
+      "contract_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "FLOW-001",
+        "STATE-001",
+        "BAR-001",
+        "BAR-002",
+        "BAR-003",
+        "RISK-001",
+        "RISK-002",
+        "RISK-003"
+      ],
+      "verification_refs": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "VER-001",
+        "VER-002",
+        "VER-003",
+        "VER-004",
+        "VER-005",
+        "VER-006"
+      ],
+      "done_refs": [
+        "DONE-001",
+        "DONE-002",
+        "DONE-003",
+        "DONE-004",
+        "DONE-005"
+      ],
+      "stop_refs": [
+        "STOP-001",
+        "STOP-002",
+        "STOP-003",
+        "STOP-004",
+        "STOP-005"
+      ],
+      "inputs": [
+        "IN-001",
+        "IN-002",
+        "IN-003",
+        "IN-004",
+        "IN-005"
+      ],
+      "outputs": [
+        "OUT-001",
+        "OUT-002",
+        "OUT-003",
+        "OUT-004",
+        "OUT-005"
+      ],
+      "dependencies": [
+        "TASK-003",
+        "TASK-004",
+        "TASK-007",
+        "TASK-008",
+        "TASK-010"
+      ],
+      "parallel_group": "PG-009",
+      "allowed_files_or_modules": [
+        "tests/e2e",
+        "tests/fixtures",
+        "tests/metrics",
+        "docs/cli.md",
+        "README.md"
+      ],
+      "forbidden_scope_refs": [
+        "OOS-001"
+      ],
+      "acceptance": [
+        "E2E checks cover launch, capture, status, input, and termination in the sequence defined by FLOW-001.",
+        "Release verification includes the VER-006 accuracy report with idle and busy accuracy each >= 99%.",
+        "Command documentation describes inputs, outputs, stop behavior, and structured JSON result shapes without adding scope beyond the contract."
+      ],
+      "verification": [
+        "Run VER-001 through VER-006.",
+        "Review docs/cli.md and README.md against OUT-001 through OUT-005 and STOP-001 through STOP-005."
+      ],
+      "stop_conditions": [
+        "STOP-001",
+        "STOP-002",
+        "STOP-003",
+        "STOP-004",
+        "STOP-005"
+      ],
+      "status": "ready"
+    }
+  ],
+  "dependency_edges": [
+    {
+      "from": "TASK-001",
+      "to": "TASK-002",
+      "reason": "tmux primitives depend on shared CLI command and result envelope conventions.",
+      "contract_refs": [
+        "TECH-002",
+        "MOD-001",
+        "MOD-003",
+        "DCT-004"
+      ]
+    },
+    {
+      "from": "TASK-002",
+      "to": "TASK-003",
+      "reason": "launch orchestration needs tmux preflight and session creation primitives.",
+      "contract_refs": [
+        "REQ-001",
+        "IN-001",
+        "EXE-001",
+        "OUT-001"
+      ]
+    },
+    {
+      "from": "TASK-002",
+      "to": "TASK-004",
+      "reason": "capture and parser command need tmux capture-pane primitives and missing-session handling.",
+      "contract_refs": [
+        "REQ-002",
+        "IN-002",
+        "EXE-002",
+        "OUT-002"
+      ]
+    },
+    {
+      "from": "TASK-004",
+      "to": "TASK-005",
+      "reason": "structured diff model requires StructuredScreen output from capture parsing.",
+      "contract_refs": [
+        "REQ-003",
+        "DATA-001",
+        "DCT-002",
+        "DCT-003"
+      ]
+    },
+    {
+      "from": "TASK-005",
+      "to": "TASK-006",
+      "reason": "idle/busy classification depends on the structured diff model.",
+      "contract_refs": [
+        "REQ-003",
+        "EXE-003",
+        "DCT-003",
+        "BAR-001"
+      ]
+    },
+    {
+      "from": "TASK-006",
+      "to": "TASK-010",
+      "reason": "99%/99% corpus metrics require the implemented mechanical classifier.",
+      "contract_refs": [
+        "REQ-003",
+        "VER-006",
+        "MET-001",
+        "MET-002"
+      ]
+    },
+    {
+      "from": "TASK-003",
+      "to": "TASK-007",
+      "reason": "input requires an addressable Claude CLI tmux session created by launch.",
+      "contract_refs": [
+        "REQ-004",
+        "IN-002",
+        "IN-004",
+        "EXE-004"
+      ]
+    },
+    {
+      "from": "TASK-004",
+      "to": "TASK-007",
+      "reason": "input confirmation requires the capture path.",
+      "contract_refs": [
+        "REQ-004",
+        "OUT-002",
+        "OUT-004",
+        "EXE-004"
+      ]
+    },
+    {
+      "from": "TASK-003",
+      "to": "TASK-008",
+      "reason": "termination requires a launched tmux session lifecycle.",
+      "contract_refs": [
+        "REQ-005",
+        "IN-002",
+        "IN-005",
+        "EXE-005"
+      ]
+    },
+    {
+      "from": "TASK-003",
+      "to": "TASK-009",
+      "reason": "release verification includes launch behavior.",
+      "contract_refs": [
+        "REQ-001",
+        "VER-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "from": "TASK-004",
+      "to": "TASK-009",
+      "reason": "release verification includes capture and parser behavior.",
+      "contract_refs": [
+        "REQ-002",
+        "VER-002",
+        "DONE-002"
+      ]
+    },
+    {
+      "from": "TASK-007",
+      "to": "TASK-009",
+      "reason": "release verification includes input and one-second confirmation behavior.",
+      "contract_refs": [
+        "REQ-004",
+        "VER-004",
+        "DONE-004"
+      ]
+    },
+    {
+      "from": "TASK-008",
+      "to": "TASK-009",
+      "reason": "release verification includes graceful and force termination behavior.",
+      "contract_refs": [
+        "REQ-005",
+        "VER-005",
+        "DONE-005"
+      ]
+    },
+    {
+      "from": "TASK-010",
+      "to": "TASK-009",
+      "reason": "release verification requires the status accuracy corpus gate.",
+      "contract_refs": [
+        "REQ-003",
+        "VER-006",
+        "MET-001",
+        "MET-002"
+      ]
+    }
+  ],
+  "parallel_groups": [
+    {
+      "group_id": "PG-001",
+      "task_refs": [
+        "TASK-001"
+      ],
+      "status": "serial"
+    },
+    {
+      "group_id": "PG-002",
+      "task_refs": [
+        "TASK-002"
+      ],
+      "status": "serial"
+    },
+    {
+      "group_id": "PG-003",
+      "task_refs": [
+        "TASK-003"
+      ],
+      "status": "serial"
+    },
+    {
+      "group_id": "PG-004",
+      "task_refs": [
+        "TASK-004"
+      ],
+      "status": "serial"
+    },
+    {
+      "group_id": "PG-005",
+      "task_refs": [
+        "TASK-005"
+      ],
+      "status": "serial"
+    },
+    {
+      "group_id": "PG-006",
+      "task_refs": [
+        "TASK-006"
+      ],
+      "status": "serial"
+    },
+    {
+      "group_id": "PG-010",
+      "task_refs": [
+        "TASK-010"
+      ],
+      "status": "serial"
+    },
+    {
+      "group_id": "PG-007",
+      "task_refs": [
+        "TASK-007"
+      ],
+      "status": "serial"
+    },
+    {
+      "group_id": "PG-008",
+      "task_refs": [
+        "TASK-008"
+      ],
+      "status": "serial"
+    },
+    {
+      "group_id": "PG-009",
+      "task_refs": [
+        "TASK-009"
+      ],
+      "status": "serial"
+    }
+  ],
+  "stage_goal_coverage": [
+    {
+      "goal_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "IN-001",
+        "IN-002",
+        "IN-003",
+        "IN-004",
+        "IN-005",
+        "EXE-001",
+        "EXE-002",
+        "EXE-003",
+        "EXE-004",
+        "EXE-005",
+        "VER-001",
+        "VER-002",
+        "VER-003",
+        "VER-004",
+        "VER-005",
+        "VER-006",
+        "OUT-001",
+        "OUT-002",
+        "OUT-003",
+        "OUT-004",
+        "OUT-005",
+        "STOP-001",
+        "STOP-002",
+        "STOP-003",
+        "STOP-004",
+        "STOP-005",
+        "DONE-001",
+        "DONE-002",
+        "DONE-003",
+        "DONE-004",
+        "DONE-005"
+      ],
+      "required_task_refs": [
+        "TASK-001",
+        "TASK-002",
+        "TASK-003",
+        "TASK-004",
+        "TASK-005",
+        "TASK-006",
+        "TASK-007",
+        "TASK-008",
+        "TASK-010",
+        "TASK-009"
+      ],
+      "coverage_status": "covered",
+      "phase_ref": "PHASE-001",
+      "phase_label": "Phase 1 mechanical tmux adapter MVP",
+      "missing_refs": []
+    }
+  ],
+  "planning_gate_report": [
+    {
+      "check_id": "CHECK-001",
+      "name": "task traceability",
+      "status": "pass",
+      "evidence_refs": [
+        "TASK-001",
+        "TASK-002",
+        "TASK-003",
+        "TASK-004",
+        "TASK-005",
+        "TASK-006",
+        "TASK-007",
+        "TASK-008",
+        "TASK-010",
+        "TASK-009"
+      ],
+      "evidence_summary": "Every task carries canonical contract refs and does not introduce product facts outside the contract.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-002",
+      "name": "requirement coverage",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "TASK-003",
+        "TASK-004",
+        "TASK-006",
+        "TASK-007",
+        "TASK-008",
+        "TASK-010",
+        "TASK-009"
+      ],
+      "evidence_summary": "Launch, capture, status classifier, status accuracy gate, input, and termination requirements are covered by independently acceptable tasks and final release verification.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-003",
+      "name": "closure fields",
+      "status": "pass",
+      "evidence_refs": [
+        "IN-001",
+        "IN-002",
+        "IN-003",
+        "IN-004",
+        "IN-005",
+        "OUT-001",
+        "OUT-002",
+        "OUT-003",
+        "OUT-004",
+        "OUT-005",
+        "STOP-001",
+        "STOP-002",
+        "STOP-003",
+        "STOP-004",
+        "STOP-005"
+      ],
+      "evidence_summary": "Inputs, outputs, and stop refs appear in task closure fields instead of only in generic contract_refs.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-004",
+      "name": "mechanical status and accuracy coverage",
+      "status": "pass",
+      "evidence_refs": [
+        "TASK-005",
+        "TASK-006",
+        "TASK-010",
+        "TASK-009",
+        "BAR-001",
+        "BAR-002",
+        "MET-001",
+        "MET-002",
+        "VER-006"
+      ],
+      "evidence_summary": "Structured diff, idle/busy classifier implementation, and 99%/99% corpus gate are separate and independently acceptable.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-005",
+      "name": "dependency soundness",
+      "status": "pass",
+      "evidence_refs": [
+        "TASK-001",
+        "TASK-002",
+        "TASK-003",
+        "TASK-004",
+        "TASK-005",
+        "TASK-006",
+        "TASK-007",
+        "TASK-008",
+        "TASK-010",
+        "TASK-009"
+      ],
+      "evidence_summary": "Dependency edges are acyclic and match task dependency lists.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-006",
+      "name": "scope boundary",
+      "status": "pass",
+      "evidence_refs": [
+        "OOS-001",
+        "TECH-002",
+        "TECH-003",
+        "BAR-001",
+        "TASK-001",
+        "TASK-004",
+        "TASK-006",
+        "TASK-010",
+        "TASK-009"
+      ],
+      "evidence_summary": "The plan keeps non-tmux backends, remote orchestration, and semantic status inference out of Phase 1.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-007",
+      "name": "independent acceptance",
+      "status": "pass",
+      "evidence_refs": [
+        "TASK-001",
+        "TASK-002",
+        "TASK-003",
+        "TASK-004",
+        "TASK-005",
+        "TASK-006",
+        "TASK-007",
+        "TASK-008",
+        "TASK-010",
+        "TASK-009"
+      ],
+      "evidence_summary": "Each task has task-level acceptance and verification statements that can be reviewed independently.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-008",
+      "name": "stage goal coverage",
+      "status": "pass",
+      "evidence_refs": [
+        "PHASE-001",
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "DONE-001",
+        "DONE-002",
+        "DONE-003",
+        "DONE-004",
+        "DONE-005"
+      ],
+      "evidence_summary": "Stage goal coverage is covered with no missing refs.",
+      "required_fix": ""
+    }
+  ]
+}

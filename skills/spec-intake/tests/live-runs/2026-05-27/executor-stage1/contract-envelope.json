@@ -1,0 +1,979 @@
+{
+  "contract_version": "spec-intake.v1",
+  "intake_id": "INTAKE-EXECUTOR-001",
+  "harness_workflow": {
+    "workflow_type": "review_gated_self_improving_generation",
+    "stage_order": [
+      "stage_1_requirements_table",
+      "stage_2_prd_review",
+      "stage_3_hld"
+    ],
+    "current_stage": "stage_2_prd_review",
+    "completed_stages": [
+      "stage_1_requirements_table"
+    ],
+    "approval_gates": {
+      "human_prd_review": {
+        "status": "not_started",
+        "approved_by_ref": ""
+      }
+    },
+    "revision_policy": {
+      "max_review_rounds": 3,
+      "on_revise": "update_requirement_table_then_rerender_prds"
+    },
+    "execution_mode": "live_interactive",
+    "execution_mode_reason": "Live Stage 1 intake run with user clarification captured."
+  },
+  "source_idea": {
+    "raw_idea": "Develop an executor CLI that takes a task definition containing work environment, permissions, skill configuration, delivery standards, and method; uses openclaw CLI for subjective agent judgment; uses ClaudeTmuxAdapter CLI to launch Claude, capture state, send instructions, and read screen content; and completes tasks from the command line.",
+    "source_context_refs": [
+      "SRC-001",
+      "SRC-002"
+    ],
+    "created_at": "2026-05-27T00:00:00+08:00",
+    "source_refs": [
+      "SRC-001",
+      "SRC-002"
+    ]
+  },
+  "interaction_decision": {
+    "stage": "stage_1_requirements_table",
+    "decision": "proceed_without_questions",
+    "can_ask_user": true,
+    "reason": "The user resolved all Stage 1 blocking choices for CLI input, completion authority, and MVP boundary.",
+    "question_refs": [],
+    "blocking_refs": [],
+    "source_refs": [
+      "SRC-001",
+      "SRC-002"
+    ]
+  },
+  "requirement_table": [
+    {
+      "row_id": "RT-001",
+      "requirement_ref": "REQ-001",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "A user needs an executor that can run a task from a task description.",
+      "user_value": "The user can submit a task from the command line and receive an execution result.",
+      "mvp_scope": "Provide a local executor CLI that starts one task execution from a task definition file.",
+      "acceptance_summary": "The CLI accepts a task file path and enters the executor flow.",
+      "target_artifact_refs": [
+        "REQ-001",
+        "AC-001",
+        "IN-001",
+        "EXE-001",
+        "OUT-001"
+      ]
+    },
+    {
+      "row_id": "RT-002",
+      "requirement_ref": "REQ-002",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "The executor needs enough task context to act within the intended environment and limits.",
+      "user_value": "Execution respects the task's work environment, permissions, skill configuration, delivery standards, and delivery method.",
+      "mvp_scope": "Parse these task definition sections and reject incomplete task files.",
+      "acceptance_summary": "Missing required task definition fields stop execution with a clear reason.",
+      "target_artifact_refs": [
+        "REQ-002",
+        "AC-002",
+        "IN-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "row_id": "RT-003",
+      "requirement_ref": "REQ-003",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "The executor must reuse the existing ClaudeTmuxAdapter to operate Claude CLI.",
+      "user_value": "The executor avoids reimplementing Claude and tmux control behavior.",
+      "mvp_scope": "Invoke ClaudeTmuxAdapter CLI to start Claude, capture state, send instructions, and read screen content.",
+      "acceptance_summary": "Executor behavior goes through ClaudeTmuxAdapter for Claude session operations.",
+      "target_artifact_refs": [
+        "REQ-003",
+        "AC-003",
+        "EXE-001"
+      ]
+    },
+    {
+      "row_id": "RT-004",
+      "requirement_ref": "REQ-004",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "The executor needs subjective judgment and processing beyond deterministic command execution.",
+      "user_value": "Subjective decisions are delegated to an agent through openclaw rather than hard-coded in the executor.",
+      "mvp_scope": "Invoke openclaw CLI for judgment, processing, and acceptance decisions.",
+      "acceptance_summary": "The executor can call openclaw and use its result to continue or stop.",
+      "target_artifact_refs": [
+        "REQ-004",
+        "AC-004",
+        "EXE-001"
+      ]
+    },
+    {
+      "row_id": "RT-005",
+      "requirement_ref": "REQ-005",
+      "origin": "bounded_inference",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "problem": "The executor must orchestrate openclaw and ClaudeTmuxAdapter into one end-to-end task flow.",
+      "user_value": "The user gets a task executor rather than a set of disconnected command wrappers.",
+      "mvp_scope": "Single-task, local CLI, sequential execution from task load through final acceptance.",
+      "acceptance_summary": "A valid task file can complete loading, agent judgment, Claude execution, observation, acceptance, and final result output.",
+      "target_artifact_refs": [
+        "REQ-005",
+        "AC-005",
+        "EXE-001",
+        "VER-001",
+        "OUT-001"
+      ]
+    },
+    {
+      "row_id": "RT-006",
+      "requirement_ref": "REQ-006",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-002"
+      ],
+      "problem": "The first CLI input contract needs a fixed boundary.",
+      "user_value": "The invocation is simple and stable.",
+      "mvp_scope": "Only accept a task definition file path, for example `executor run <task-file>`.",
+      "acceptance_summary": "Inline task text is not supported in MVP; missing or unreadable files fail before execution.",
+      "target_artifact_refs": [
+        "REQ-006",
+        "AC-006",
+        "IN-001"
+      ]
+    },
+    {
+      "row_id": "RT-007",
+      "requirement_ref": "REQ-007",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-002"
+      ],
+      "problem": "Task completion cannot rely only on Claude screen or process state.",
+      "user_value": "The executor reduces false completion and false failure judgments.",
+      "mvp_scope": "Mechanical status must pass first, then openclaw performs final subjective acceptance against delivery standards.",
+      "acceptance_summary": "A task is complete only when Adapter state is acceptable and openclaw acceptance passes.",
+      "target_artifact_refs": [
+        "REQ-007",
+        "AC-007",
+        "VER-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-008",
+      "requirement_ref": "REQ-008",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-002"
+      ],
+      "problem": "MVP scope needs to exclude recovery, continuation, queueing, and concurrency.",
+      "user_value": "The first version is small enough to implement and evaluate reliably.",
+      "mvp_scope": "Single task, local CLI, sequential execution, execution result, and logs.",
+      "acceptance_summary": "MVP does not include failure recovery, resume, concurrent tasks, or queues.",
+      "target_artifact_refs": [
+        "REQ-008",
+        "AC-008"
+      ]
+    },
+    {
+      "row_id": "RT-009",
+      "requirement_ref": "REQ-009",
+      "origin": "bounded_inference",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "problem": "The user needs evidence of what the executor did and how the final result was judged.",
+      "user_value": "Execution behavior can be inspected, debugged, and reviewed.",
+      "mvp_scope": "Emit a final execution result and readable logs for the single run.",
+      "acceptance_summary": "Each run records key stages, external command outcomes, Claude observations, and final acceptance result.",
+      "target_artifact_refs": [
+        "REQ-009",
+        "AC-009",
+        "OUT-001",
+        "VER-001"
+      ]
+    }
+  ],
+  "core": "CORE-001",
+  "scope": {
+    "in_scope": [
+      "SCOPE-001"
+    ],
+    "out_of_scope": [
+      "OOS-001"
+    ],
+    "mvp_boundary": "MVP provides a single-task local executor CLI that accepts a task definition file, orchestrates openclaw and ClaudeTmuxAdapter sequentially, emits a final execution result, and records readable logs. It excludes inline task text input, recovery, resume, queues, and concurrent execution.",
+    "roadmap": [
+      "PHASE-001"
+    ]
+  },
+  "requirements": [
+    "REQ-001",
+    "REQ-002",
+    "REQ-003",
+    "REQ-004",
+    "REQ-005",
+    "REQ-006",
+    "REQ-007",
+    "REQ-008",
+    "REQ-009"
+  ],
+  "acceptance_criteria": [
+    "AC-001",
+    "AC-002",
+    "AC-003",
+    "AC-004",
+    "AC-005",
+    "AC-006",
+    "AC-007",
+    "AC-008",
+    "AC-009"
+  ],
+  "success_metrics": [
+    "MET-001"
+  ],
+  "implementation_model": {
+    "control_flow": [
+      "FLOW-001"
+    ],
+    "data_flow": [
+      "DATA-001"
+    ],
+    "modules": [
+      "MOD-001",
+      "MOD-002",
+      "MOD-003"
+    ],
+    "technical_decisions": [
+      "TECH-001",
+      "TECH-002"
+    ],
+    "state_transitions": [
+      "STATE-001"
+    ],
+    "data_contracts": [
+      "DCT-001"
+    ]
+  },
+  "agent_execution": {
+    "input_contracts": [
+      "IN-001"
+    ],
+    "execution_rules": [
+      "EXE-001"
+    ],
+    "verification_cases": [
+      "VER-001"
+    ],
+    "output_deliverables": [
+      "OUT-001"
+    ],
+    "stop_conditions": [
+      "STOP-001"
+    ],
+    "done_criteria": [
+      "DONE-001"
+    ]
+  },
+  "risks": [
+    "RISK-001"
+  ],
+  "quality_bars": [
+    "BAR-001"
+  ],
+  "assumptions": [
+    "ASM-001",
+    "ASM-002"
+  ],
+  "open_questions": [],
+  "references": [],
+  "sources": [
+    "SRC-001",
+    "SRC-002"
+  ],
+  "traceability": [
+    "TRACE-001",
+    "TRACE-002",
+    "TRACE-003",
+    "TRACE-004"
+  ],
+  "render_blocks": [],
+  "document_metadata": [
+    "META-001"
+  ],
+  "quality_gates": [
+    "GATE-001"
+  ],
+  "render_status": {
+    "human_prd": "not_requested",
+    "agent_prd": "not_requested"
+  },
+  "objects": {
+    "CORE-001": {
+      "type": "CORE",
+      "payload": {
+        "id": "CORE-001",
+        "product_name": "Executor CLI",
+        "one_line_summary": "Run a structured task definition through Claude CLI by orchestrating openclaw and ClaudeTmuxAdapter.",
+        "target_users": [
+          "command-line users who need agent-assisted local task execution"
+        ],
+        "personas": [],
+        "problem_statement": "Users need a reliable command-line executor that can turn a task definition into one controlled Claude CLI run while respecting environment, permissions, skill configuration, delivery standards, and delivery method.",
+        "value_proposition": "The executor combines openclaw subjective judgment with the existing ClaudeTmuxAdapter session-control capability so users receive a task result, logs, and a traceable completion judgment from one CLI flow.",
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "status": "confirmed",
+        "description": "Build an executor CLI that runs one task from a task definition by orchestrating openclaw and ClaudeTmuxAdapter."
+      }
+    },
+    "USER-001": {
+      "type": "USER",
+      "payload": {
+        "id": "USER-001",
+        "description": "A command-line user who wants to execute a defined task through Claude CLI with agent-assisted judgment."
+      }
+    },
+    "SCOPE-001": {
+      "type": "SCOPE",
+      "payload": {
+        "id": "SCOPE-001",
+        "description": "MVP includes single-task local CLI execution, sequential orchestration, final result output, and logs."
+      }
+    },
+    "OOS-001": {
+      "type": "OOS",
+      "payload": {
+        "id": "OOS-001",
+        "description": "MVP excludes inline task text input, failure recovery, resume, concurrent tasks, and queues."
+      }
+    },
+    "PHASE-001": {
+      "type": "PHASE",
+      "payload": {
+        "id": "PHASE-001",
+        "description": "MVP executor CLI."
+      }
+    },
+    "REQ-001": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-001",
+        "status": "confirmed",
+        "phase": "PHASE-001",
+        "description": "Provide an executor CLI that starts task execution from a task description.",
+        "acceptance_criteria": [
+          "AC-001"
+        ],
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-002": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-002",
+        "status": "confirmed",
+        "phase": "PHASE-001",
+        "description": "Parse task definitions containing work environment, permissions, skill configuration, delivery standards, and delivery method.",
+        "acceptance_criteria": [
+          "AC-002"
+        ],
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-003": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-003",
+        "status": "confirmed",
+        "phase": "PHASE-001",
+        "description": "Use ClaudeTmuxAdapter CLI for Claude CLI session operations.",
+        "acceptance_criteria": [
+          "AC-003"
+        ],
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-004": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-004",
+        "status": "confirmed",
+        "phase": "PHASE-001",
+        "description": "Use openclaw CLI to invoke an agent for subjective judgment and processing.",
+        "acceptance_criteria": [
+          "AC-004"
+        ],
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-005": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-005",
+        "status": "confirmed",
+        "phase": "PHASE-001",
+        "description": "Orchestrate task loading, judgment, Claude execution, observation, acceptance, and result output.",
+        "acceptance_criteria": [
+          "AC-005"
+        ],
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-006": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-006",
+        "status": "confirmed",
+        "phase": "PHASE-001",
+        "description": "Accept only a task definition file path as CLI input in MVP.",
+        "acceptance_criteria": [
+          "AC-006"
+        ],
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-007": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-007",
+        "status": "confirmed",
+        "phase": "PHASE-001",
+        "description": "Use mechanical Adapter state plus openclaw subjective acceptance for final completion judgment.",
+        "acceptance_criteria": [
+          "AC-007"
+        ],
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-008": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-008",
+        "status": "confirmed",
+        "phase": "PHASE-001",
+        "description": "Keep MVP to single-task, local CLI, sequential execution, result output, and logs.",
+        "acceptance_criteria": [
+          "AC-008"
+        ],
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-009": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-009",
+        "status": "confirmed",
+        "phase": "PHASE-001",
+        "description": "Emit readable logs and a final execution result for each run.",
+        "acceptance_criteria": [
+          "AC-009"
+        ],
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "AC-001": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-001",
+        "requirement_id": "REQ-001",
+        "criterion": "Running `executor run <task-file>` starts one executor run for a readable task file.",
+        "description": "Running `executor run <task-file>` starts one executor run for a readable task file."
+      }
+    },
+    "AC-002": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-002",
+        "requirement_id": "REQ-002",
+        "criterion": "The executor rejects a task file missing environment, permissions, skill configuration, delivery standards, or delivery method.",
+        "description": "The executor rejects a task file missing environment, permissions, skill configuration, delivery standards, or delivery method."
+      }
+    },
+    "AC-003": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-003",
+        "requirement_id": "REQ-003",
+        "criterion": "Claude start, instruction send, state capture, and screen read operations are performed through ClaudeTmuxAdapter CLI.",
+        "description": "Claude start, instruction send, state capture, and screen read operations are performed through ClaudeTmuxAdapter CLI."
+      }
+    },
+    "AC-004": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-004",
+        "requirement_id": "REQ-004",
+        "criterion": "The executor can call openclaw CLI for subjective judgment and consume its result.",
+        "description": "The executor can call openclaw CLI for subjective judgment and consume its result."
+      }
+    },
+    "AC-005": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-005",
+        "requirement_id": "REQ-005",
+        "criterion": "A valid task file completes the single-task sequential flow or stops with a recorded reason.",
+        "description": "A valid task file completes the single-task sequential flow or stops with a recorded reason."
+      }
+    },
+    "AC-006": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-006",
+        "requirement_id": "REQ-006",
+        "criterion": "Inline task text is rejected or unsupported in MVP.",
+        "description": "Inline task text is rejected or unsupported in MVP."
+      }
+    },
+    "AC-007": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-007",
+        "requirement_id": "REQ-007",
+        "criterion": "The executor marks success only after acceptable Adapter state and passing openclaw acceptance.",
+        "description": "The executor marks success only after acceptable Adapter state and passing openclaw acceptance."
+      }
+    },
+    "AC-008": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-008",
+        "requirement_id": "REQ-008",
+        "criterion": "MVP contains no recovery, resume, concurrency, or queue behavior.",
+        "description": "MVP contains no recovery, resume, concurrency, or queue behavior."
+      }
+    },
+    "AC-009": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-009",
+        "requirement_id": "REQ-009",
+        "criterion": "Each run writes logs for key stages, external command outcomes, observations, and final acceptance.",
+        "description": "Each run writes logs for key stages, external command outcomes, observations, and final acceptance."
+      }
+    },
+    "MET-001": {
+      "type": "MET",
+      "payload": {
+        "id": "MET-001",
+        "description": "A user can run one valid task definition through the executor and inspect the final result and logs."
+      }
+    },
+    "FLOW-001": {
+      "type": "FLOW",
+      "payload": {
+        "id": "FLOW-001",
+        "description": "Load task file, validate input, call openclaw for judgment, start Claude through Adapter, send instructions, observe state, run final acceptance, output result and logs."
+      }
+    },
+    "DATA-001": {
+      "type": "DATA",
+      "payload": {
+        "id": "DATA-001",
+        "description": "Task definition data flows into executor validation, openclaw prompts, Claude instructions, Adapter observations, acceptance judgment, result, and logs."
+      }
+    },
+    "MOD-001": {
+      "type": "MOD",
+      "payload": {
+        "id": "MOD-001",
+        "description": "Executor CLI and orchestration module."
+      }
+    },
+    "MOD-002": {
+      "type": "MOD",
+      "payload": {
+        "id": "MOD-002",
+        "description": "ClaudeTmuxAdapter command integration boundary."
+      }
+    },
+    "MOD-003": {
+      "type": "MOD",
+      "payload": {
+        "id": "MOD-003",
+        "description": "openclaw command integration boundary."
+      }
+    },
+    "TECH-001": {
+      "type": "TECH",
+      "payload": {
+        "id": "TECH-001",
+        "description": "Executor is a local CLI program."
+      }
+    },
+    "TECH-002": {
+      "type": "TECH",
+      "payload": {
+        "id": "TECH-002",
+        "description": "Executor uses existing openclaw and ClaudeTmuxAdapter command-line capabilities rather than redesigning them."
+      }
+    },
+    "STATE-001": {
+      "type": "STATE",
+      "payload": {
+        "id": "STATE-001",
+        "description": "Run states include loaded, validated, judging, claude_started, instructing, observing, accepting, completed, and failed."
+      }
+    },
+    "DCT-001": {
+      "type": "DCT",
+      "payload": {
+        "id": "DCT-001",
+        "description": "Task file must express work environment, permissions, skill configuration, delivery standards, and delivery method."
+      }
+    },
+    "IN-001": {
+      "type": "IN",
+      "payload": {
+        "id": "IN-001",
+        "description": "Input is a task definition file path supplied to the executor CLI."
+      }
+    },
+    "EXE-001": {
+      "type": "EXE",
+      "payload": {
+        "id": "EXE-001",
+        "description": "Execute one task sequentially by validating input, invoking openclaw for subjective steps, and invoking ClaudeTmuxAdapter for Claude CLI operations."
+      }
+    },
+    "VER-001": {
+      "type": "VER",
+      "payload": {
+        "id": "VER-001",
+        "description": "Verify with a valid task file, an invalid task file, Adapter state handling, openclaw acceptance handling, and MVP boundary checks."
+      }
+    },
+    "OUT-001": {
+      "type": "OUT",
+      "payload": {
+        "id": "OUT-001",
+        "description": "Outputs are final execution result and readable logs for the run."
+      }
+    },
+    "STOP-001": {
+      "type": "STOP",
+      "payload": {
+        "id": "STOP-001",
+        "status": "defined",
+        "description": "Stop when the task file is missing required fields, required external commands are unavailable, Adapter state is unacceptable, openclaw rejects acceptance, or execution reaches an unrecoverable command failure."
+      }
+    },
+    "DONE-001": {
+      "type": "DONE",
+      "payload": {
+        "id": "DONE-001",
+        "description": "Done means the single run has an acceptable mechanical Adapter state, openclaw acceptance passes, final result is emitted, and logs are written."
+      }
+    },
+    "RISK-001": {
+      "type": "RISK",
+      "payload": {
+        "id": "RISK-001",
+        "description": "The exact CLI contracts for openclaw and ClaudeTmuxAdapter are assumed available but not specified in Stage 1."
+      }
+    },
+    "BAR-001": {
+      "type": "BAR",
+      "payload": {
+        "id": "BAR-001",
+        "description": "Executor behavior must be observable, bounded to MVP, and traceable to task definition and external command outcomes."
+      }
+    },
+    "ASM-001": {
+      "type": "ASM",
+      "payload": {
+        "id": "ASM-001",
+        "status": "deferred",
+        "blocks_human_prd": false,
+        "blocks_agent_prd": false,
+        "description": "The exact task file schema can be hardened during PRD rendering, as long as it contains the confirmed required sections."
+      }
+    },
+    "ASM-002": {
+      "type": "ASM",
+      "payload": {
+        "id": "ASM-002",
+        "status": "deferred",
+        "blocks_human_prd": false,
+        "blocks_agent_prd": false,
+        "description": "openclaw CLI and ClaudeTmuxAdapter CLI are available existing components."
+      }
+    },
+    "SRC-001": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-001",
+        "source_type": "user_input",
+        "content": "User described an executor CLI that takes a task description with work environment, permissions, skill configuration, delivery standards, and method; uses openclaw CLI for subjective agent judgment; uses ClaudeTmuxAdapter CLI to launch Claude, capture state, send instructions, and read screen content; and completes the executor feature for command-line task execution."
+      }
+    },
+    "SRC-002": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-002",
+        "source_type": "user_confirmation",
+        "content": "User selected: CLI input is only a task definition file path; completion judgment combines acceptable mechanical state with openclaw final subjective acceptance; MVP is single-task local CLI sequential execution with result and logs."
+      }
+    },
+    "TRACE-001": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-001",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-005",
+        "relation": "inferred_from"
+      }
+    },
+    "TRACE-002": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-002",
+        "from_ref": "SRC-002",
+        "to_ref": "REQ-006",
+        "relation": "confirmed_by"
+      }
+    },
+    "TRACE-003": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-003",
+        "from_ref": "SRC-002",
+        "to_ref": "REQ-007",
+        "relation": "confirmed_by"
+      }
+    },
+    "TRACE-004": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-004",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-009",
+        "relation": "inferred_from"
+      }
+    },
+    "META-001": {
+      "type": "META",
+      "payload": {
+        "id": "META-001",
+        "description": "Stage 1 requirement-table-only live run for executor idea."
+      }
+    },
+    "GATE-001": {
+      "type": "GATE",
+      "payload": {
+        "id": "GATE-001",
+        "status": "pass",
+        "blocking": false,
+        "affected_targets": [
+          "human_prd",
+          "agent_prd"
+        ],
+        "evidence_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "message": "Stage 1 blockers were resolved by closed-choice user confirmation.",
+        "required_fix": ""
+      }
+    }
+  },
+  "object_index": {
+    "CORE": [
+      "CORE-001"
+    ],
+    "USER": [
+      "USER-001"
+    ],
+    "SCOPE": [
+      "SCOPE-001"
+    ],
+    "OOS": [
+      "OOS-001"
+    ],
+    "PHASE": [
+      "PHASE-001"
+    ],
+    "REQ": [
+      "REQ-001",
+      "REQ-002",
+      "REQ-003",
+      "REQ-004",
+      "REQ-005",
+      "REQ-006",
+      "REQ-007",
+      "REQ-008",
+      "REQ-009"
+    ],
+    "AC": [
+      "AC-001",
+      "AC-002",
+      "AC-003",
+      "AC-004",
+      "AC-005",
+      "AC-006",
+      "AC-007",
+      "AC-008",
+      "AC-009"
+    ],
+    "MET": [
+      "MET-001"
+    ],
+    "FLOW": [
+      "FLOW-001"
+    ],
+    "DATA": [
+      "DATA-001"
+    ],
+    "MOD": [
+      "MOD-001",
+      "MOD-002",
+      "MOD-003"
+    ],
+    "TECH": [
+      "TECH-001",
+      "TECH-002"
+    ],
+    "STATE": [
+      "STATE-001"
+    ],
+    "DCT": [
+      "DCT-001"
+    ],
+    "IN": [
+      "IN-001"
+    ],
+    "EXE": [
+      "EXE-001"
+    ],
+    "VER": [
+      "VER-001"
+    ],
+    "OUT": [
+      "OUT-001"
+    ],
+    "STOP": [
+      "STOP-001"
+    ],
+    "DONE": [
+      "DONE-001"
+    ],
+    "RISK": [
+      "RISK-001"
+    ],
+    "BAR": [
+      "BAR-001"
+    ],
+    "ASM": [
+      "ASM-001",
+      "ASM-002"
+    ],
+    "Q": [],
+    "REF": [],
+    "SRC": [
+      "SRC-001",
+      "SRC-002"
+    ],
+    "TRACE": [
+      "TRACE-001",
+      "TRACE-002",
+      "TRACE-003",
+      "TRACE-004"
+    ],
+    "RB": [],
+    "META": [
+      "META-001"
+    ],
+    "GATE": [
+      "GATE-001"
+    ]
+  },
+  "contract_summary": {
+    "ready_targets": [],
+    "blocked_targets": [],
+    "stage_ready": [
+      "stage_1_requirements_table"
+    ],
+    "stage_blocked": []
+  },
+  "traceability_summary": {
+    "render_traceability": [],
+    "requirement_traceability": [
+      "TRACE-001",
+      "TRACE-002",
+      "TRACE-003",
+      "TRACE-004"
+    ],
+    "decision_traceability": [
+      {
+        "decision_type": "user_confirmation",
+        "decision_ref": "SRC-002",
+        "status": "confirmed",
+        "affected_refs": [
+          "REQ-006",
+          "REQ-007",
+          "REQ-008"
+        ]
+      }
+    ]
+  },
+  "gate_report": [
+    {
+      "gate_id": "GATE-001",
+      "status": "pass",
+      "blocking": false,
+      "affected_targets": [
+        "human_prd",
+        "agent_prd"
+      ],
+      "evidence_refs": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "message": "Stage 1 blockers were resolved by closed-choice user confirmation.",
+      "required_fix": ""
+    }
+  ],
+  "next_actions": [
+    "Render human-prd.md and agent-prd.md from this contract in Stage 2.",
+    "Do not enter Stage 3 until Human PRD approval is recorded as SRC.source_type=user_confirmation."
+  ]
+}

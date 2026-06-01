@@ -1,0 +1,97 @@
+{
+  "planning_status": "blocked",
+  "output_root": "tasks/development",
+  "source_inventory": [
+    {"path": "docs/prd.md", "kind": "prd"},
+    {"path": "docs/hld.md", "kind": "hld"}
+  ],
+  "prd_hld_lld_interpretation": {},
+  "development_scope": {},
+  "project_stack": {},
+  "planning_harness_model": {
+    "target_type": "harness-workflow",
+    "quality_standard": "review-gated-branching-dag-planning",
+    "stages": ["STAGE-001", "STAGE-002", "STAGE-003", "STAGE-004"]
+  },
+  "phase_reports": [
+    {
+      "stage_id": "STAGE-001",
+      "stage_name": "Overall Planning",
+      "purpose": "Create source-backed whole-plan outline.",
+      "inputs": ["docs/prd.md", "docs/hld.md"],
+      "outputs": [],
+      "review_checks": ["source_readiness"],
+      "status": "blocked",
+      "blocking_findings": ["Required LLD is missing."]
+    },
+    {
+      "stage_id": "STAGE-002",
+      "stage_name": "Independent Task Formation",
+      "purpose": "Create cohesive task contracts.",
+      "inputs": [],
+      "outputs": [],
+      "review_checks": ["task_cohesion"],
+      "status": "blocked",
+      "blocking_findings": ["Cannot form tasks without LLD."]
+    },
+    {
+      "stage_id": "STAGE-003",
+      "stage_name": "Task Logic And Completeness Review",
+      "purpose": "Review every task contract.",
+      "inputs": [],
+      "outputs": [],
+      "review_checks": ["independent_acceptance"],
+      "status": "blocked",
+      "blocking_findings": ["No task contracts are safe to review."]
+    },
+    {
+      "stage_id": "STAGE-004",
+      "stage_name": "Whole-Plan Integrity And Dependency Review",
+      "purpose": "Review DAG, coverage, and final acceptance.",
+      "inputs": [],
+      "outputs": [],
+      "review_checks": ["dag_soundness"],
+      "status": "blocked",
+      "blocking_findings": ["No DAG can be produced."]
+    }
+  ],
+  "tasks": [],
+  "dag": {
+    "nodes": [],
+    "edges": [],
+    "parallel_groups": [],
+    "execution_order": [],
+    "cycle_check": {
+      "status": "blocked",
+      "cycles": []
+    }
+  },
+  "task_descriptions": [],
+  "fixtures": [],
+  "coverage_matrix": [],
+  "delivery_acceptance": {},
+  "task_logic_review": {
+    "status": "blocked",
+    "reviewed_task_ids": [],
+    "checks": [],
+    "blocking_findings": ["No task contracts are safe to review."],
+    "required_revisions": ["Provide LLD and interface-level acceptance details."]
+  },
+  "plan_integrity_review": {
+    "status": "blocked",
+    "checks": [],
+    "coverage_findings": [],
+    "dependency_findings": [],
+    "parallel_safety_findings": [],
+    "execution_order_findings": [],
+    "delivery_acceptance_findings": [],
+    "blocking_findings": ["No DAG can be produced."],
+    "required_revisions": ["Provide LLD and interface-level acceptance details."]
+  },
+  "planning_gate_report": [
+    {"gate": "source_readiness", "status": "blocked"}
+  ],
+  "external_dependencies": [],
+  "open_questions": ["Where is the LLD?"],
+  "required_fixes": ["Provide docs/lld.md with interface-level design and acceptance details."]
+}

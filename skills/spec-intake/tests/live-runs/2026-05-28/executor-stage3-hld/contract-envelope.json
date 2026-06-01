@@ -1,0 +1,1339 @@
+{
+  "contract_version": "1.8",
+  "intake_id": "INTAKE-EXECUTOR-MINIMAL-001",
+  "source_idea": {
+    "raw_idea": "We need to develop an executor. It takes an input task description, where the basic task definition contains work environment, permissions, and skill configuration. Through an already formed ClaudeTmuxAdapter component, it calls Claude CLI.",
+    "source_context_refs": [
+      "SRC-001",
+      "SRC-002",
+      "SRC-003",
+      "SRC-004",
+      "SRC-005",
+      "SRC-006"
+    ],
+    "created_at": "2026-05-27T00:00:00+08:00"
+  },
+  "core": "CORE-001",
+  "scope": {
+    "in_scope": [
+      "SCOPE-001"
+    ],
+    "out_of_scope": [],
+    "mvp_boundary": "Executor accepts a task description containing work environment, permissions, and skill configuration, exposes a local CLI boundary, uses documented ClaudeTmuxAdapter methods to execute and monitor Claude CLI, invokes a progress-judgment skill through opencalw when Claude is idle, emits structured JSON plus execution log and monitoring evidence, runs mechanical delivery checks before handoff, and relies on separate agent or reviewer acceptance.",
+    "roadmap": [
+      "PHASE-001"
+    ]
+  },
+  "requirements": [
+    "REQ-001",
+    "REQ-002",
+    "REQ-003",
+    "REQ-004",
+    "REQ-005",
+    "REQ-006",
+    "REQ-007",
+    "REQ-008"
+  ],
+  "acceptance_criteria": [
+    "AC-001",
+    "AC-002",
+    "AC-003",
+    "AC-004",
+    "AC-005",
+    "AC-006",
+    "AC-007",
+    "AC-008"
+  ],
+  "success_metrics": [],
+  "implementation_model": {
+    "control_flow": [
+      "FLOW-001"
+    ],
+    "data_flow": [
+      "DATA-001"
+    ],
+    "modules": [
+      "MOD-001",
+      "MOD-002",
+      "MOD-003"
+    ],
+    "technical_decisions": [
+      "TECH-001",
+      "TECH-002"
+    ],
+    "state_transitions": [],
+    "data_contracts": [
+      "DCT-001"
+    ]
+  },
+  "agent_execution": {
+    "input_contracts": [
+      "IN-001"
+    ],
+    "execution_rules": [
+      "EXE-001"
+    ],
+    "verification_cases": [
+      "VER-001"
+    ],
+    "output_deliverables": [
+      "OUT-001"
+    ],
+    "stop_conditions": [
+      "STOP-001"
+    ],
+    "done_criteria": [
+      "DONE-001"
+    ]
+  },
+  "risks": [
+    "RISK-001"
+  ],
+  "quality_bars": [
+    "BAR-001"
+  ],
+  "assumptions": [
+    "ASM-001"
+  ],
+  "open_questions": [
+    "Q-001",
+    "Q-002",
+    "Q-003"
+  ],
+  "references": [],
+  "sources": [
+    "SRC-001",
+    "SRC-002",
+    "SRC-003",
+    "SRC-004",
+    "SRC-005",
+    "SRC-006",
+    "SRC-007",
+    "SRC-008",
+    "SRC-009"
+  ],
+  "traceability": [
+    "TRACE-001",
+    "TRACE-002",
+    "TRACE-003",
+    "TRACE-004",
+    "TRACE-005",
+    "TRACE-006",
+    "TRACE-007",
+    "TRACE-008"
+  ],
+  "render_blocks": [
+    "RB-001",
+    "RB-002"
+  ],
+  "document_metadata": [
+    "META-001"
+  ],
+  "quality_gates": [
+    "GATE-001"
+  ],
+  "render_status": {
+    "human_prd": "review_ready",
+    "agent_prd": "execution_ready"
+  },
+  "objects": {
+    "CORE-001": {
+      "type": "CORE",
+      "payload": {
+        "id": "CORE-001",
+        "product_name": "Executor",
+        "one_line_summary": "An executor that runs task descriptions through Claude CLI by using ClaudeTmuxAdapter.",
+        "target_users": [
+          "command-line operators who need local agent-assisted task execution"
+        ],
+        "personas": [],
+        "problem_statement": "Users need a command-driven executor that can translate a structured task description into Claude CLI execution.",
+        "value_proposition": "Reuse the existing ClaudeTmuxAdapter instead of rebuilding Claude session control.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "assumption_refs": [
+          "ASM-001"
+        ],
+        "status": "draft"
+      }
+    },
+    "SCOPE-001": {
+      "type": "SCOPE",
+      "payload": {
+        "id": "SCOPE-001",
+        "statement": "Build the executor capability around task descriptions and ClaudeTmuxAdapter-based Claude CLI invocation.",
+        "phase": "PHASE-001",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "PHASE-001": {
+      "type": "PHASE",
+      "payload": {
+        "id": "PHASE-001",
+        "name": "Executor MVP"
+      }
+    },
+    "REQ-001": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-001",
+        "title": "Create executor",
+        "description": "Develop an executor that runs work from an input task description.",
+        "user_value": "A user can provide a task description and have the executor start the work.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "draft",
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-002": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-002",
+        "title": "Parse task definition context",
+        "description": "The task description includes a basic task definition with work environment, permissions, and skill configuration.",
+        "user_value": "Claude execution receives the intended context and constraints.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-002"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "draft",
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-003": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-003",
+        "title": "Use ClaudeTmuxAdapter",
+        "description": "The executor calls Claude CLI through an already formed ClaudeTmuxAdapter component.",
+        "user_value": "The executor reuses the existing Claude CLI session adapter.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-003"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "draft",
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-004": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-004",
+        "title": "Confirm executor invocation boundary",
+        "description": "The executor's user-facing invocation method is a local CLI command such as `executor run <task-file>`.",
+        "user_value": "The first implementation has a stable command and input contract.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-004"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "status": "draft",
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-005": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-005",
+        "title": "Confirm delivery and completion contract",
+        "description": "The executor produces a structured JSON result plus execution log, and task completion is judged by a separate agent or reviewer against task expectations.",
+        "user_value": "The executor can determine when a task is complete without inventing success criteria.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-005"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002"
+        ],
+        "status": "draft",
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-006": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-006",
+        "title": "Execute and monitor through ClaudeTmuxAdapter",
+        "description": "The executor must use documented ClaudeTmuxAdapter methods for Claude CLI execution and monitoring: launch via the adapter launch command or launch capability, address the returned ClaudeTmuxTarget, call detect_state to observe busy/idle/blocked/exited/unknown, call capture_screen to capture current screen content, call send_input to send task and follow-up instructions, and preserve adapter outputs as execution evidence.",
+        "user_value": "The executor can manage Claude-backed work transparently instead of only firing a one-time CLI invocation.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-006"
+        ],
+        "source_refs": [
+          "SRC-003",
+          "SRC-004",
+          "SRC-005",
+          "SRC-006"
+        ],
+        "status": "confirmed",
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-007": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-007",
+        "title": "Idle-state progress judgment skill",
+        "description": "During periodic monitoring, when ClaudeTmuxAdapter reports Claude CLI as idle, the executor must capture the current screen and invoke a dedicated progress-judgment skill through opencalw. The skill receives screen data and execution context, judges progress, and returns either a next instruction to send through ClaudeTmuxAdapter, a deliverable-ready decision, or a no-action/blocked outcome.",
+        "user_value": "The executor can continue subjective task steering without embedding semantic judgment inside ClaudeTmuxAdapter.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-007"
+        ],
+        "source_refs": [
+          "SRC-004",
+          "SRC-005"
+        ],
+        "status": "confirmed",
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "REQ-008": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-008",
+        "title": "Mechanical delivery check before handoff",
+        "description": "When the progress-judgment skill determines that Claude CLI has finished and the task may be delivered, the executor must perform a mechanical delivery check before handoff. The check verifies required output presence, structured JSON result, execution log, adapter evidence, progress-skill decision evidence, and stop/done consistency without making semantic success claims.",
+        "user_value": "The executor can prevent incomplete or evidence-poor delivery packages from being handed to the reviewer.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-008"
+        ],
+        "source_refs": [
+          "SRC-004"
+        ],
+        "status": "confirmed",
+        "verification_refs": [
+          "VER-001"
+        ]
+      }
+    },
+    "AC-001": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-001",
+        "requirement_id": "REQ-001",
+        "criterion": "The executor can start a run from a provided task description after the invocation boundary is confirmed.",
+        "verification_method": "inspection",
+        "blocking": false
+      }
+    },
+    "AC-002": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-002",
+        "requirement_id": "REQ-002",
+        "criterion": "The task definition exposes work environment, permissions, and skill configuration to the executor.",
+        "verification_method": "inspection",
+        "blocking": false
+      }
+    },
+    "AC-003": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-003",
+        "requirement_id": "REQ-003",
+        "criterion": "Claude CLI invocation is routed through ClaudeTmuxAdapter instead of direct Claude process control.",
+        "verification_method": "inspection",
+        "blocking": false
+      }
+    },
+    "AC-004": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-004",
+        "requirement_id": "REQ-004",
+        "criterion": "The MVP executor exposes a local CLI boundary such as `executor run <task-file>`.",
+        "verification_method": "user_confirmation",
+        "blocking": true
+      }
+    },
+    "AC-005": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-005",
+        "requirement_id": "REQ-005",
+        "criterion": "The executor emits a structured JSON result plus execution log, and completion is accepted by a separate agent or reviewer.",
+        "verification_method": "user_confirmation",
+        "blocking": true
+      }
+    },
+    "AC-006": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-006",
+        "requirement_id": "REQ-006",
+        "criterion": "During a run, executor uses ClaudeTmuxAdapter documented methods or command-equivalent capabilities to launch Claude CLI, detect state, capture screen content, send instructions, continue monitoring until stop or completion handoff, and include adapter outputs in execution evidence.",
+        "verification_method": "inspection",
+        "blocking": true
+      }
+    },
+    "AC-007": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-007",
+        "requirement_id": "REQ-007",
+        "criterion": "When a periodic adapter status check returns idle, executor captures the current screen, calls the opencalw progress-judgment skill with screen data and context, and sends any returned next instruction through ClaudeTmuxAdapter send_input; if the skill returns deliverable_ready, executor moves to mechanical delivery check instead of sending more input.",
+        "verification_method": "inspection",
+        "blocking": true
+      }
+    },
+    "AC-008": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-008",
+        "requirement_id": "REQ-008",
+        "criterion": "Before handoff, executor performs a mechanical delivery check covering structured JSON result, execution log, adapter screen/state/input evidence, progress-judgment decision evidence, and stop/done consistency; semantic completion remains reserved for the separate agent or reviewer.",
+        "verification_method": "inspection",
+        "blocking": true
+      }
+    },
+    "FLOW-001": {
+      "type": "FLOW",
+      "payload": {
+        "id": "FLOW-001",
+        "description": "Load task description, extract context, launch Claude CLI through ClaudeTmuxAdapter, send the initial task instruction, periodically call detect_state, capture screen on idle, invoke the opencalw progress-judgment skill, send any returned next instruction, run mechanical delivery checks when deliverable_ready is returned, emit JSON and logs, then await separate acceptance before declaring readiness."
+      }
+    },
+    "DATA-001": {
+      "type": "DATA",
+      "payload": {
+        "id": "DATA-001",
+        "description": "Task definition data includes work environment, permissions, and skill configuration; execution evidence includes ClaudeTmuxTarget, ScreenSnapshot, ClaudeTmuxState, InputReceipt, progress-judgment skill input/output, mechanical delivery-check result, structured JSON result, and execution log."
+      }
+    },
+    "MOD-001": {
+      "type": "MOD",
+      "payload": {
+        "id": "MOD-001",
+        "description": "Executor orchestration module."
+      }
+    },
+    "MOD-002": {
+      "type": "MOD",
+      "payload": {
+        "id": "MOD-002",
+        "description": "ClaudeTmuxAdapter integration boundary for Claude CLI launch, target addressing, detect_state, capture_screen, send_input, read_output when needed, and adapter evidence preservation."
+      }
+    },
+    "MOD-003": {
+      "type": "MOD",
+      "payload": {
+        "id": "MOD-003",
+        "description": "Progress-judgment skill invoked through opencalw. It receives idle-state screen data and execution context, performs subjective progress assessment, and returns next_instruction, deliverable_ready, no_action, or blocked without replacing mechanical delivery checks or reviewer acceptance."
+      }
+    },
+    "TECH-001": {
+      "type": "TECH",
+      "payload": {
+        "id": "TECH-001",
+        "description": "Executor must use ClaudeTmuxAdapter documented interface semantics for Claude CLI execution control and monitoring: capture_screen, send_input, detect_state, read_output when needed, and the adapter launch capability or command-equivalent launch path described by the adapter PRD. Direct Claude process control is outside scope."
+      }
+    },
+    "TECH-002": {
+      "type": "TECH",
+      "payload": {
+        "id": "TECH-002",
+        "description": "Subjective progress judgment must be implemented as a dedicated skill invoked through opencalw from the executor monitoring loop; ClaudeTmuxAdapter state detection remains mechanical and must not use LLM or semantic task inference."
+      }
+    },
+    "DCT-001": {
+      "type": "DCT",
+      "payload": {
+        "id": "DCT-001",
+        "description": "Task description contains work environment, permissions, and skill configuration."
+      }
+    },
+    "IN-001": {
+      "type": "IN",
+      "payload": {
+        "id": "IN-001",
+        "description": "Input is a task description containing work environment, permissions, skill configuration, adapter launch/config context, and progress-judgment skill configuration sufficient for opencalw invocation."
+      }
+    },
+    "EXE-001": {
+      "type": "EXE",
+      "payload": {
+        "id": "EXE-001",
+        "description": "Run one local CLI invocation, load the task file, pass task context to Claude through ClaudeTmuxAdapter, launch Claude CLI and retain ClaudeTmuxTarget, send the initial task instruction, periodically call detect_state, continue waiting while busy, capture_screen when idle, invoke the opencalw progress-judgment skill with screen data, send any next_instruction through send_input, move to mechanical delivery check when deliverable_ready is returned, collect all adapter and skill evidence, and hand the checked result to a separate agent or reviewer for acceptance."
+      }
+    },
+    "VER-001": {
+      "type": "VER",
+      "payload": {
+        "id": "VER-001",
+        "description": "Verify local CLI invocation, task context parsing, ClaudeTmuxAdapter launch/target capture, detect_state polling, busy wait behavior, idle capture_screen behavior, opencalw progress-judgment skill invocation, next_instruction send_input behavior, deliverable_ready transition, mechanical delivery check, structured JSON result output, execution log output, and separate agent or reviewer acceptance."
+      }
+    },
+    "OUT-001": {
+      "type": "OUT",
+      "payload": {
+        "id": "OUT-001",
+        "description": "MVP output is a structured JSON result plus execution log; the log must include adapter monitoring observations, progress-judgment skill decisions, sent next instructions, and mechanical delivery-check evidence sufficient for reviewer inspection."
+      }
+    },
+    "STOP-001": {
+      "type": "STOP",
+      "payload": {
+        "id": "STOP-001",
+        "status": "defined",
+        "description": "Stop when task file input is unavailable, task context is invalid, ClaudeTmuxAdapter cannot launch, address, control, or observe Claude CLI, detect_state is unknown without sufficient evidence, screen content cannot be captured, monitoring evidence is stale or unavailable, opencalw progress-judgment skill invocation fails, required next instruction cannot be sent, mechanical delivery check fails, or separate agent/reviewer acceptance fails."
+      }
+    },
+    "DONE-001": {
+      "type": "DONE",
+      "payload": {
+        "id": "DONE-001",
+        "description": "Done means the executor has completed the local CLI run, captured adapter state and screen-content evidence, recorded progress-judgment skill decisions, passed mechanical delivery checks, emitted structured JSON and logs, and received completion acceptance from a separate agent or reviewer."
+      }
+    },
+    "RISK-001": {
+      "type": "RISK",
+      "payload": {
+        "id": "RISK-001",
+        "description": "Executor readiness could be overclaimed if CLI shape, delivery output, or completion authority are invented."
+      }
+    },
+    "BAR-001": {
+      "type": "BAR",
+      "payload": {
+        "id": "BAR-001",
+        "description": "Do not render ready PRDs or HLD until unresolved execution and delivery decisions are confirmed."
+      }
+    },
+    "ASM-001": {
+      "type": "ASM",
+      "payload": {
+        "id": "ASM-001",
+        "status": "deferred",
+        "blocks_human_prd": false,
+        "blocks_agent_prd": false,
+        "description": "ClaudeTmuxAdapter is available and already formed, as stated by the user."
+      }
+    },
+    "Q-001": {
+      "type": "Q",
+      "payload": {
+        "id": "Q-001",
+        "question": "Which executor invocation boundary should Stage 1 use?",
+        "impact": "Human PRD and Agent PRD cannot be review-ready without a stable user-facing entry point.",
+        "owner": "user",
+        "phase": "PHASE-001",
+        "blocks_human_prd": true,
+        "blocks_agent_prd": true,
+        "status": "resolved",
+        "resolution_refs": [
+          "SRC-002"
+        ],
+        "question_type": "single_choice",
+        "options": [
+          "A. Local CLI only, for example `executor run <task-file>`.",
+          "B. Local CLI plus library/API entry point.",
+          "C. Keep blocked until the invocation boundary is specified."
+        ]
+      }
+    },
+    "Q-002": {
+      "type": "Q",
+      "payload": {
+        "id": "Q-002",
+        "question": "Which delivery output should the executor produce in the MVP?",
+        "impact": "Agent PRD cannot be execution-ready without output deliverables.",
+        "owner": "user",
+        "phase": "PHASE-001",
+        "blocks_human_prd": true,
+        "blocks_agent_prd": true,
+        "status": "resolved",
+        "resolution_refs": [
+          "SRC-002"
+        ],
+        "question_type": "single_choice",
+        "options": [
+          "A. Final textual result plus execution log.",
+          "B. Structured JSON result plus execution log.",
+          "C. Keep blocked until delivery output is specified."
+        ]
+      }
+    },
+    "Q-003": {
+      "type": "Q",
+      "payload": {
+        "id": "Q-003",
+        "question": "Who is authoritative for deciding task completion?",
+        "impact": "Done criteria and verification cannot be made ready without this decision.",
+        "owner": "user",
+        "phase": "PHASE-001",
+        "blocks_human_prd": true,
+        "blocks_agent_prd": true,
+        "status": "resolved",
+        "resolution_refs": [
+          "SRC-002"
+        ],
+        "question_type": "single_choice",
+        "options": [
+          "A. ClaudeTmuxAdapter process/screen state only.",
+          "B. A separate agent or reviewer validates completion against task expectations.",
+          "C. Keep blocked until completion authority is specified."
+        ]
+      }
+    },
+    "SRC-001": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-001",
+        "source_type": "user_input",
+        "content": "We need to develop an executor. It takes an input task description, where the basic task definition contains work environment, permissions, and skill configuration. Through an already formed ClaudeTmuxAdapter component, it calls Claude CLI.",
+        "label": "Original user idea"
+      }
+    },
+    "SRC-002": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-002",
+        "source_type": "user_confirmation",
+        "content": "User selected Q-001=A: local CLI only, for example `executor run <task-file>`; Q-002=B: structured JSON result plus execution log; Q-003=B: a separate agent or reviewer validates completion against task expectations.",
+        "label": "Closed-choice Stage 1 confirmation"
+      }
+    },
+    "SRC-003": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-003",
+        "source_type": "user_confirmation",
+        "content": "Stage 2 PRD review feedback: the PRD must explicitly describe and require executor calling ClaudeTmuxAdapter for execution and monitoring, including launching or attaching Claude CLI, sending instructions, capturing current state, capturing screen content, monitoring progress, and using these observations as execution evidence.",
+        "label": "Stage 2 review feedback on adapter execution monitoring"
+      }
+    },
+    "SRC-004": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-004",
+        "source_type": "user_confirmation",
+        "content": "Stage 2 PRD review feedback: the implementation plan must explicitly show ClaudeTmuxAdapter startup, status retrieval, and screen capture methods; periodic monitoring must check Claude CLI state through ClaudeTmuxAdapter; when Claude CLI is idle, executor must capture the current screen, pass the screen data to opencalw for progress judgment and next instruction generation through a new skill, execute any returned next instruction, and run mechanical delivery checks when Claude CLI has finished and can be delivered.",
+        "label": "Stage 2 review feedback on detailed adapter monitoring loop"
+      }
+    },
+    "SRC-005": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-005",
+        "source_type": "local_file",
+        "target": "C:/Users/54256213/Documents/github/claude-tmux-adapter/README.md",
+        "content": "ClaudeTmuxAdapter README defines mechanical interfaces capture_screen, send_input, detect_state, read_output, interrupt, workspace/config inspection, ScreenSnapshot, InputReceipt, ClaudeTmuxState, and evidence files; it states state observation is mechanical and does not prove task completion.",
+        "label": "ClaudeTmuxAdapter component README"
+      }
+    },
+    "SRC-006": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-006",
+        "source_type": "local_file",
+        "target": "C:/Users/54256213/Documents/github/claude-tmux-adapter/docs/agent-prd.md",
+        "content": "Claude Tmux CLI Adapter Agent PRD defines launch, capture, status, input, and termination command scope; launch returns tmux session id, status detection compares structured screens, input waits one second and captures confirmation, and status classification must remain mechanical.",
+        "label": "ClaudeTmuxAdapter Agent PRD"
+      }
+    },
+    "TRACE-001": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-001",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-001",
+        "relation": "stated_by"
+      }
+    },
+    "TRACE-002": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-002",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-002",
+        "relation": "stated_by"
+      }
+    },
+    "TRACE-003": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-003",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-003",
+        "relation": "stated_by"
+      }
+    },
+    "TRACE-004": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-004",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-004",
+        "relation": "inferred_from"
+      }
+    },
+    "TRACE-005": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-005",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-005",
+        "relation": "inferred_from"
+      }
+    },
+    "TRACE-006": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-006",
+        "from_ref": "SRC-003",
+        "to_ref": "REQ-006",
+        "relation": "confirmed_by"
+      }
+    },
+    "TRACE-007": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-007",
+        "from_ref": "SRC-004",
+        "to_ref": "REQ-007",
+        "relation": "confirmed_by"
+      }
+    },
+    "TRACE-008": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-008",
+        "from_ref": "SRC-004",
+        "to_ref": "REQ-008",
+        "relation": "confirmed_by"
+      }
+    },
+    "RB-001": {
+      "type": "RB",
+      "payload": {
+        "id": "RB-001",
+        "target": "human_prd",
+        "section": "Human PRD brief",
+        "content_type": "text",
+        "contract_refs": [
+          "CORE-001",
+          "SCOPE-001",
+          "PHASE-001",
+          "REQ-001",
+          "REQ-002",
+          "REQ-003",
+          "REQ-004",
+          "REQ-005",
+          "REQ-006",
+          "REQ-007",
+          "REQ-008",
+          "AC-001",
+          "AC-002",
+          "AC-003",
+          "AC-004",
+          "AC-005",
+          "AC-006",
+          "AC-007",
+          "AC-008",
+          "IN-001",
+          "EXE-001",
+          "OUT-001",
+          "VER-001",
+          "STOP-001",
+          "DONE-001",
+          "RISK-001",
+          "BAR-001"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-003",
+          "SRC-004",
+          "SRC-005",
+          "SRC-006"
+        ],
+        "allowed_inference": "concise human-readable summary from the requirement table and canonical contract objects",
+        "unsupported_claims": [],
+        "status": "ready"
+      }
+    },
+    "RB-002": {
+      "type": "RB",
+      "payload": {
+        "id": "RB-002",
+        "target": "agent_prd",
+        "section": "Execution-ready Agent PRD",
+        "content_type": "text",
+        "contract_refs": [
+          "CORE-001",
+          "SCOPE-001",
+          "PHASE-001",
+          "REQ-001",
+          "REQ-002",
+          "REQ-003",
+          "REQ-004",
+          "REQ-005",
+          "REQ-006",
+          "REQ-007",
+          "REQ-008",
+          "AC-001",
+          "AC-002",
+          "AC-003",
+          "AC-004",
+          "AC-005",
+          "AC-006",
+          "AC-007",
+          "AC-008",
+          "FLOW-001",
+          "DATA-001",
+          "MOD-001",
+          "MOD-002",
+          "MOD-003",
+          "TECH-001",
+          "TECH-002",
+          "DCT-001",
+          "IN-001",
+          "EXE-001",
+          "VER-001",
+          "OUT-001",
+          "STOP-001",
+          "DONE-001",
+          "RISK-001",
+          "BAR-001",
+          "ASM-001"
+        ],
+        "source_refs": [
+          "SRC-001",
+          "SRC-002",
+          "SRC-003",
+          "SRC-004",
+          "SRC-005",
+          "SRC-006"
+        ],
+        "allowed_inference": "complete PRD body plus agent execution appendix from requirement table and canonical refs",
+        "unsupported_claims": [],
+        "status": "ready"
+      }
+    },
+    "META-001": {
+      "type": "META",
+      "payload": {
+        "id": "META-001",
+        "title": "Stage 1 Executor Minimal Intake",
+        "version": "1.8",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "GATE-001": {
+      "type": "GATE",
+      "payload": {
+        "id": "GATE-001",
+        "name": "Stage 1 clarification gate",
+        "blocking_condition": "Invocation boundary, delivery output, and completion authority are unresolved.",
+        "status": "pass",
+        "blocking": false,
+        "affected_targets": [
+          "human_prd",
+          "agent_prd"
+        ],
+        "evidence_refs": [
+          "SRC-002",
+          "Q-001",
+          "Q-002",
+          "Q-003"
+        ]
+      }
+    },
+    "SRC-007": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-007",
+        "source_type": "user_confirmation",
+        "label": "Stage 3 Human PRD approval and acceptance owner",
+        "content": "User authorized direct Stage 3 execution from the existing Stage 1 and Stage 2 deliverables, approved the Human PRD for this test flow, and remains the acceptance owner for the resulting HLD package."
+      }
+    },
+    "SRC-008": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-008",
+        "source_type": "local_file",
+        "label": "Confirmed real executor acceptance workspace",
+        "content": "Local executor acceptance workspace for this spec-intake Stage 3 package; it contains the approved contract, PRDs, HLD artifact, and acceptance input/output paths.",
+        "target": "C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-stage3-hld"
+      }
+    },
+    "SRC-009": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-009",
+        "source_type": "local_file",
+        "label": "Confirmed real executor acceptance task data",
+        "content": "Real executor acceptance task file containing work environment, permissions, skill configuration, delivery standard, and evidence requirements for the executor MVP.",
+        "target": "C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-stage3-hld/acceptance/executor-real-task.json"
+      }
+    }
+  },
+  "object_index": {
+    "CORE": [
+      "CORE-001"
+    ],
+    "USER": [],
+    "SCOPE": [
+      "SCOPE-001"
+    ],
+    "OOS": [],
+    "PHASE": [
+      "PHASE-001"
+    ],
+    "REQ": [
+      "REQ-001",
+      "REQ-002",
+      "REQ-003",
+      "REQ-004",
+      "REQ-005",
+      "REQ-006",
+      "REQ-007",
+      "REQ-008"
+    ],
+    "AC": [
+      "AC-001",
+      "AC-002",
+      "AC-003",
+      "AC-004",
+      "AC-005",
+      "AC-006",
+      "AC-007",
+      "AC-008"
+    ],
+    "MET": [],
+    "FLOW": [
+      "FLOW-001"
+    ],
+    "DATA": [
+      "DATA-001"
+    ],
+    "MOD": [
+      "MOD-001",
+      "MOD-002",
+      "MOD-003"
+    ],
+    "TECH": [
+      "TECH-001",
+      "TECH-002"
+    ],
+    "STATE": [],
+    "DCT": [
+      "DCT-001"
+    ],
+    "IN": [
+      "IN-001"
+    ],
+    "EXE": [
+      "EXE-001"
+    ],
+    "VER": [
+      "VER-001"
+    ],
+    "OUT": [
+      "OUT-001"
+    ],
+    "STOP": [
+      "STOP-001"
+    ],
+    "DONE": [
+      "DONE-001"
+    ],
+    "RISK": [
+      "RISK-001"
+    ],
+    "BAR": [
+      "BAR-001"
+    ],
+    "ASM": [
+      "ASM-001"
+    ],
+    "Q": [
+      "Q-001",
+      "Q-002",
+      "Q-003"
+    ],
+    "REF": [],
+    "SRC": [
+      "SRC-001",
+      "SRC-002",
+      "SRC-003",
+      "SRC-004",
+      "SRC-005",
+      "SRC-006",
+      "SRC-007",
+      "SRC-008",
+      "SRC-009"
+    ],
+    "TRACE": [
+      "TRACE-001",
+      "TRACE-002",
+      "TRACE-003",
+      "TRACE-004",
+      "TRACE-005",
+      "TRACE-006",
+      "TRACE-007",
+      "TRACE-008"
+    ],
+    "RB": [
+      "RB-001",
+      "RB-002"
+    ],
+    "META": [
+      "META-001"
+    ],
+    "GATE": [
+      "GATE-001"
+    ]
+  },
+  "contract_summary": {
+    "maturity": "L4",
+    "ready_targets": [
+      "agent_prd",
+      "human_prd"
+    ],
+    "blocked_targets": [],
+    "stage_ready": [
+      "stage_1_requirements_table",
+      "stage_2_prd_review",
+      "stage_3_hld"
+    ],
+    "stage_blocked": []
+  },
+  "traceability_summary": {
+    "render_traceability": [
+      "RB-001",
+      "RB-002"
+    ],
+    "requirement_traceability": [
+      "TRACE-001",
+      "TRACE-002",
+      "TRACE-003",
+      "TRACE-004",
+      "TRACE-005",
+      "TRACE-006",
+      "TRACE-007",
+      "TRACE-008"
+    ],
+    "decision_traceability": [
+      {
+        "decision_type": "user_confirmation",
+        "decision_ref": "SRC-002",
+        "status": "confirmed",
+        "affected_refs": [
+          "REQ-004",
+          "REQ-005",
+          "GATE-001"
+        ]
+      },
+      {
+        "decision_type": "user_confirmation",
+        "decision_ref": "SRC-003",
+        "status": "confirmed",
+        "affected_refs": [
+          "REQ-006",
+          "AC-006",
+          "EXE-001",
+          "VER-001",
+          "OUT-001",
+          "STOP-001",
+          "DONE-001",
+          "RB-001",
+          "RB-002"
+        ]
+      },
+      {
+        "decision_type": "user_confirmation",
+        "decision_ref": "SRC-004",
+        "status": "confirmed",
+        "affected_refs": [
+          "REQ-006",
+          "REQ-007",
+          "REQ-008",
+          "AC-006",
+          "AC-007",
+          "AC-008",
+          "MOD-003",
+          "TECH-002",
+          "EXE-001",
+          "VER-001",
+          "OUT-001",
+          "STOP-001",
+          "DONE-001",
+          "RB-001",
+          "RB-002"
+        ]
+      }
+    ]
+  },
+  "gate_report": [
+    {
+      "gate_id": "GATE-001",
+      "status": "pass",
+      "blocking": false,
+      "affected_targets": [
+        "human_prd",
+        "agent_prd"
+      ],
+      "evidence_refs": [
+        "SRC-002",
+        "Q-001",
+        "Q-002",
+        "Q-003"
+      ],
+      "message": "Stage 1 closed-choice questions were resolved by user confirmation.",
+      "required_fix": ""
+    }
+  ],
+  "next_actions": [
+    "Use high-level-design.json as the Stage 3 implementation design source. Keep semantic task acceptance with the separate reviewer or agent defined by DONE-001."
+  ],
+  "harness_workflow": {
+    "workflow_type": "review_gated_self_improving_generation",
+    "current_stage": "stage_3_hld",
+    "stage_order": [
+      "stage_1_requirements_table",
+      "stage_2_prd_review",
+      "stage_3_hld"
+    ],
+    "approval_gates": {
+      "human_prd_review": {
+        "status": "approved",
+        "approved_by_ref": "SRC-007"
+      }
+    },
+    "revision_policy": {
+      "max_review_rounds": 3,
+      "on_revise": "update_requirement_table_then_rerender_prds"
+    },
+    "completed_stages": [
+      "stage_1_requirements_table",
+      "stage_2_prd_review",
+      "stage_3_hld"
+    ]
+  },
+  "requirement_table": [
+    {
+      "row_id": "RT-001",
+      "requirement_ref": "REQ-001",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "A user needs an executor that can run work from a task description.",
+      "user_value": "The user can submit task intent and have executor drive Claude CLI execution.",
+      "mvp_scope": "Develop the executor capability around task descriptions.",
+      "acceptance_summary": "Executor can start from a provided task description after invocation boundary is confirmed.",
+      "target_artifact_refs": [
+        "REQ-001",
+        "AC-001",
+        "IN-001"
+      ]
+    },
+    {
+      "row_id": "RT-002",
+      "requirement_ref": "REQ-002",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "Claude execution needs the task's environment, permissions, and skill context.",
+      "user_value": "The executor can pass the intended constraints and available skills into the execution flow.",
+      "mvp_scope": "Task definition includes work environment, permissions, and skill configuration.",
+      "acceptance_summary": "These fields are represented in the executor input contract.",
+      "target_artifact_refs": [
+        "REQ-002",
+        "AC-002",
+        "IN-001"
+      ]
+    },
+    {
+      "row_id": "RT-003",
+      "requirement_ref": "REQ-003",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "The executor needs a reliable way to call Claude CLI.",
+      "user_value": "The executor can reuse the already formed ClaudeTmuxAdapter component.",
+      "mvp_scope": "Route Claude CLI invocation through ClaudeTmuxAdapter.",
+      "acceptance_summary": "Executor does not directly control Claude CLI when ClaudeTmuxAdapter is the stated component.",
+      "target_artifact_refs": [
+        "REQ-003",
+        "AC-003"
+      ]
+    },
+    {
+      "row_id": "RT-004",
+      "requirement_ref": "REQ-004",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-002"
+      ],
+      "problem": "The executor invocation boundary must be stable for MVP implementation.",
+      "user_value": "A stable entry point prevents implementation drift.",
+      "mvp_scope": "Use local CLI only, for example `executor run <task-file>`.",
+      "acceptance_summary": "The MVP exposes a local CLI command and does not include a library/API entry point.",
+      "target_artifact_refs": [
+        "REQ-004",
+        "AC-004",
+        "EXE-001"
+      ]
+    },
+    {
+      "row_id": "RT-005",
+      "requirement_ref": "REQ-005",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-002"
+      ],
+      "problem": "Delivery output and completion authority must be explicit before execution readiness.",
+      "user_value": "The executor can avoid inventing done criteria.",
+      "mvp_scope": "Emit structured JSON result plus execution log; use a separate agent or reviewer for completion acceptance.",
+      "acceptance_summary": "The MVP produces JSON/log output and accepts completion only after separate agent or reviewer validation.",
+      "target_artifact_refs": [
+        "REQ-005",
+        "AC-005",
+        "OUT-001",
+        "DONE-001",
+        "VER-001"
+      ]
+    },
+    {
+      "row_id": "RT-006",
+      "requirement_ref": "REQ-006",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "problem": "A one-time adapter invocation is not sufficient; the executor must use the real ClaudeTmuxAdapter interface to control and observe the Claude run while work is in progress.",
+      "user_value": "The user and reviewer can see how Executor drove Claude CLI and whether progress, state, and screen evidence support the final result.",
+      "mvp_scope": "Use ClaudeTmuxAdapter launch capability, detect_state, capture_screen, send_input, and evidence outputs to drive and monitor Claude CLI.",
+      "acceptance_summary": "Execution is acceptable only when adapter-based launch/target capture, status detection, screen capture, instruction sending, monitoring, and evidence preservation are present.",
+      "target_artifact_refs": [
+        "REQ-006",
+        "AC-006",
+        "EXE-001",
+        "VER-001",
+        "OUT-001",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "row_id": "RT-007",
+      "requirement_ref": "REQ-007",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-004",
+        "SRC-005"
+      ],
+      "problem": "ClaudeTmuxAdapter can mechanically report idle state but must not perform subjective progress judgment.",
+      "user_value": "The executor can decide whether to continue, send another instruction, or prepare delivery while keeping semantic judgment outside the mechanical adapter.",
+      "mvp_scope": "When detect_state returns idle, capture_screen and invoke the opencalw progress-judgment skill with screen data and context; send returned next_instruction through send_input or move to delivery check on deliverable_ready.",
+      "acceptance_summary": "The monitoring loop proves idle detection, screen capture, progress-skill invocation, next-instruction execution, and deliverable-ready branching.",
+      "target_artifact_refs": [
+        "REQ-007",
+        "AC-007",
+        "EXE-001",
+        "VER-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "row_id": "RT-008",
+      "requirement_ref": "REQ-008",
+      "origin": "confirmed_fact",
+      "source_refs": [
+        "SRC-004"
+      ],
+      "problem": "The executor must not hand off delivery merely because Claude appears finished or idle.",
+      "user_value": "The reviewer receives a package that has passed deterministic completeness and evidence checks before semantic acceptance.",
+      "mvp_scope": "After deliverable_ready, run mechanical delivery checks for required outputs, structured JSON result, execution log, adapter evidence, progress-skill evidence, and stop/done consistency.",
+      "acceptance_summary": "Delivery handoff is blocked unless mechanical delivery checks pass, while semantic completion remains with the separate agent or reviewer.",
+      "target_artifact_refs": [
+        "REQ-008",
+        "AC-008",
+        "EXE-001",
+        "VER-001",
+        "OUT-001",
+        "STOP-001",
+        "DONE-001"
+      ]
+    }
+  ],
+  "interaction_decision": {
+    "stage": "stage_1_requirements_table",
+    "decision": "proceed_without_questions",
+    "can_ask_user": true,
+    "reason": "The user resolved invocation boundary, delivery output, and completion authority through closed-choice confirmation.",
+    "question_refs": [],
+    "blocking_refs": [],
+    "source_refs": [
+      "SRC-001",
+      "SRC-002",
+      "SRC-003",
+      "SRC-004",
+      "SRC-005",
+      "SRC-006"
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "task_id": "executor-real-acceptance-001",
+  "description": "Use the executor to run a Claude-backed repository inspection task and produce a structured JSON result plus execution log.",
+  "work_environment": {
+    "workspace": "C:/Users/54256213/Documents/github/spec-skills",
+    "adapter_workspace": "C:/Users/54256213/Documents/github/claude-tmux-adapter",
+    "runtime": "local CLI with Claude CLI, tmux-compatible session control, ClaudeTmuxAdapter, and opencalw available"
+  },
+  "permissions": {
+    "filesystem_read": [
+      "C:/Users/54256213/Documents/github/spec-skills",
+      "C:/Users/54256213/Documents/github/claude-tmux-adapter"
+    ],
+    "filesystem_write": [
+      "C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-stage3-hld/acceptance-output"
+    ],
+    "network": "not_required",
+    "destructive_actions": "forbidden"
+  },
+  "skill_configuration": {
+    "progress_judgment_skill": "executor-progress-judgment",
+    "progress_judgment_invocation": "opencalw skill invocation from the executor monitoring loop",
+    "mechanical_delivery_check": [
+      "structured_json_result_present",
+      "execution_log_present",
+      "adapter_state_evidence_present",
+      "adapter_screen_evidence_present",
+      "progress_judgment_decision_evidence_present",
+      "stop_done_consistency_present"
+    ]
+  },
+  "delivery_standard": {
+    "output_dir": "C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-stage3-hld/acceptance-output",
+    "required_outputs": [
+      "result.json",
+      "execution.log",
+      "adapter-evidence/",
+      "progress-judgment-evidence/",
+      "delivery-check.json"
+    ],
+    "semantic_acceptance_owner": "human reviewer or separate agent"
+  }
+}

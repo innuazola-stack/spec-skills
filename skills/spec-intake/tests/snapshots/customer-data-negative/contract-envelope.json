@@ -133,7 +133,7 @@
       "payload": {
         "id": "AC-001",
         "requirement_id": "REQ-001",
-        "criterion": "Agent PRD remains blocked and no executable task graph is produced.",
+        "criterion": "Agent PRD remains blocked and no executable HLD is produced.",
         "verification_method": "inspection",
         "blocking": true
       }
@@ -143,13 +143,18 @@
       "payload": {
         "id": "Q-001",
         "question": "Which customer data is authorized, which actions are allowed, and what stop, audit, rollback, and verification rules are required?",
-        "impact": "Agent PRD and task planning cannot become ready.",
+        "impact": "Agent PRD and HLD cannot become ready.",
         "owner": "user",
         "phase": "PHASE-001",
         "blocks_human_prd": false,
         "blocks_agent_prd": true,
         "status": "open",
-        "resolution_refs": []
+        "resolution_refs": [],
+        "question_type": "single_choice",
+        "options": [
+          "Keep the Agent PRD and HLD blocked until the missing execution facts are provided.",
+          "Provide the missing execution facts now, then rerun Stage 1 requirement table generation."
+        ]
       }
     },
     "TRACE-001": {
@@ -335,6 +340,62 @@
     ],
     "GATE": [
       "GATE-001"
+    ]
+  },
+  "harness_workflow": {
+    "workflow_type": "review_gated_self_improving_generation",
+    "current_stage": "stage_1_requirements_table",
+    "stage_order": [
+      "stage_1_requirements_table",
+      "stage_2_prd_review",
+      "stage_3_hld"
+    ],
+    "approval_gates": {
+      "human_prd_review": {
+        "status": "pending",
+        "approved_by_ref": ""
+      }
+    },
+    "revision_policy": {
+      "max_review_rounds": 3,
+      "on_revise": "update_requirement_table_then_rerender_prds"
+    }
+  },
+  "requirement_table": [
+    {
+      "row_id": "RT-001",
+      "requirement_ref": "REQ-001",
+      "origin": "open_question",
+      "source_refs": [
+        "SRC-001",
+        "Q-001"
+      ],
+      "problem": "The user wants better conversion but has not defined data permission, action authority, or verification.",
+      "user_value": "Prevents unsafe or unauthorized customer-data automation.",
+      "mvp_scope": "Draft only; execution scope is blocked until permissions, inputs, actions, stop rules, and verification are clarified.",
+      "acceptance_summary": "Agent PRD remains blocked and no executable HLD is produced.",
+      "target_artifact_refs": [
+        "REQ-001",
+        "AC-001",
+        "RB-001",
+        "RB-002"
+      ]
+    }
+  ],
+  "interaction_decision": {
+    "stage": "stage_1_requirements_table",
+    "decision": "ask_user",
+    "can_ask_user": true,
+    "reason": "Stage 1 found blocking missing information and must ask closed-form clarification questions before readiness can advance.",
+    "question_refs": [
+      "Q-001"
+    ],
+    "blocking_refs": [
+      "GATE-001",
+      "Q-001"
+    ],
+    "source_refs": [
+      "SRC-001"
     ]
   }
 }

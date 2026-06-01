@@ -1,0 +1,84 @@
+{
+  "review_id": "HLD-SEM-001",
+  "review_status": "pass",
+  "source_artifacts": {
+    "contract_ref": "contract-envelope.json",
+    "hld_json_ref": "high-level-design.json",
+    "hld_markdown_ref": "high-level-design.md"
+  },
+  "dimensions": [
+    {
+      "dimension_key": "source_traceability",
+      "status": "pass",
+      "finding": "The HLD is derived from canonical requirement, execution, verification, output, stop, done, and source refs.",
+      "contract_refs": ["REQ-001", "AC-001", "VER-001", "IN-001", "EXE-001", "OUT-001", "STOP-001", "DONE-001"],
+      "source_refs": ["SRC-001", "SRC-002"],
+      "required_fix": ""
+    },
+    {
+      "dimension_key": "control_flow_completeness",
+      "status": "pass",
+      "finding": "Control flow names triggers, actors, inputs, outputs, branches, and stop behavior for the current phase.",
+      "contract_refs": ["REQ-001", "IN-001", "EXE-001", "STOP-001"],
+      "source_refs": [],
+      "required_fix": ""
+    },
+    {
+      "dimension_key": "data_flow_and_objects",
+      "status": "pass",
+      "finding": "Data flow and objects define source transcript input, candidate state, confirmation state, Markdown output, fields, and lifecycle.",
+      "contract_refs": ["REQ-001", "IN-001", "OUT-001", "DONE-001"],
+      "source_refs": [],
+      "required_fix": ""
+    },
+    {
+      "dimension_key": "interface_precision",
+      "status": "pass",
+      "finding": "Interface contracts define exact transcript input and Markdown export boundaries with source evidence.",
+      "contract_refs": ["REQ-001", "IN-001", "OUT-001", "STOP-001"],
+      "source_refs": ["SRC-001"],
+      "required_fix": ""
+    },
+    {
+      "dimension_key": "technical_implementation",
+      "status": "pass",
+      "finding": "Technical decisions preserve the Phase 1 Markdown-only boundary and evidence-backed extraction requirement.",
+      "contract_refs": ["REQ-001", "AC-001", "EXE-001", "OOS-001", "DONE-001"],
+      "source_refs": [],
+      "required_fix": ""
+    },
+    {
+      "dimension_key": "executable_acceptance",
+      "status": "pass",
+      "finding": "Acceptance defines a real command, preconditions, real data path, expected artifacts, mechanical checks, and failure criteria.",
+      "contract_refs": ["REQ-001", "AC-001", "VER-001", "OUT-001", "STOP-001", "DONE-001"],
+      "source_refs": ["SRC-003", "SRC-004", "SRC-005"],
+      "required_fix": ""
+    },
+    {
+      "dimension_key": "markdown_parity",
+      "status": "pass",
+      "finding": "Markdown HLD renders the implementation-ready facts from the structured HLD, including interface precision and executable acceptance.",
+      "contract_refs": ["REQ-001", "AC-001", "VER-001", "OUT-001"],
+      "source_refs": ["SRC-001", "SRC-003", "SRC-004", "SRC-005"],
+      "required_fix": ""
+    },
+    {
+      "dimension_key": "no_untraced_invention",
+      "status": "pass",
+      "finding": "No product scope, external integration, technology, or acceptance claim is introduced outside the contract-backed HLD scope.",
+      "contract_refs": ["REQ-001", "OOS-001", "STOP-001"],
+      "source_refs": [],
+      "required_fix": ""
+    },
+    {
+      "dimension_key": "task_boundary",
+      "status": "pass",
+      "finding": "The HLD remains an implementation design and contains no task plan, task graph, dependency edge, or implementation task card.",
+      "contract_refs": ["REQ-001", "OOS-001", "STOP-001"],
+      "source_refs": [],
+      "required_fix": ""
+    }
+  ],
+  "overall_findings": "The HLD is implementation-ready for the current phase and can be consumed without relying on untraced assumptions."
+}

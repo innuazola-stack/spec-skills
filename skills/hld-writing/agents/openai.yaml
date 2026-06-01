@@ -1,0 +1,4 @@
+interface:
+  display_name: "HLD Writing"
+  short_description: "Write concise, source-backed Chinese HLDs."
+  default_prompt: "Use $hld-writing to draft a source-backed Simplified Chinese HLD."

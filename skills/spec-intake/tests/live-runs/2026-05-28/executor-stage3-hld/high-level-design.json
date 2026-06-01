@@ -1,0 +1,1164 @@
+{
+  "hld_id": "HLD-EXECUTOR-001",
+  "source_artifacts": {
+    "contract_ref": "contract-envelope.json",
+    "contract_version": "1.8",
+    "agent_prd_ref": "agent-prd.md",
+    "agent_prd_status": "execution_ready",
+    "phase_ref": "PHASE-001",
+    "phase_label": "Executor MVP",
+    "phase_ref_kind": "canonical_id",
+    "phase_ref_fallback_reason": ""
+  },
+  "design_status": "ready",
+  "blocking_reasons": [],
+  "missing_required_refs": [],
+  "required_fixes": [],
+  "contract_refs": [
+    "REQ-001",
+    "REQ-002",
+    "REQ-003",
+    "REQ-004",
+    "REQ-005",
+    "REQ-006",
+    "REQ-007",
+    "REQ-008",
+    "AC-001",
+    "AC-002",
+    "AC-003",
+    "AC-004",
+    "AC-005",
+    "AC-006",
+    "AC-007",
+    "AC-008",
+    "FLOW-001",
+    "DATA-001",
+    "MOD-001",
+    "MOD-002",
+    "MOD-003",
+    "TECH-001",
+    "TECH-002",
+    "DCT-001",
+    "IN-001",
+    "EXE-001",
+    "VER-001",
+    "OUT-001",
+    "STOP-001",
+    "DONE-001",
+    "RISK-001",
+    "BAR-001",
+    "ASM-001"
+  ],
+  "architecture_summary": "Executor is a local CLI orchestration program. It loads a structured task description, launches or addresses Claude CLI through ClaudeTmuxAdapter, monitors mechanical adapter state, delegates idle-screen progress judgment to an opencalw skill, performs deterministic delivery checks, and emits structured result and log evidence for a separate reviewer or agent.",
+  "component_boundaries": "Executor orchestration owns task parsing, run state, monitoring policy, skill invocation, delivery checks, and output assembly. ClaudeTmuxAdapter owns Claude CLI launch, target addressing, state detection, screen capture, input sending, output reading, and adapter evidence. The opencalw progress-judgment skill owns subjective next-step or deliverable-ready judgment from idle screen data. The reviewer or separate agent owns semantic acceptance.",
+  "data_and_state_design": "The run state is evidence-first. TaskDescription config enters the executor, AdapterEvidenceRecord values capture ClaudeTmuxTarget, ClaudeTmuxState, ScreenSnapshot, InputReceipt, and optional OutputWindow observations, ProgressJudgmentResult records skill decisions, MechanicalDeliveryCheckResult records deterministic completeness checks, and ExecutorResult links final JSON/log outputs to evidence paths.",
+  "integration_points": "Primary integrations are the local executor CLI, ClaudeTmuxAdapter public boundary from the README and Adapter Agent PRD, opencalw skill invocation for executor-progress-judgment, filesystem output for JSON/log/evidence artifacts, and reviewer or separate-agent acceptance. Direct tmux calls, direct Claude process control, and semantic judgment inside ClaudeTmuxAdapter stay outside the boundary.",
+  "verification_strategy": "The HLD defines the real product acceptance topology to execute after the Executor CLI is implemented: CLI task loading, context extraction, adapter launch/target capture, detect_state polling, busy wait, idle capture_screen, opencalw skill invocation, next_instruction send_input, deliverable_ready transition, mechanical delivery check, output emission, and reviewer acceptance evidence. Stage 3 validates the design package and real acceptance inputs; it does not claim the future Executor CLI has already run.",
+  "risk_controls": "The design prevents overclaiming by separating mechanical state from semantic completion, preserving adapter and skill evidence, stopping on invalid task context or missing adapter control, blocking delivery when deterministic checks fail, and reserving final task success for the reviewer or separate agent.",
+  "control_flow_design": [
+    {
+      "step_id": "FLOW-STEP-001",
+      "name": "Load task description and initialize run",
+      "trigger": "Operator invokes the local CLI with a task file such as executor run <task-file>.",
+      "actor_or_component": "Executor orchestration module",
+      "input_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "IN-001",
+        "DCT-001"
+      ],
+      "output_refs": [
+        "DATA-001"
+      ],
+      "interaction_refs": [
+        "EXE-001",
+        "STOP-001"
+      ],
+      "failure_or_branch_behavior": "If the task file is unavailable or required work environment, permissions, skill configuration, adapter config, or progress skill configuration is invalid, stop under STOP-001.",
+      "contract_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "IN-001",
+        "DCT-001",
+        "EXE-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "step_id": "FLOW-STEP-002",
+      "name": "Launch Claude CLI through ClaudeTmuxAdapter",
+      "trigger": "Task description passes input validation.",
+      "actor_or_component": "ClaudeTmuxAdapter integration boundary",
+      "input_refs": [
+        "REQ-003",
+        "REQ-006",
+        "TECH-001"
+      ],
+      "output_refs": [
+        "DATA-001",
+        "OUT-001"
+      ],
+      "interaction_refs": [
+        "EXE-001",
+        "STOP-001"
+      ],
+      "failure_or_branch_behavior": "If adapter launch fails, or no ClaudeTmuxTarget or session id is returned, stop under STOP-001 and emit structured failure evidence.",
+      "contract_refs": [
+        "REQ-003",
+        "REQ-006",
+        "MOD-002",
+        "TECH-001",
+        "EXE-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "step_id": "FLOW-STEP-003",
+      "name": "Send task instruction and poll state",
+      "trigger": "ClaudeTmuxTarget or equivalent session target is available.",
+      "actor_or_component": "Executor monitoring loop through ClaudeTmuxAdapter",
+      "input_refs": [
+        "IN-001",
+        "EXE-001"
+      ],
+      "output_refs": [
+        "DATA-001",
+        "OUT-001"
+      ],
+      "interaction_refs": [
+        "REQ-006",
+        "VER-001",
+        "STOP-001"
+      ],
+      "failure_or_branch_behavior": "send_input must produce InputReceipt evidence. detect_state busy keeps polling; blocked, exited, or unsupported unknown stops or escalates under STOP-001; idle branches to screen capture and progress judgment.",
+      "contract_refs": [
+        "REQ-006",
+        "FLOW-001",
+        "MOD-001",
+        "MOD-002",
+        "EXE-001",
+        "VER-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "step_id": "FLOW-STEP-004",
+      "name": "Capture idle screen and judge progress",
+      "trigger": "Adapter detect_state reports idle.",
+      "actor_or_component": "Progress-judgment skill invoked through opencalw",
+      "input_refs": [
+        "REQ-007",
+        "DATA-001",
+        "IN-001"
+      ],
+      "output_refs": [
+        "OUT-001"
+      ],
+      "interaction_refs": [
+        "EXE-001",
+        "VER-001",
+        "STOP-001"
+      ],
+      "failure_or_branch_behavior": "capture_screen must precede skill invocation. next_instruction is sent through send_input and monitoring resumes; deliverable_ready triggers delivery checks; no_action keeps monitoring; blocked stops under STOP-001.",
+      "contract_refs": [
+        "REQ-007",
+        "AC-007",
+        "MOD-003",
+        "TECH-002",
+        "EXE-001",
+        "VER-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "step_id": "FLOW-STEP-005",
+      "name": "Run mechanical delivery check and handoff",
+      "trigger": "Progress-judgment skill returns deliverable_ready.",
+      "actor_or_component": "Mechanical delivery checker in Executor orchestration module",
+      "input_refs": [
+        "REQ-008",
+        "DATA-001",
+        "OUT-001"
+      ],
+      "output_refs": [
+        "OUT-001"
+      ],
+      "interaction_refs": [
+        "VER-001",
+        "DONE-001",
+        "STOP-001"
+      ],
+      "failure_or_branch_behavior": "If required JSON, log, adapter evidence, progress decision evidence, or stop/done consistency is missing, stop under STOP-001. If checks pass, emit the result package for separate reviewer or agent acceptance.",
+      "contract_refs": [
+        "REQ-005",
+        "REQ-008",
+        "AC-005",
+        "AC-008",
+        "VER-001",
+        "OUT-001",
+        "DONE-001",
+        "STOP-001"
+      ]
+    }
+  ],
+  "data_flow_design": [
+    {
+      "flow_id": "DATAFLOW-001",
+      "source": "Task file supplied to the local CLI and represented by IN-001 and DCT-001.",
+      "transformation": "Parse work environment, permissions, skill configuration, adapter configuration, progress-judgment skill configuration, and delivery standards into TaskDescription and ExecutorRunState.",
+      "target": "Validated run context used by the adapter integration and monitoring loop.",
+      "persistence_or_retention": "Persist the parsed task summary and validation result in the execution log and structured result metadata.",
+      "data_refs": [
+        "IN-001",
+        "DCT-001",
+        "DATA-001"
+      ],
+      "contract_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "IN-001",
+        "DCT-001",
+        "DATA-001",
+        "OUT-001"
+      ]
+    },
+    {
+      "flow_id": "DATAFLOW-002",
+      "source": "ClaudeTmuxAdapter launch, detect_state, capture_screen, send_input, and optional read_output results.",
+      "transformation": "Normalize ClaudeTmuxTarget, ClaudeTmuxState, ScreenSnapshot, InputReceipt, and OutputWindow values into AdapterEvidenceRecord entries linked to polling iteration and evidence path.",
+      "target": "Execution log, adapter-evidence directory, progress-judgment skill input, and final ExecutorResult evidence index.",
+      "persistence_or_retention": "Retain adapter evidence for reviewer inspection in the run output directory.",
+      "data_refs": [
+        "DATA-001",
+        "OUT-001"
+      ],
+      "contract_refs": [
+        "REQ-003",
+        "REQ-006",
+        "MOD-002",
+        "TECH-001",
+        "DATA-001",
+        "EXE-001",
+        "OUT-001"
+      ]
+    },
+    {
+      "flow_id": "DATAFLOW-003",
+      "source": "Idle ScreenSnapshot text, adapter state, task context, prior skill decisions, and delivery criteria.",
+      "transformation": "Invoke executor-progress-judgment through opencalw and normalize its result into next_instruction, deliverable_ready, no_action, or blocked.",
+      "target": "Progress-judgment evidence, next adapter input, delivery-check trigger, or stop record.",
+      "persistence_or_retention": "Retain every skill request and response used to steer the run.",
+      "data_refs": [
+        "DATA-001",
+        "OUT-001"
+      ],
+      "contract_refs": [
+        "REQ-007",
+        "MOD-003",
+        "TECH-002",
+        "EXE-001",
+        "VER-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "flow_id": "DATAFLOW-004",
+      "source": "Structured result candidate, execution log, adapter evidence, progress-judgment evidence, and stop/done state.",
+      "transformation": "Evaluate mechanical delivery-check criteria without making semantic success claims.",
+      "target": "delivery-check.json, result.json, execution.log, and handoff package for reviewer or separate agent.",
+      "persistence_or_retention": "Retain output and delivery-check evidence as the accepted executor deliverable surface.",
+      "data_refs": [
+        "DATA-001",
+        "OUT-001"
+      ],
+      "contract_refs": [
+        "REQ-005",
+        "REQ-008",
+        "AC-005",
+        "AC-008",
+        "VER-001",
+        "OUT-001",
+        "DONE-001",
+        "STOP-001"
+      ]
+    }
+  ],
+  "data_objects": [
+    {
+      "object_name": "TaskDescription",
+      "purpose": "Represents the task file accepted by the executor CLI.",
+      "fields": [
+        {
+          "name": "task_id",
+          "required": true,
+          "meaning": "Stable identifier for the executor run input."
+        },
+        {
+          "name": "description",
+          "required": true,
+          "meaning": "Task instruction to send into Claude through the adapter."
+        },
+        {
+          "name": "work_environment",
+          "required": true,
+          "meaning": "Workspace and runtime context for Claude execution."
+        },
+        {
+          "name": "permissions",
+          "required": true,
+          "meaning": "Allowed filesystem, network, and action boundaries."
+        },
+        {
+          "name": "skill_configuration",
+          "required": true,
+          "meaning": "Progress-judgment skill and delivery-check configuration."
+        },
+        {
+          "name": "delivery_standard",
+          "required": true,
+          "meaning": "Required output locations and evidence expectations."
+        }
+      ],
+      "lifecycle": "Loaded at CLI start, validated before adapter launch, referenced throughout monitoring, and summarized in result metadata.",
+      "contract_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "IN-001",
+        "DCT-001"
+      ]
+    },
+    {
+      "object_name": "ExecutorRunState",
+      "purpose": "Tracks one executor invocation from initialization through handoff or stop.",
+      "fields": [
+        {
+          "name": "run_id",
+          "required": true,
+          "meaning": "Unique executor run identifier."
+        },
+        {
+          "name": "task_ref",
+          "required": true,
+          "meaning": "Reference to the TaskDescription."
+        },
+        {
+          "name": "adapter_target",
+          "required": false,
+          "meaning": "ClaudeTmuxTarget or session id after adapter launch."
+        },
+        {
+          "name": "current_status",
+          "required": true,
+          "meaning": "Executor state such as initialized, running_busy, idle_judgment_pending, delivery_check_pending, delivered_for_review, or stopped."
+        },
+        {
+          "name": "evidence_index",
+          "required": true,
+          "meaning": "Collection of adapter, progress, and delivery-check evidence paths."
+        },
+        {
+          "name": "stop_reason",
+          "required": false,
+          "meaning": "Structured reason when STOP-001 terminates the run."
+        }
+      ],
+      "lifecycle": "Created after task validation, updated after every adapter or skill observation, finalized in structured JSON result.",
+      "contract_refs": [
+        "FLOW-001",
+        "DATA-001",
+        "EXE-001",
+        "OUT-001",
+        "STOP-001",
+        "DONE-001"
+      ]
+    },
+    {
+      "object_name": "AdapterEvidenceRecord",
+      "purpose": "Normalizes ClaudeTmuxAdapter observations and commands for auditability.",
+      "fields": [
+        {
+          "name": "record_id",
+          "required": true,
+          "meaning": "Stable evidence record identifier."
+        },
+        {
+          "name": "adapter_method",
+          "required": true,
+          "meaning": "Method or command-equivalent capability used: launch, detect_state, capture_screen, send_input, or read_output."
+        },
+        {
+          "name": "observed_at",
+          "required": true,
+          "meaning": "Time the adapter operation was observed."
+        },
+        {
+          "name": "payload_summary",
+          "required": true,
+          "meaning": "Non-sensitive summary of target, state, screen, input, or output result."
+        },
+        {
+          "name": "evidence_path",
+          "required": true,
+          "meaning": "Path to persisted adapter evidence."
+        }
+      ],
+      "lifecycle": "Appended for every adapter launch, state, screen, input, and output operation.",
+      "contract_refs": [
+        "REQ-006",
+        "MOD-002",
+        "TECH-001",
+        "DATA-001",
+        "OUT-001"
+      ]
+    },
+    {
+      "object_name": "ProgressJudgmentResult",
+      "purpose": "Captures subjective progress assessment returned by the opencalw skill.",
+      "fields": [
+        {
+          "name": "decision",
+          "required": true,
+          "meaning": "One of next_instruction, deliverable_ready, no_action, or blocked."
+        },
+        {
+          "name": "next_instruction",
+          "required": false,
+          "meaning": "Instruction to send through ClaudeTmuxAdapter when decision is next_instruction."
+        },
+        {
+          "name": "reason",
+          "required": true,
+          "meaning": "Judgment rationale for reviewer inspection."
+        },
+        {
+          "name": "screen_evidence_ref",
+          "required": true,
+          "meaning": "Reference to the ScreenSnapshot used as skill input."
+        },
+        {
+          "name": "skill_evidence_path",
+          "required": true,
+          "meaning": "Path to skill request and response evidence."
+        }
+      ],
+      "lifecycle": "Created on each idle-state skill invocation and consumed by the monitoring loop or delivery checker.",
+      "contract_refs": [
+        "REQ-007",
+        "MOD-003",
+        "TECH-002",
+        "EXE-001",
+        "OUT-001"
+      ]
+    },
+    {
+      "object_name": "MechanicalDeliveryCheckResult",
+      "purpose": "Records deterministic completeness checks before handoff.",
+      "fields": [
+        {
+          "name": "result_json_present",
+          "required": true,
+          "meaning": "Whether result.json exists."
+        },
+        {
+          "name": "execution_log_present",
+          "required": true,
+          "meaning": "Whether execution.log exists."
+        },
+        {
+          "name": "adapter_evidence_present",
+          "required": true,
+          "meaning": "Whether adapter state, screen, target, and input evidence exist."
+        },
+        {
+          "name": "progress_evidence_present",
+          "required": true,
+          "meaning": "Whether progress-judgment evidence exists."
+        },
+        {
+          "name": "stop_done_consistency",
+          "required": true,
+          "meaning": "Whether final status agrees with STOP-001 and DONE-001."
+        },
+        {
+          "name": "passed",
+          "required": true,
+          "meaning": "Overall deterministic check result."
+        }
+      ],
+      "lifecycle": "Created only after deliverable_ready and required before reviewer handoff.",
+      "contract_refs": [
+        "REQ-008",
+        "AC-008",
+        "VER-001",
+        "OUT-001",
+        "DONE-001",
+        "STOP-001"
+      ]
+    }
+  ],
+  "interface_contracts": [
+    {
+      "interface_name": "Executor CLI",
+      "provider": "Executor",
+      "consumer": "Local operator",
+      "invocation": "executor run <task-file>",
+      "inputs": [
+        "task file matching TaskDescription from IN-001 and DCT-001"
+      ],
+      "outputs": [
+        "structured JSON result",
+        "execution log",
+        "evidence directories",
+        "delivery-check result"
+      ],
+      "error_semantics": "Return structured failure and stop when task file or task context is invalid.",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "contract_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "IN-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "interface_name": "ClaudeTmuxAdapter control interface",
+      "provider": "ClaudeTmuxAdapter",
+      "consumer": "Executor adapter integration boundary",
+      "invocation": "Use the ClaudeTmuxAdapter public boundary only: launch with launch_config and retain LaunchSessionResponse or ClaudeTmuxTarget, call detect_state(target, DetectionPolicy), call capture_screen(target, lines), call send_input(target, content, submit), and call read_output(target, ReadWindow). Executor must not call tmux or Claude CLI directly.",
+      "inputs": [
+        "ClaudeTmuxTarget or launch config",
+        "DetectionPolicy",
+        "screen line window",
+        "instruction content",
+        "ReadWindow"
+      ],
+      "outputs": [
+        "LaunchSessionResponse",
+        "ClaudeTmuxTarget",
+        "ClaudeTmuxState",
+        "ScreenSnapshot",
+        "InputReceipt",
+        "OutputWindow"
+      ],
+      "error_semantics": "Adapter launch, state, screen, input, or output failure becomes STOP-001 evidence and cannot be interpreted as task success.",
+      "source_refs": [
+        "SRC-005",
+        "SRC-006"
+      ],
+      "contract_refs": [
+        "REQ-003",
+        "REQ-006",
+        "MOD-002",
+        "TECH-001",
+        "EXE-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "interface_name": "opencalw progress-judgment skill",
+      "provider": "executor-progress-judgment skill",
+      "consumer": "Executor monitoring loop",
+      "invocation": "Invoke through opencalw only when ClaudeTmuxAdapter state is idle and a current ScreenSnapshot exists.",
+      "inputs": [
+        "ScreenSnapshot.text",
+        "ClaudeTmuxState",
+        "task context",
+        "prior progress decisions",
+        "delivery criteria"
+      ],
+      "outputs": [
+        "next_instruction",
+        "deliverable_ready",
+        "no_action",
+        "blocked"
+      ],
+      "error_semantics": "Skill failure, invalid output, or blocked result stops or escalates under STOP-001; adapter state remains mechanical only.",
+      "source_refs": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "contract_refs": [
+        "REQ-007",
+        "MOD-003",
+        "TECH-002",
+        "AC-007",
+        "EXE-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "interface_name": "Reviewer handoff interface",
+      "provider": "Executor",
+      "consumer": "Separate agent or reviewer",
+      "invocation": "After mechanical delivery check passes, present result.json, execution.log, adapter evidence, progress evidence, and delivery-check result.",
+      "inputs": [
+        "checked executor output package"
+      ],
+      "outputs": [
+        "semantic acceptance or rejection by separate reviewer or agent"
+      ],
+      "error_semantics": "Executor must not declare semantic task success without acceptance; reviewer rejection is handled through STOP-001.",
+      "source_refs": [
+        "SRC-002",
+        "SRC-007"
+      ],
+      "contract_refs": [
+        "REQ-005",
+        "REQ-008",
+        "AC-005",
+        "AC-008",
+        "VER-001",
+        "OUT-001",
+        "DONE-001",
+        "STOP-001"
+      ]
+    }
+  ],
+  "state_model": [
+    {
+      "state": "initialized",
+      "owner": "Executor orchestration module",
+      "transitions": [
+        "to stopped when task context is invalid",
+        "to adapter_launched when task context is valid and adapter launch succeeds"
+      ],
+      "contract_refs": [
+        "REQ-001",
+        "REQ-002",
+        "IN-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "state": "adapter_launched",
+      "owner": "ClaudeTmuxAdapter integration boundary",
+      "transitions": [
+        "to instruction_sent after initial send_input succeeds",
+        "to stopped when target or input receipt evidence is missing"
+      ],
+      "contract_refs": [
+        "REQ-003",
+        "REQ-006",
+        "TECH-001",
+        "EXE-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "state": "running_busy",
+      "owner": "Executor monitoring loop",
+      "transitions": [
+        "remain running_busy while detect_state is busy",
+        "to idle_judgment_pending when detect_state is idle",
+        "to stopped when detect_state is blocked, exited, or unsupported unknown"
+      ],
+      "contract_refs": [
+        "REQ-006",
+        "FLOW-001",
+        "EXE-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "state": "idle_judgment_pending",
+      "owner": "opencalw progress-judgment skill boundary",
+      "transitions": [
+        "to instruction_sent when next_instruction is returned",
+        "to delivery_check_pending when deliverable_ready is returned",
+        "to running_busy or stopped for no_action or blocked according to STOP-001"
+      ],
+      "contract_refs": [
+        "REQ-007",
+        "AC-007",
+        "MOD-003",
+        "TECH-002",
+        "STOP-001"
+      ]
+    },
+    {
+      "state": "delivery_check_pending",
+      "owner": "Mechanical delivery checker",
+      "transitions": [
+        "to delivered_for_review when deterministic checks pass",
+        "to stopped when any required output or evidence is missing"
+      ],
+      "contract_refs": [
+        "REQ-008",
+        "AC-008",
+        "VER-001",
+        "OUT-001",
+        "DONE-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "state": "delivered_for_review",
+      "owner": "Separate agent or reviewer",
+      "transitions": [
+        "to accepted when reviewer accepts semantic completion",
+        "to stopped when reviewer rejects completion"
+      ],
+      "contract_refs": [
+        "REQ-005",
+        "VER-001",
+        "DONE-001",
+        "STOP-001"
+      ]
+    }
+  ],
+  "technical_decisions": [
+    {
+      "decision": "Keep Executor as a local CLI entry point for the MVP.",
+      "rationale": "REQ-004 and SRC-002 confirm local CLI only for the first implementation boundary.",
+      "implementation_notes": "Implement executor run <task-file> as the canonical entry point and reject untraced library/API or remote invocation modes.",
+      "contract_refs": [
+        "REQ-004",
+        "AC-004",
+        "EXE-001",
+        "BAR-001"
+      ]
+    },
+    {
+      "decision": "Route all Claude CLI control through ClaudeTmuxAdapter.",
+      "rationale": "REQ-003, REQ-006, TECH-001, SRC-005, and SRC-006 define adapter-controlled launch, state detection, screen capture, input, and output reading.",
+      "implementation_notes": "Wrap adapter capabilities behind an Executor adapter port that records ClaudeTmuxTarget, ClaudeTmuxState, ScreenSnapshot, InputReceipt, and OutputWindow evidence.",
+      "contract_refs": [
+        "REQ-003",
+        "REQ-006",
+        "MOD-002",
+        "TECH-001",
+        "EXE-001",
+        "OUT-001"
+      ]
+    },
+    {
+      "decision": "Keep subjective progress judgment outside ClaudeTmuxAdapter.",
+      "rationale": "TECH-002 requires subjective judgment to be implemented as a dedicated opencalw skill while adapter state remains mechanical.",
+      "implementation_notes": "Call the progress-judgment skill only after idle detect_state and capture_screen; reject skill outputs outside next_instruction, deliverable_ready, no_action, and blocked.",
+      "contract_refs": [
+        "REQ-007",
+        "MOD-003",
+        "TECH-002",
+        "AC-007",
+        "STOP-001"
+      ]
+    },
+    {
+      "decision": "Require mechanical delivery checks before reviewer handoff.",
+      "rationale": "REQ-008 and AC-008 require evidence and output completeness before delivery, while DONE-001 reserves semantic acceptance for a separate reviewer or agent.",
+      "implementation_notes": "Implement deterministic checks for structured JSON, execution log, adapter evidence, progress evidence, sent instructions, and stop/done consistency.",
+      "contract_refs": [
+        "REQ-005",
+        "REQ-008",
+        "AC-008",
+        "VER-001",
+        "OUT-001",
+        "DONE-001",
+        "STOP-001"
+      ]
+    }
+  ],
+  "implementation_design": [
+    {
+      "component_or_concern": "CLI and task parser",
+      "design": "Parse the task file into TaskDescription, validate required work environment, permissions, skill configuration, adapter configuration, and delivery standard, then initialize ExecutorRunState with a run id and evidence directory.",
+      "contract_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "IN-001",
+        "DCT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "component_or_concern": "ClaudeTmuxAdapter port",
+      "design": "Create a narrow adapter port matching documented adapter semantics: launch returns LaunchSessionResponse or ClaudeTmuxTarget, detect_state returns ClaudeTmuxState, capture_screen returns ScreenSnapshot, send_input returns InputReceipt, and read_output returns OutputWindow. Each call must return a typed value or structured failure and write AdapterEvidenceRecord entries.",
+      "contract_refs": [
+        "REQ-003",
+        "REQ-006",
+        "MOD-002",
+        "TECH-001",
+        "DATA-001",
+        "OUT-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "component_or_concern": "Monitoring loop",
+      "design": "Use a deterministic polling loop around detect_state. Busy keeps polling; idle requires capture_screen and progress skill invocation; blocked, exited, or unsupported unknown routes to STOP-001 unless a traced recovery rule is added through the requirement table.",
+      "contract_refs": [
+        "REQ-006",
+        "REQ-007",
+        "FLOW-001",
+        "EXE-001",
+        "VER-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "component_or_concern": "Progress-judgment skill",
+      "design": "Implement executor-progress-judgment as an opencalw-invoked skill that receives screen text and context, returns one of the allowed decisions, and emits auditable request/response evidence. It owns subjective progress assessment only.",
+      "contract_refs": [
+        "REQ-007",
+        "MOD-003",
+        "TECH-002",
+        "AC-007",
+        "OUT-001"
+      ]
+    },
+    {
+      "component_or_concern": "Delivery checker and output writer",
+      "design": "After deliverable_ready, run deterministic completeness checks and write result.json, execution.log, adapter evidence, progress evidence, and delivery-check.json. The checker cannot claim semantic task success.",
+      "contract_refs": [
+        "REQ-005",
+        "REQ-008",
+        "AC-005",
+        "AC-008",
+        "VER-001",
+        "OUT-001",
+        "DONE-001",
+        "STOP-001"
+      ]
+    }
+  ],
+  "environment_requirements": [
+    {
+      "requirement": "Run Stage 3 acceptance against the local executor workspace and local ClaudeTmuxAdapter workspace using the concrete executor acceptance task file.",
+      "provided_by_or_source": "Confirmed local executor acceptance workspace C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-stage3-hld from SRC-008 and adapter workspace C:/Users/54256213/Documents/github/claude-tmux-adapter from SRC-005 and SRC-006.",
+      "required_for": "Proving adapter launch/control/monitoring, opencalw progress judgment, mechanical delivery checks, JSON/log output, and reviewer handoff.",
+      "contract_refs": [
+        "REQ-003",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "VER-001",
+        "OUT-001",
+        "DONE-001",
+        "STOP-001"
+      ]
+    },
+    {
+      "requirement": "Use the concrete task input at C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-stage3-hld/acceptance/executor-real-task.json.",
+      "provided_by_or_source": "Confirmed acceptance task data from SRC-009.",
+      "required_for": "Proving TaskDescription parsing, permissions, skill configuration, delivery standard, and evidence output handling.",
+      "contract_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004",
+        "IN-001",
+        "DCT-001",
+        "VER-001",
+        "OUT-001"
+      ]
+    }
+  ],
+  "real_acceptance_plan": {
+    "environment": "Confirmed local executor acceptance workspace at C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-stage3-hld with ClaudeTmuxAdapter workspace at C:/Users/54256213/Documents/github/claude-tmux-adapter, local Claude CLI and tmux-compatible session control, opencalw skill invocation, and the implementation-phase executor CLI command executor run C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-stage3-hld/acceptance/executor-real-task.json. Stage 3 validates that this acceptance design uses real paths and real task data; it does not claim the Executor product command has already run.",
+    "real_data": "Confirmed executor task file at C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-stage3-hld/acceptance/executor-real-task.json.",
+    "acceptance_command": "executor run C:/Users/54256213/Documents/github/spec-skills/skills/spec-intake/tests/live-runs/2026-05-28/executor-stage3-hld/acceptance/executor-real-task.json",
+    "preconditions": [
+      "Executor CLI has been implemented and is callable from PATH or its real build output; Stage 3 does not claim this product command has already run.",
+      "Claude CLI and tmux-compatible session control are available in the local acceptance environment.",
+      "ClaudeTmuxAdapter documentation and implementation are available at C:/Users/54256213/Documents/github/claude-tmux-adapter.",
+      "The opencalw executor-progress-judgment skill is installed and callable by the executor."
+    ],
+    "execution_steps": [
+      "Run executor run with the confirmed executor task file.",
+      "Verify task context parsing for work environment, permissions, skill configuration, adapter configuration, and delivery standard.",
+      "Verify ClaudeTmuxAdapter launch or command-equivalent launch records ClaudeTmuxTarget or session id plus launch metadata.",
+      "Verify the initial task instruction is sent through send_input and InputReceipt evidence is recorded.",
+      "Verify periodic detect_state polling records ClaudeTmuxState evidence and keeps waiting while busy.",
+      "Verify an idle state causes capture_screen, ScreenSnapshot evidence capture, and opencalw executor-progress-judgment invocation with screen text and context.",
+      "Verify next_instruction results are sent through send_input and deliverable_ready results trigger mechanical delivery checks.",
+      "Verify mechanical delivery checks cover result.json, execution.log, adapter evidence, progress evidence, and stop/done consistency before reviewer handoff."
+    ],
+    "expected_results": [
+      "Executor starts from the local CLI and parses the task file into a valid TaskDescription.",
+      "Claude CLI control, state observation, screen capture, input sending, and optional output reading occur through ClaudeTmuxAdapter evidence records.",
+      "Idle-screen subjective progress judgment occurs only through the opencalw progress-judgment skill.",
+      "The handoff package contains structured JSON, execution log, adapter evidence, progress-judgment evidence, and delivery-check result.",
+      "Executor does not claim semantic task completion without separate reviewer or agent acceptance."
+    ],
+    "expected_artifact_paths": [
+      "result.json",
+      "execution.log",
+      "delivery-check.json",
+      "adapter-evidence/",
+      "progress-judgment-evidence/",
+      "reviewer-acceptance-record.md"
+    ],
+    "mechanical_checks": [
+      "Verify result.json exists and references the minimum evidence metadata required by this HLD: run identity, final status, and evidence index, without treating this HLD as a full JSON schema.",
+      "Verify execution.log records CLI invocation, task parsing, adapter launch, polling, idle capture, skill invocation, and handoff.",
+      "Verify adapter-evidence contains ClaudeTmuxTarget, ClaudeTmuxState, ScreenSnapshot, and InputReceipt records.",
+      "Verify progress-judgment-evidence contains every opencalw request and response used to steer the run.",
+      "Verify delivery-check.json reports pass only when result, log, adapter evidence, progress evidence, and stop/done consistency are present."
+    ],
+    "failure_criteria": [
+      "Fail if Claude CLI is controlled without ClaudeTmuxAdapter evidence.",
+      "Fail if idle state is judged without a captured ScreenSnapshot and opencalw skill response.",
+      "Fail if deliverable_ready skips mechanical delivery checks.",
+      "Fail if Executor claims semantic task completion without reviewer or separate-agent acceptance.",
+      "Fail if any required result, log, or evidence artifact is absent."
+    ],
+    "evidence_to_capture": [
+      "Task file path and content hash.",
+      "CLI invocation record and parsed TaskDescription summary.",
+      "ClaudeTmuxTarget or session id and launch metadata.",
+      "ClaudeTmuxState polling records.",
+      "ScreenSnapshot records for idle observations.",
+      "InputReceipt records for initial and next instructions.",
+      "opencalw progress-judgment skill request and response records.",
+      "delivery-check.json result, result.json, execution.log, and reviewer acceptance record."
+    ],
+    "acceptance_owner": "Human reviewer who authorized Stage 3 execution and accepts the HLD package under SRC-007.",
+    "mock_policy": "forbidden",
+    "environment_source_refs": [
+      "SRC-008",
+      "SRC-005",
+      "SRC-006"
+    ],
+    "real_data_source_refs": [
+      "SRC-009"
+    ],
+    "acceptance_owner_source_refs": [
+      "SRC-007"
+    ],
+    "contract_refs": [
+      "REQ-001",
+      "REQ-002",
+      "REQ-003",
+      "REQ-004",
+      "REQ-005",
+      "REQ-006",
+      "REQ-007",
+      "REQ-008",
+      "AC-001",
+      "AC-002",
+      "AC-003",
+      "AC-004",
+      "AC-005",
+      "AC-006",
+      "AC-007",
+      "AC-008",
+      "FLOW-001",
+      "DATA-001",
+      "MOD-001",
+      "MOD-002",
+      "MOD-003",
+      "TECH-001",
+      "TECH-002",
+      "DCT-001",
+      "IN-001",
+      "EXE-001",
+      "VER-001",
+      "OUT-001",
+      "STOP-001",
+      "DONE-001",
+      "RISK-001",
+      "BAR-001",
+      "ASM-001"
+    ]
+  },
+  "design_gate_report": [
+    {
+      "check_id": "CHECK-001",
+      "name": "HLD source readiness",
+      "gate_key": "source_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "IN-001",
+        "EXE-001",
+        "VER-001",
+        "OUT-001",
+        "STOP-001",
+        "DONE-001"
+      ],
+      "evidence_summary": "The HLD derives from approved Stage 2 PRDs, the Stage 1 requirement table, and canonical execution refs without adding untraced product scope.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-002",
+      "name": "Control flow readiness",
+      "gate_key": "control_flow_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-001",
+        "REQ-003",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "FLOW-001",
+        "IN-001",
+        "EXE-001",
+        "OUT-001",
+        "STOP-001"
+      ],
+      "evidence_summary": "The HLD defines ordered CLI load, adapter launch, send_input, detect_state polling, idle capture, opencalw judgment, delivery check, and handoff steps with branch behavior.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-003",
+      "name": "Data flow and object readiness",
+      "gate_key": "data_flow_and_object_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-002",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "DATA-001",
+        "DCT-001",
+        "IN-001",
+        "OUT-001"
+      ],
+      "evidence_summary": "The HLD defines task, run state, adapter evidence, progress judgment, and delivery-check data objects with required fields, meanings, lifecycle, and data flows.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-004",
+      "name": "Interface and state readiness",
+      "gate_key": "interface_state_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-004",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "MOD-001",
+        "MOD-002",
+        "MOD-003",
+        "TECH-001",
+        "TECH-002",
+        "STOP-001",
+        "DONE-001"
+      ],
+      "evidence_summary": "The HLD defines local CLI, ClaudeTmuxAdapter, opencalw progress skill, reviewer handoff interfaces, and state transitions from initialization through accepted or stopped.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-005",
+      "name": "Technical implementation readiness",
+      "gate_key": "technical_implementation_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-003",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "TECH-001",
+        "TECH-002",
+        "MOD-001",
+        "MOD-002",
+        "MOD-003",
+        "BAR-001",
+        "RISK-001"
+      ],
+      "evidence_summary": "The HLD records implementation decisions for local CLI scope, adapter-only Claude control, opencalw subjective judgment, mechanical delivery checks, evidence preservation, and overclaim prevention.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-006",
+      "name": "Real acceptance readiness",
+      "gate_key": "real_acceptance_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "VER-001",
+        "OUT-001",
+        "DONE-001",
+        "STOP-001"
+      ],
+      "evidence_summary": "The HLD names concrete local acceptance workspace, concrete task file, execution steps, expected results, evidence capture, acceptance owner, and forbidden substitute policy.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-007",
+      "name": "HLD document readiness",
+      "gate_key": "hld_document_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-001",
+        "REQ-003",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "MOD-002",
+        "MOD-003",
+        "TECH-001",
+        "TECH-002",
+        "VER-001",
+        "OUT-001",
+        "DONE-001",
+        "STOP-001"
+      ],
+      "evidence_summary": "The Markdown HLD renders source-backed interface precision and executable acceptance design with command, preconditions, expected artifacts, mechanical checks, and failure criteria.",
+      "required_fix": ""
+    },
+    {
+      "check_id": "CHECK-008",
+      "name": "Task boundary readiness",
+      "gate_key": "task_boundary_readiness",
+      "status": "pass",
+      "evidence_refs": [
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "BAR-001",
+        "STOP-001"
+      ],
+      "evidence_summary": "The HLD stays at implementation design level and contains no task plan, task graph, dependency edge, parallel group, or implementation task card.",
+      "required_fix": ""
+    }
+  ]
+}

@@ -6,7 +6,7 @@
 
 ## Reviewer Role
 
-Spec-intake quality reviewer checking whether output packages would be acceptable for downstream PRD consumption and task planning.
+Spec-intake quality reviewer checking whether output packages would be acceptable for downstream PRD and HLD consumption.
 
 ## Verdict Vocabulary
 
@@ -20,9 +20,9 @@ Spec-intake quality reviewer checking whether output packages would be acceptabl
 
 ## Case: Meeting Action Positive
 
-Prompt file: `tests/cases/meeting-action-positive.md`
+Prompt file: `evals/cases/meeting-action-positive.md`
 
-Representative snapshot package: `tests/fixtures/ready-agent-prd-task-plan`
+Representative snapshot package: `tests/fixtures/ready-agent-prd-HLD`
 
 Verdict: `pass`
 
@@ -37,7 +37,7 @@ Evidence:
 
 ## Case: Customer Data Negative
 
-Prompt file: `tests/cases/customer-data-negative.md`
+Prompt file: `evals/cases/customer-data-negative.md`
 
 Snapshot package: `tests/snapshots/customer-data-negative`
 
@@ -52,7 +52,7 @@ Evidence:
 
 ## Case: One-Line Draft Boundary
 
-Prompt file: `tests/cases/one-line-draft-boundary.md`
+Prompt file: `evals/cases/one-line-draft-boundary.md`
 
 Snapshot package: `tests/snapshots/one-line-draft-boundary`
 
@@ -62,7 +62,7 @@ Evidence:
 
 - The expected behavior separates confirmed facts from hypotheses.
 - A valid output must not invent CRM vendor, fields, scoring model, thresholds, permissions, integrations, or success metrics.
-- A valid task plan remains blocked unless execution inputs, scoring rules, verification, stop conditions, and done criteria are explicit.
+- A valid HLD remains blocked unless execution inputs, scoring rules, verification, stop conditions, and done criteria are explicit.
 - The snapshot package validates with `planning_status=blocked`.
 
 ## Live Eval Run
@@ -95,4 +95,4 @@ Semantic verdict:
 - Customer Data Negative: `pass`
 - One-Line Draft Boundary: `pass`
 
-Residual requirement status: closed. Future changes to the skill contract, validator, task-decomposition rules, or render rules must rerun these three live packages or replace them with an equivalent dated live-run record.
+Residual requirement status: closed. Future changes to the skill contract, validator, HLD rules, or render rules must rerun these three live packages or replace them with an equivalent dated live-run record.

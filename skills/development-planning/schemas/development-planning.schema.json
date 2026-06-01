@@ -1,0 +1,298 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/development-planning.schema.json",
+  "title": "Development Planning Harness Output",
+  "type": "object",
+  "required": [
+    "planning_status",
+    "output_root",
+    "source_inventory",
+    "planning_harness_model",
+    "phase_reports",
+    "tasks",
+    "dag",
+    "task_descriptions",
+    "fixtures",
+    "coverage_matrix",
+    "delivery_acceptance",
+    "task_logic_review",
+    "plan_integrity_review",
+    "planning_gate_report",
+    "required_fixes"
+  ],
+  "properties": {
+    "planning_status": {
+      "enum": ["ready", "blocked"]
+    },
+    "output_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_inventory": {
+      "type": "array"
+    },
+    "prd_hld_lld_interpretation": {
+      "type": "object"
+    },
+    "development_scope": {
+      "type": "object"
+    },
+    "project_stack": {
+      "type": "object"
+    },
+    "planning_harness_model": {
+      "type": "object",
+      "required": ["target_type", "quality_standard", "stages"],
+      "properties": {
+        "target_type": {
+          "const": "harness-workflow"
+        },
+        "quality_standard": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stages": {
+          "type": "array",
+          "minItems": 4
+        }
+      },
+      "additionalProperties": true
+    },
+    "phase_reports": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": [
+          "stage_id",
+          "stage_name",
+          "purpose",
+          "inputs",
+          "outputs",
+          "review_checks",
+          "status",
+          "blocking_findings"
+        ],
+        "properties": {
+          "stage_id": {
+            "enum": ["STAGE-001", "STAGE-002", "STAGE-003", "STAGE-004"]
+          },
+          "stage_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "inputs": {
+            "type": "array"
+          },
+          "outputs": {
+            "type": "array"
+          },
+          "review_checks": {
+            "type": "array"
+          },
+          "status": {
+            "enum": ["pass", "blocked"]
+          },
+          "blocking_findings": {
+            "type": "array"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "task_id",
+          "title",
+          "task_type",
+          "source_refs",
+          "inputs",
+          "expected_outputs",
+          "impacted_areas",
+          "allowed_scope",
+          "forbidden_scope",
+          "acceptance",
+          "verification",
+          "stop_conditions",
+          "dependencies",
+          "handoff_requirements",
+          "task_description_path",
+          "fixture_dir",
+          "prompt_path",
+          "agents_path",
+          "claude_path"
+        ],
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "pattern": "^TASK-[0-9]{3,}$"
+          },
+          "task_type": {
+            "type": "string"
+          },
+          "dependencies": {
+            "type": "array"
+          },
+          "task_description_path": {
+            "type": "string"
+          },
+          "prompt_path": {
+            "type": "string"
+          },
+          "agents_path": {
+            "type": "string"
+          },
+          "claude_path": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "dag": {
+      "type": "object",
+      "required": ["nodes", "edges", "parallel_groups", "execution_order", "cycle_check"],
+      "properties": {
+        "nodes": {
+          "type": "array"
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to", "reason", "consumed_output", "source_refs"]
+          }
+        },
+        "parallel_groups": {
+          "type": "array"
+        },
+        "execution_order": {
+          "type": "array"
+        },
+        "cycle_check": {
+          "type": "object",
+          "required": ["status", "cycles"],
+          "properties": {
+            "status": {
+              "enum": ["pass", "blocked"]
+            },
+            "cycles": {
+              "type": "array"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "task_descriptions": {
+      "type": "array"
+    },
+    "fixtures": {
+      "type": "array"
+    },
+    "coverage_matrix": {
+      "type": "array"
+    },
+    "requirement_coverage_matrix": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "coverage_id",
+          "source_requirements",
+          "covered_by_tasks",
+          "verified_by",
+          "required_evidence"
+        ],
+        "properties": {
+          "coverage_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "requirement_family": {
+            "type": "string"
+          },
+          "source_requirements": {
+            "type": "array"
+          },
+          "covered_by_tasks": {
+            "type": "array"
+          },
+          "verified_by": {
+            "type": "array"
+          },
+          "required_evidence": {
+            "type": "array"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "delivery_acceptance": {
+      "type": "object"
+    },
+    "task_logic_review": {
+      "type": "object",
+      "required": ["status", "reviewed_task_ids", "checks", "blocking_findings", "required_revisions"],
+      "properties": {
+        "status": {
+          "enum": ["pass", "blocked", "not_applicable"]
+        },
+        "reviewed_task_ids": {
+          "type": "array"
+        },
+        "checks": {
+          "type": "array"
+        },
+        "blocking_findings": {
+          "type": "array"
+        },
+        "required_revisions": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "plan_integrity_review": {
+      "type": "object",
+      "required": [
+        "status",
+        "checks",
+        "coverage_findings",
+        "dependency_findings",
+        "parallel_safety_findings",
+        "execution_order_findings",
+        "delivery_acceptance_findings",
+        "blocking_findings",
+        "required_revisions"
+      ],
+      "properties": {
+        "status": {
+          "enum": ["pass", "blocked", "not_applicable"]
+        }
+      },
+      "additionalProperties": true
+    },
+    "planning_gate_report": {
+      "type": "array"
+    },
+    "external_dependencies": {
+      "type": "array"
+    },
+    "open_questions": {
+      "type": "array"
+    },
+    "required_fixes": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": true
+}

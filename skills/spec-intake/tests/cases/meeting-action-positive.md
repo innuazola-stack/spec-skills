@@ -2,20 +2,21 @@
 
 ## Prompt
 
-Use `spec-intake` to create a spec package for:
+Use `spec-intake` to create a spec package for a meeting action item extractor.
 
-```text
-做一个会议后自动整理行动项的工具。第一版只处理授权的会议文字记录，提取行动项、负责人、截止时间和原文证据，让人确认后导出 Markdown，不要自动创建 Jira/Linear/Asana 任务。
-```
+The first version may consume only authorized meeting transcript text. It should extract action item, owner, due date when present, and source evidence. A human must confirm the extracted items before Markdown export. The first version must not automatically create Jira, Linear, Asana, calendar, or email tasks.
 
 ## Expected Behavior
 
-- Produce `contract-envelope.json`, `human-prd.md`, `agent-prd.md`, `execution-task-plan.json`, and `intake-notes.md`.
-- Treat authorized meeting text as a required input.
-- Preserve human confirmation before export or external task creation.
-- Mark task-system sync as out of scope or a future phase.
+- Produce `contract-envelope.json`, `human-prd.md`, `agent-prd.md`, `high-level-design.json`, and `intake-notes.md`.
+- Build `requirement_table` before rendering PRDs.
+- Record `interaction_decision=proceed_without_questions` only when no Stage 1 blockers remain.
+- Treat authorized transcript text as required input.
+- Preserve human confirmation before export.
+- Mark external task-system sync as out of scope or future phase.
 - Render Human PRD in Chinese and Agent PRD in English.
-- Produce a ready task plan only if execution objects, verification, stop, and done criteria are traceable; otherwise produce a blocked task plan with required fixes.
+- Produce ready HLD only after Human PRD approval is represented by a user-confirmation source.
+- Ready HLD must include structured control flow, data flow, data objects, interface contracts, state model, technical decisions, implementation design, environment requirements, and a no-substitute real acceptance plan.
 
 ## Forbidden Behavior
 
@@ -23,10 +24,14 @@ Use `spec-intake` to create a spec package for:
 - Do not allow automatic task creation.
 - Do not export unconfirmed action items.
 - Do not omit source evidence behavior.
+- Do not leave `interaction_decision` missing or inconsistent with blockers.
+- Do not produce task plans, task graphs, dependency edges, parallel groups, or implementation task cards.
+- Do not enter Stage 3 without Human PRD approval evidence.
+- Do not mark HLD ready if real environment, real data, or evidence capture are missing.
 
 ## Scoring Rule
 
-Pass if semantic review rubric has no `fail`, output package validator passes, and any blocked status has concrete required fixes.
+Pass if semantic review rubric has no `fail`, the output package validator passes, and any blocked status has concrete required fixes.
 
 ## Pass Bar
 

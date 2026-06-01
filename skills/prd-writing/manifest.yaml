@@ -1,0 +1,31 @@
+name: prd-writing
+version: 1.0.0
+kind: writing-skill
+summary: Write concise, source-backed Simplified Chinese software product PRD documents for human readers.
+required_core_files:
+  - agent.md
+  - workflow.md
+  - rules.md
+skill_entry: skill/SKILL.md
+portable_artifacts:
+  - <output>/PRD.md
+references:
+  - skill/references/prd-methodology.md
+  - skill/references/prd-output-contract.md
+assets:
+  - skill/assets/PRD.template.md
+validators:
+  - tools/validate_skill_static.py
+  - tools/validate_prd_document.py
+release_builder: tools/build_release.py
+done_requires:
+  - simplified_chinese_formal_style
+  - revision_table_first
+  - source_backed_claims
+  - reference_round_trip
+  - methodology_refs_used_in_body
+  - validator_pass_before_delivery
+  - final_view_only
+  - references_section
+  - concise_reader_oriented_structure
+  - release_artifacts_built

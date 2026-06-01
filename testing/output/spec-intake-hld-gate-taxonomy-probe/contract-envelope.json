@@ -1,0 +1,529 @@
+{
+  "contract_version": "1.8",
+  "intake_id": "INTAKE-READY-001",
+  "source_idea": {
+    "raw_idea": "Create a meeting action item extractor for authorized transcripts with human confirmation and Markdown export.",
+    "source_context_refs": [
+      "SRC-001"
+    ],
+    "created_at": "2026-05-26T00:00:00+08:00"
+  },
+  "core": "CORE-001",
+  "scope": {
+    "in_scope": [
+      "SCOPE-001"
+    ],
+    "out_of_scope": [
+      "OOS-001"
+    ],
+    "mvp_boundary": "Phase 1 accepts authorized transcript text, extracts action items with evidence, requires human confirmation, and exports Markdown.",
+    "roadmap": [
+      "PHASE-001"
+    ]
+  },
+  "requirements": [
+    "REQ-001"
+  ],
+  "acceptance_criteria": [
+    "AC-001"
+  ],
+  "implementation_model": {
+    "control_flow": [],
+    "data_flow": [],
+    "modules": [],
+    "technical_decisions": [],
+    "state_transitions": [],
+    "data_contracts": []
+  },
+  "agent_execution": {
+    "input_contracts": [
+      "IN-001"
+    ],
+    "execution_rules": [
+      "EXE-001"
+    ],
+    "verification_cases": [
+      "VER-001"
+    ],
+    "output_deliverables": [
+      "OUT-001"
+    ],
+    "stop_conditions": [
+      "STOP-001"
+    ],
+    "done_criteria": [
+      "DONE-001"
+    ]
+  },
+  "assumptions": [],
+  "open_questions": [],
+  "sources": [
+    "SRC-001",
+    "SRC-002",
+    "SRC-003",
+    "SRC-004",
+    "SRC-005"
+  ],
+  "traceability": [
+    "TRACE-001"
+  ],
+  "render_blocks": [
+    "RB-001",
+    "RB-002"
+  ],
+  "quality_gates": [
+    "GATE-001"
+  ],
+  "render_status": {
+    "human_prd": "review_ready",
+    "agent_prd": "execution_ready"
+  },
+  "objects": {
+    "SRC-001": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-001",
+        "source_type": "user_input",
+        "content": "Create a meeting action item extractor for authorized transcripts with human confirmation and Markdown export.",
+        "label": "Original user idea"
+      }
+    },
+    "CORE-001": {
+      "type": "CORE",
+      "payload": {
+        "id": "CORE-001",
+        "product_name": "Meeting Action Extractor",
+        "one_line_summary": "Extract confirmed action items from authorized meeting transcripts and export Markdown.",
+        "target_users": [
+          "product and project operators"
+        ],
+        "personas": [],
+        "problem_statement": "Teams lose follow-up accountability after meetings because action items are scattered in transcripts.",
+        "value_proposition": "Create a reviewable action-item list with owner, due date, and source evidence before export.",
+        "source_refs": [
+          "SRC-001"
+        ],
+        "assumption_refs": [],
+        "status": "confirmed"
+      }
+    },
+    "SCOPE-001": {
+      "type": "SCOPE",
+      "payload": {
+        "id": "SCOPE-001",
+        "statement": "Phase 1 handles authorized transcript text and Markdown export after human confirmation.",
+        "phase": "PHASE-001",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "OOS-001": {
+      "type": "OOS",
+      "payload": {
+        "id": "OOS-001",
+        "statement": "Automatic Jira, Linear, Asana, calendar, or email task creation is out of scope for Phase 1.",
+        "phase": "PHASE-001",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "PHASE-001": {
+      "type": "PHASE",
+      "payload": {
+        "id": "PHASE-001",
+        "name": "Phase 1 MVP"
+      }
+    },
+    "REQ-001": {
+      "type": "REQ",
+      "payload": {
+        "id": "REQ-001",
+        "title": "Extract reviewable action items from authorized transcript text",
+        "description": "The tool must identify action item, owner, due date when present, and source evidence, then require human confirmation before Markdown export.",
+        "user_value": "Operators can trust and edit follow-up lists before sharing them.",
+        "priority": "must",
+        "phase": "PHASE-001",
+        "scope_ref": "SCOPE-001",
+        "acceptance_criteria": [
+          "AC-001"
+        ],
+        "verification_refs": [
+          "VER-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "status": "confirmed"
+      }
+    },
+    "AC-001": {
+      "type": "AC",
+      "payload": {
+        "id": "AC-001",
+        "requirement_id": "REQ-001",
+        "criterion": "Given authorized transcript text with one explicit action item, the output includes action, owner, due date if present, evidence quote, and waits for confirmation before Markdown export.",
+        "verification_method": "VER-001",
+        "blocking": true
+      }
+    },
+    "IN-001": {
+      "type": "IN",
+      "payload": {
+        "id": "IN-001",
+        "input_name": "authorized_transcript_text",
+        "required": true,
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "EXE-001": {
+      "type": "EXE",
+      "payload": {
+        "id": "EXE-001",
+        "rule": "Extract only action items supported by transcript evidence and require human confirmation before export.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "VER-001": {
+      "type": "VER",
+      "payload": {
+        "id": "VER-001",
+        "case": "Authorized transcript with one action item produces a reviewable item and no external task creation.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "OUT-001": {
+      "type": "OUT",
+      "payload": {
+        "id": "OUT-001",
+        "deliverable": "Confirmed Markdown action-item list",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "STOP-001": {
+      "type": "STOP",
+      "payload": {
+        "id": "STOP-001",
+        "condition": "Stop if transcript authorization is missing or the user requests automatic external task creation.",
+        "status": "defined",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "DONE-001": {
+      "type": "DONE",
+      "payload": {
+        "id": "DONE-001",
+        "criterion": "Phase 1 is done when confirmed Markdown export works and external task creation remains impossible.",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "TRACE-001": {
+      "type": "TRACE",
+      "payload": {
+        "id": "TRACE-001",
+        "from_ref": "SRC-001",
+        "to_ref": "REQ-001",
+        "relation": "stated_by"
+      }
+    },
+    "RB-001": {
+      "type": "RB",
+      "payload": {
+        "id": "RB-001",
+        "target": "human_prd",
+        "section": "MVP summary",
+        "content_type": "text",
+        "contract_refs": [
+          "CORE-001",
+          "REQ-001",
+          "AC-001",
+          "OOS-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "allowed_inference": "summary",
+        "unsupported_claims": [],
+        "status": "ready"
+      }
+    },
+    "RB-002": {
+      "type": "RB",
+      "payload": {
+        "id": "RB-002",
+        "target": "agent_prd",
+        "section": "Execution-ready Agent PRD",
+        "content_type": "text",
+        "contract_refs": [
+          "REQ-001",
+          "IN-001",
+          "EXE-001",
+          "VER-001",
+          "OUT-001",
+          "STOP-001",
+          "DONE-001"
+        ],
+        "source_refs": [
+          "SRC-001"
+        ],
+        "allowed_inference": "summary",
+        "unsupported_claims": [],
+        "status": "ready"
+      }
+    },
+    "GATE-001": {
+      "type": "GATE",
+      "payload": {
+        "id": "GATE-001",
+        "name": "agent execution readiness",
+        "blocking_condition": "Agent PRD must have complete PRD body sections plus input, execution, verification, output, stop, and done refs.",
+        "status": "pass",
+        "blocking": false,
+        "affected_targets": [
+          "agent_prd"
+        ],
+        "evidence_refs": [
+          "IN-001",
+          "EXE-001",
+          "VER-001",
+          "OUT-001",
+          "STOP-001",
+          "DONE-001"
+        ]
+      }
+    },
+    "META-001": {
+      "type": "META",
+      "payload": {
+        "id": "META-001",
+        "title": "Spec Intake Package",
+        "version": "1.8",
+        "source_refs": [
+          "SRC-001"
+        ]
+      }
+    },
+    "SRC-002": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-002",
+        "source_type": "user_confirmation",
+        "content": "Human reviewer approved the Human PRD and authorized Stage 3 HLD.",
+        "label": "Human PRD approval"
+      }
+    },
+    "SRC-003": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-003",
+        "source_type": "user_confirmation",
+        "content": "Stage 3 acceptance environment is the local Phase 1 extractor runtime at C:/tmp/spec-intake-acceptance/meeting-action-extractor with Markdown export enabled and external task-system connectors disabled.",
+        "label": "Confirmed real acceptance environment"
+      }
+    },
+    "SRC-004": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-004",
+        "source_type": "user_confirmation",
+        "content": "Stage 3 real acceptance data is the authorized transcript file C:/tmp/spec-intake-acceptance/data/authorized-meeting-transcript-001.txt.",
+        "label": "Confirmed real acceptance data"
+      }
+    },
+    "SRC-005": {
+      "type": "SRC",
+      "payload": {
+        "id": "SRC-005",
+        "source_type": "user_confirmation",
+        "content": "Stage 3 acceptance owner is the named product reviewer recorded in the acceptance run log at C:/tmp/spec-intake-acceptance/evidence/reviewer-approval.md.",
+        "label": "Confirmed real acceptance owner"
+      }
+    }
+  },
+  "contract_summary": {
+    "maturity": "L4",
+    "ready_targets": [
+      "human_prd",
+      "agent_prd"
+    ],
+    "blocked_targets": []
+  },
+  "traceability_summary": {
+    "render_traceability": [
+      "RB-001",
+      "RB-002"
+    ],
+    "requirement_traceability": [
+      "TRACE-001"
+    ],
+    "decision_traceability": []
+  },
+  "gate_report": [
+    {
+      "gate_id": "GATE-001",
+      "status": "pass",
+      "blocking": false,
+      "affected_targets": [
+        "agent_prd"
+      ],
+      "evidence_refs": [
+        "IN-001",
+        "EXE-001",
+        "VER-001",
+        "OUT-001",
+        "STOP-001",
+        "DONE-001"
+      ],
+      "message": "Agent PRD is a complete execution-ready PRD for Phase 1.",
+      "required_fix": ""
+    }
+  ],
+  "success_metrics": [],
+  "risks": [],
+  "quality_bars": [],
+  "references": [],
+  "document_metadata": [
+    "META-001"
+  ],
+  "next_actions": [],
+  "object_index": {
+    "CORE": [
+      "CORE-001"
+    ],
+    "USER": [],
+    "SCOPE": [
+      "SCOPE-001"
+    ],
+    "OOS": [
+      "OOS-001"
+    ],
+    "PHASE": [
+      "PHASE-001"
+    ],
+    "REQ": [
+      "REQ-001"
+    ],
+    "AC": [
+      "AC-001"
+    ],
+    "MET": [],
+    "FLOW": [],
+    "DATA": [],
+    "MOD": [],
+    "TECH": [],
+    "STATE": [],
+    "DCT": [],
+    "IN": [
+      "IN-001"
+    ],
+    "EXE": [
+      "EXE-001"
+    ],
+    "VER": [
+      "VER-001"
+    ],
+    "OUT": [
+      "OUT-001"
+    ],
+    "STOP": [
+      "STOP-001"
+    ],
+    "DONE": [
+      "DONE-001"
+    ],
+    "RISK": [],
+    "BAR": [],
+    "ASM": [],
+    "Q": [],
+    "REF": [],
+    "SRC": [
+      "SRC-001",
+      "SRC-002",
+      "SRC-003",
+      "SRC-004",
+      "SRC-005"
+    ],
+    "TRACE": [
+      "TRACE-001"
+    ],
+    "RB": [
+      "RB-001",
+      "RB-002"
+    ],
+    "META": [
+      "META-001"
+    ],
+    "GATE": [
+      "GATE-001"
+    ]
+  },
+  "harness_workflow": {
+    "workflow_type": "review_gated_self_improving_generation",
+    "current_stage": "stage_3_hld",
+    "stage_order": [
+      "stage_1_requirements_table",
+      "stage_2_prd_review",
+      "stage_3_hld"
+    ],
+    "approval_gates": {
+      "human_prd_review": {
+        "status": "approved",
+        "approved_by_ref": "SRC-002"
+      }
+    },
+    "revision_policy": {
+      "max_review_rounds": 3,
+      "on_revise": "update_requirement_table_then_rerender_prds"
+    }
+  },
+  "requirement_table": [
+    {
+      "row_id": "RT-001",
+      "requirement_ref": "REQ-001",
+      "origin": "explicit_fact",
+      "source_refs": [
+        "SRC-001"
+      ],
+      "problem": "Teams lose follow-up accountability after meetings because action items are scattered in transcripts.",
+      "user_value": "Operators can trust and edit follow-up lists before sharing them.",
+      "mvp_scope": "Phase 1 accepts authorized transcript text, extracts action items with evidence, requires human confirmation, and exports Markdown.",
+      "acceptance_summary": "Given authorized transcript text with one explicit action item, the output includes action, owner, due date if present, evidence quote, and waits for confirmation before Markdown export.",
+      "target_artifact_refs": [
+        "REQ-001",
+        "AC-001",
+        "RB-001",
+        "RB-002",
+        "IN-001",
+        "EXE-001",
+        "VER-001",
+        "OUT-001",
+        "STOP-001",
+        "DONE-001"
+      ]
+    }
+  ],
+  "interaction_decision": {
+    "stage": "stage_1_requirements_table",
+    "decision": "proceed_without_questions",
+    "can_ask_user": true,
+    "reason": "The source idea and confirmed sources provide enough information to produce the requirement table without clarification.",
+    "question_refs": [],
+    "blocking_refs": [],
+    "source_refs": [
+      "SRC-001"
+    ]
+  }
+}

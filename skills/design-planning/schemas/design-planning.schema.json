@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Design Planning Output",
+  "type": "object",
+  "required": [
+    "planning_status",
+    "output_root",
+    "detailed_design_root",
+    "rust_design_path",
+    "source_inventory",
+    "prd_hld_interpretation",
+    "design_scope",
+    "rust_stack",
+    "planning_review_stages",
+    "tasks",
+    "dag",
+    "fixtures",
+    "coverage_matrix",
+    "planning_gate_report",
+    "external_dependencies",
+    "open_questions",
+    "required_fixes"
+  ],
+  "properties": {
+    "planning_status": {
+      "enum": ["ready", "blocked"]
+    },
+    "output_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "detailed_design_root": {
+      "const": "docs/design"
+    },
+    "rust_design_path": {
+      "const": "docs/design/rust-implementation-design.md"
+    },
+    "source_inventory": {
+      "type": "array"
+    },
+    "planning_review_stages": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["stage_id", "stage", "status", "checks", "findings", "evidence_refs"],
+        "properties": {
+          "stage_id": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "status": {
+            "enum": ["pass", "revise", "fail", "blocked"]
+          },
+          "checks": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "findings": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "evidence_refs": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "task_id",
+          "title",
+          "task_type",
+          "source_refs",
+          "inputs",
+          "outputs",
+          "allowed_scope",
+          "forbidden_scope",
+          "acceptance",
+          "verification",
+          "stop_conditions",
+          "dependencies",
+          "design_doc_path",
+          "fixture_dir",
+          "prompt_path",
+          "agents_path",
+          "claude_path"
+        ],
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "pattern": "^TASK-[0-9]{3}$"
+          },
+          "task_type": {
+            "enum": ["detailed_design", "design_acceptance"]
+          },
+          "design_doc_path": {
+            "type": "string",
+            "pattern": "^docs/design/.+\\.md$"
+          },
+          "fixture_dir": {
+            "type": "string"
+          },
+          "prompt_path": {
+            "type": "string"
+          },
+          "agents_path": {
+            "type": "string"
+          },
+          "claude_path": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "dag": {
+      "type": "object",
+      "required": ["nodes", "edges", "parallel_groups", "cycle_check"],
+      "properties": {
+        "nodes": {
+          "type": "array"
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to", "reason", "source_refs"]
+          }
+        },
+        "cycle_check": {
+          "type": "object",
+          "required": ["status", "cycles"]
+        }
+      }
+    },
+    "fixtures": {
+      "type": "array"
+    },
+    "planning_gate_report": {
+      "type": "array"
+    }
+  }
+}

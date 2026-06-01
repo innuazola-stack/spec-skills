@@ -1,0 +1,50 @@
+{
+  "hld_id": "HLD-001",
+  "source_artifacts": {
+    "contract_ref": "contract-envelope.json",
+    "contract_version": "1.8",
+    "agent_prd_ref": "agent-prd.md",
+    "agent_prd_status": "blocked",
+    "phase_ref": "PHASE-001",
+    "phase_label": "Draft clarification",
+    "phase_ref_kind": "canonical_id",
+    "phase_ref_fallback_reason": ""
+  },
+  "design_status": "blocked",
+  "blocking_reasons": [
+    "agent_prd_blocked_by_missing_scoring_contract"
+  ],
+  "missing_required_refs": [
+    "IN-*",
+    "EXE-*",
+    "VER-*",
+    "OUT-*",
+    "STOP-*",
+    "DONE-*"
+  ],
+  "required_fixes": [
+    "Resolve Q-001 before writing ready HLD."
+  ],
+  "contract_refs": [],
+  "architecture_summary": "",
+  "component_boundaries": "",
+  "data_and_state_design": "",
+  "integration_points": "",
+  "verification_strategy": "",
+  "risk_controls": "",
+  "design_gate_report": [
+    {
+      "check_id": "CHECK-001",
+      "name": "HLD source readiness",
+      "status": "blocked",
+      "evidence_refs": [
+        "REQ-001",
+        "Q-001",
+        "GATE-001",
+        "PHASE-001"
+      ],
+      "evidence_summary": "The Agent PRD is not execution-ready, so HLD cannot be ready.",
+      "required_fix": "Resolve blocking questions and make the Agent PRD execution-ready before writing HLD."
+    }
+  ]
+}

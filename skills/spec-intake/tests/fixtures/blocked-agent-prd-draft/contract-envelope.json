@@ -81,7 +81,7 @@
         "target_users": [],
         "personas": [],
         "problem_statement": "The Agent PRD is still draft.",
-        "value_proposition": "Show that task planning blocks until execution readiness is achieved.",
+        "value_proposition": "Show that HLD blocks until execution readiness is achieved.",
         "source_refs": [
           "SRC-001"
         ],
@@ -104,7 +104,7 @@
       "type": "REQ",
       "payload": {
         "id": "REQ-001",
-        "title": "Block task planning while Agent PRD is draft",
+        "title": "Block HLD while Agent PRD is draft",
         "description": "The package must not expose executable tasks until Agent PRD readiness gates pass.",
         "user_value": "Prevents downstream execution from consuming an immature spec.",
         "priority": "must",
@@ -134,13 +134,18 @@
       "payload": {
         "id": "Q-001",
         "question": "Which execution inputs, verification cases, stop conditions, and done criteria make this Agent PRD execution-ready?",
-        "impact": "Agent PRD and task planning cannot become ready.",
+        "impact": "Agent PRD and HLD cannot become ready.",
         "owner": "user",
         "phase": "PHASE-001",
         "blocks_human_prd": false,
         "blocks_agent_prd": true,
         "status": "open",
-        "resolution_refs": []
+        "resolution_refs": [],
+        "question_type": "single_choice",
+        "options": [
+          "Keep the Agent PRD and HLD blocked until the missing execution facts are provided.",
+          "Provide the missing execution facts now, then rerun Stage 1 requirement table generation."
+        ]
       }
     },
     "PHASE-001": {
@@ -267,7 +272,7 @@
         "REQ-001"
       ],
       "message": "Agent PRD is draft and lacks execution readiness objects.",
-      "required_fix": "Define IN, EXE, VER, OUT, STOP, and DONE objects before task planning."
+      "required_fix": "Define IN, EXE, VER, OUT, STOP, and DONE objects before HLD."
     }
   ],
   "success_metrics": [],
@@ -333,6 +338,64 @@
     ],
     "GATE": [
       "GATE-001"
+    ]
+  },
+  "harness_workflow": {
+    "workflow_type": "review_gated_self_improving_generation",
+    "current_stage": "stage_1_requirements_table",
+    "stage_order": [
+      "stage_1_requirements_table",
+      "stage_2_prd_review",
+      "stage_3_hld"
+    ],
+    "approval_gates": {
+      "human_prd_review": {
+        "status": "pending",
+        "approved_by_ref": ""
+      }
+    },
+    "revision_policy": {
+      "max_review_rounds": 3,
+      "on_revise": "update_requirement_table_then_rerender_prds"
+    },
+    "execution_mode": "live_interactive",
+    "execution_mode_reason": "Fixture models a live Stage 1 blocked intake."
+  },
+  "requirement_table": [
+    {
+      "row_id": "RT-001",
+      "requirement_ref": "REQ-001",
+      "origin": "open_question",
+      "source_refs": [
+        "SRC-001",
+        "Q-001"
+      ],
+      "problem": "The Agent PRD is still draft.",
+      "user_value": "Prevents downstream execution from consuming an immature spec.",
+      "mvp_scope": "Draft fixture only; execution scope is not ready.",
+      "acceptance_summary": "Task planning returns planning_status=blocked and an empty executable graph.",
+      "target_artifact_refs": [
+        "REQ-001",
+        "AC-001",
+        "RB-001",
+        "RB-002"
+      ]
+    }
+  ],
+  "interaction_decision": {
+    "stage": "stage_1_requirements_table",
+    "decision": "ask_user",
+    "can_ask_user": true,
+    "reason": "Stage 1 found blocking missing information and must ask closed-form clarification questions before readiness can advance.",
+    "question_refs": [
+      "Q-001"
+    ],
+    "blocking_refs": [
+      "GATE-001",
+      "Q-001"
+    ],
+    "source_refs": [
+      "SRC-001"
     ]
   }
 }

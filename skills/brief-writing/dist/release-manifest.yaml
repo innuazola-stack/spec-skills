@@ -1,0 +1,9 @@
+name: brief-writing
+version: 1.0.0
+artifacts:
+  - kind: source
+    path: dist/brief-writing-1.0.0-source.zip
+    sha256: 2a676a0a13c6df0c07640d27cd65fdaf3284c2570df4d8c331ad9280c6571057
+  - kind: codex
+    path: dist/brief-writing-1.0.0-codex.zip
+    sha256: ce80b0c6fd3dda5e9ff90c81951a7097c33803980e5dad5589ae38de25e8edd8

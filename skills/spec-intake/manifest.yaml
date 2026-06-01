@@ -1,0 +1,62 @@
+name: spec-intake
+version: 1.0.0
+kind: harness-workflow
+paradigm: review-gated-self-improving-generation
+summary: Turn a raw idea into a structured requirement table, prd-writer PRD, PRD brief, and hld-writer HLD without untraced invention.
+required_core_files:
+  - agent.md
+  - workflow.md
+  - rules.md
+portable_artifacts:
+  - contract-envelope.json
+  - prd.md
+  - prd-brief.md
+  - high-level-design.json
+  - high-level-design.md
+  - hld-semantic-review.json
+  - intake-notes.md
+canonical_stage_order:
+  - stage_1_requirements_table
+  - stage_2_prd_review
+  - stage_3_hld
+validators:
+  - validators/validate_harness.py
+  - skill/scripts/validate_spec_intake_package.py
+  - tests/validator_regression.py
+  - tests/harness_source_regression.py
+release_builder: tools/build_release.py
+adapters:
+  codex:
+    entry: adapters/codex/SKILL.md
+    runtime_package_entry: skill/SKILL.md
+evals:
+  cases_dir: evals/cases
+approval_gates:
+  - prd_review
+writer_dependencies:
+  prd:
+    preferred_skill: prd-writer
+    accepted_skills:
+      - prd-writer
+      - prd-writing
+    output_artifacts:
+      - prd.md
+  hld:
+    preferred_skill: hld-writer
+    accepted_skills:
+      - hld-writer
+      - hld-writing
+    output_artifacts:
+      - high-level-design.json
+      - high-level-design.md
+      - hld-semantic-review.json
+done_requires:
+  - interaction_decision_present
+  - requirement_table_present
+  - requirement_table_origin_provenance_valid
+  - closed_form_questions_only
+  - prd_review_approved_before_stage_3
+  - high_level_design_json_and_markdown_present
+  - hld_semantic_review_present_and_pass
+  - no_task_plan_output
+  - validator_pass

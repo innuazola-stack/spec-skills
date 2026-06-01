@@ -6,7 +6,7 @@
 
 ## Mission
 
-Create a reusable skill that turns raw product ideas into contract-backed Human PRDs, Agent PRDs, and execution task plans.
+Create a reusable skill that turns raw product ideas into contract-backed Human PRDs, Agent PRDs, and HLD.
 
 ## Target Dev Root
 
@@ -16,29 +16,35 @@ Create a reusable skill that turns raw product ideas into contract-backed Human 
 
 `skills/spec-intake/skill`
 
+## Workflow Type
+
+`harness-workflow`: review-gated, self-improving generation.
+
 ## Dominant Skill Type
 
-`hybrid`: thinking-dominant, script-supported.
+Harness workflow. The portable core owns staged orchestration, gates, contracts, and release validation; the Codex skill is a runtime adapter.
 
 ## Prototype Paradigm
 
-Bounded reusable skill. It produces spec artifacts, but the skill itself is not a harness workflow runtime.
+Portable harness core with a Codex skill adapter.
 
 ## Harness Class
 
-Not a harness workflow. It follows harness-hardening principles for contracts, gates, and evidence.
+Review-gated self-improving generation harness.
 
 ## Responsibilities
 
-- Convert raw ideas into canonical contract-backed spec packages.
-- Guide clarification, inference, assumptions, and open questions.
-- Render Human PRD and Agent PRD from the contract.
-- Decompose execution-ready Agent PRD into task plans.
+- Convert raw ideas into a Stage 1 structured requirement table.
+- Record an auditable Stage 1 interaction decision before PRD rendering.
+- Guide clarification, inference, assumptions, and open questions without open-text questions.
+- Render Human PRD and Agent PRD from the requirement table and contract.
+- Gate Stage 3 on Human PRD approval.
+- Produce HLD from an approved Human PRD and execution-ready Agent PRD.
 - Provide validation guidance and a structural validator.
 
 ## Output Contract
 
-The expected generated package contains `contract-envelope.json`, `human-prd.md`, `agent-prd.md`, `execution-task-plan.json`, and `intake-notes.md`.
+The expected generated package contains `contract-envelope.json`, `human-prd.md`, `agent-prd.md`, `high-level-design.json`, and `intake-notes.md`. The contract must include `harness_workflow`, `interaction_decision`, and `requirement_table`; ready HLD must include required design sections and design gates.
 
 ## Non-Responsibilities
 
@@ -54,21 +60,21 @@ The expected generated package contains `contract-envelope.json`, `human-prd.md`
 | Product understanding | Thinking |
 | Contract construction | Thinking |
 | PRD rendering | Thinking |
-| Task decomposition | Thinking |
+| HLD drafting | Thinking |
 | Structural validation | Script |
 | Semantic quality | Thinking review |
 
 ## Input Contract
 
-Inputs are raw idea text, optional source notes, requested output target, and optional output directory. Missing facts must become questions, assumptions, stop conditions, or blocked gates.
+Inputs are raw idea text, optional source notes, requested output target, and optional output directory. Missing facts must become closed-form questions, assumptions, stop conditions, or blocked gates, and the Stage 1 route must be recorded in `interaction_decision`.
 
 ## Execution Contract
 
-Run intake, build canonical contract, render PRDs, plan tasks if allowed, then validate. Never write untraced facts into PRDs or tasks.
+Run Stage 1 requirement table intake, Stage 2 PRD rendering and Human PRD review, then Stage 3 HLD only after approval. Never write untraced facts into PRDs or HLD.
 
 ## Lifecycle Plan
 
-Design, implement runtime skill files, add fixtures, run validator, validate lifecycle artifacts, then optionally package for release.
+Design portable harness files, implement runtime skill adapter files, add fixtures, run validator, validate lifecycle artifacts, then optionally package for release.
 
 ## Done Criteria
 
@@ -84,7 +90,7 @@ Use `skill/scripts/validate_spec_intake_package.py` for structure, `tests/valida
 
 ## Trigger Design
 
-Trigger on raw idea intake, PRD creation, Human PRD, Agent PRD, execution task planning, and spec package generation.
+Trigger on raw idea intake, PRD creation, Human PRD, Agent PRD, HLD, and spec package generation.
 
 ## Boundary With skill-creator
 
@@ -96,7 +102,7 @@ Runtime files use UTF-8. Chinese is allowed where user-facing PRD rules require 
 
 ## Composition Notes
 
-The skill can be composed with downstream implementation skills after it emits an execution-ready Agent PRD and ready task plan.
+The skill can be composed with downstream implementation planning or development skills after it emits an execution-ready Agent PRD and ready HLD.
 
 ## Risks Or Open Questions
 

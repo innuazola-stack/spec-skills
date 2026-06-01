@@ -1,0 +1,43 @@
+name: development-planning
+version: 0.1.0
+kind: harness-workflow
+paradigm: review-gated-branching-dag-planning
+summary: Turn PRD/HLD/LLD documents under docs into a validated development task plan under tasks/development without writing product code.
+required_core_files:
+  - agent.md
+  - workflow.md
+  - rules.md
+portable_artifacts:
+  - tasks/development/development-planning.json
+  - tasks/development/<TASK-ID>/task.md
+  - tasks/development/<TASK-ID>/prompt.md
+  - tasks/development/<TASK-ID>/AGENTS.md
+  - tasks/development/<TASK-ID>/CLAUDE.md
+canonical_stage_order:
+  - stage_1_overall_planning
+  - stage_2_independent_task_formation
+  - stage_3_task_logic_review
+  - stage_4_plan_integrity_review
+validators:
+  - validators/validate_harness.py
+  - validators/validate_development_planning_package.py
+  - tools/validate_skill_static.py
+schemas:
+  - schemas/development-planning.schema.json
+adapters:
+  codex:
+    entry: adapters/codex/SKILL.md
+    runtime_package_entry: skill/SKILL.md
+evals:
+  cases_dir: evals/cases
+done_requires:
+  - planning_only_boundary
+  - source_inventory_present
+  - four_phase_reports_present
+  - task_logic_review_passes_for_ready_plan
+  - plan_integrity_review_passes_for_ready_plan
+  - dag_acyclic_for_ready_plan
+  - final_delivery_acceptance_task_present
+  - task_descriptions_and_fixtures_present_for_ready_tasks
+  - generated_planning_package_validator_pass
+  - validator_pass
